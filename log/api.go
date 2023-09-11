@@ -105,3 +105,16 @@ func SetLogger(lg *Logger) {
 	// Recover
 	Recover = DefaultLogger.Recover
 }
+
+// Header 返回日志头格式化函数
+// name: fileName/filePath/default
+func Header(name string) FormatHeader {
+	switch name {
+	case "fileName":
+		return FileNameHeader
+	case "filePath":
+		return FilePathHeader
+	default:
+		return DefaultHeader
+	}
+}
