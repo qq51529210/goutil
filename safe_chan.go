@@ -66,9 +66,11 @@ func NewSignal() *Signal {
 	return s
 }
 
-// Close 关闭
-func (s *Signal) Close() {
+// Close 关闭，第一次关闭返回 true
+func (s *Signal) Close() bool {
 	if atomic.CompareAndSwapInt32(&s.o, 0, 1) {
 		close(s.C)
+		return true
 	}
+	return false
 }

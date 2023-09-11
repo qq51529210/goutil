@@ -41,8 +41,8 @@ func NewLogger(writer io.Writer, header FormatHeader, name string) *Logger {
 	return lg
 }
 
-// DisableLevel 禁用级别，[debug,info,warn,error]
-func (lg *Logger) DisableLevel(levels []string) {
+// DisableLevels 禁用级别，[debug,info,warn,error]
+func (lg *Logger) DisableLevels(levels []string) {
 	for i := 0; i < len(levels); i++ {
 		switch levels[i] {
 		case "debug":
