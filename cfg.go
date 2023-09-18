@@ -13,7 +13,11 @@ import (
 )
 
 // ReadCfg 读取第一个运行参数
-func ReadCfg(uri string, ptr any) error {
+func ReadCfg(ptr any) error {
+	uri := "app.cfg"
+	if len(os.Args) > 1 {
+		uri = os.Args[1]
+	}
 	_u, err := url.Parse(uri)
 	if err != nil {
 		return err
