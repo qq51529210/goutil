@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"util/log"
 
 	"gopkg.in/yaml.v3"
 )
@@ -83,4 +84,40 @@ func ReadYAMLCfg(path string, ptr any) error {
 	defer file.Close()
 	// 解析
 	return yaml.NewDecoder(file).Decode(ptr)
+}
+
+// LogCfg 日志的配置
+type LogCfg struct {
+	log.FileConfig `yaml:",inline"`
+	// 标识名称
+	Name string `json:"name" yaml:"name" validate:"required,max=32"`
+	// 日志头格式
+	HeaderFormat string `json:"headerFormat" yaml:"headerFormat" validate:"omitempty,oneof=default fileName filePath"`
+	// 禁用的日志级别
+	DisableLevel []string `json:"disableLevel" yaml:"disableLevel" validate:"omitempty,dive,oneof=all debug info warn error"`
+}
+
+// Init 初始化文件日志
+func (c *LogCfg) Init() error {
+	file, err := log.NewFile(&c.FileConfig)
+	if err != nil {
+		return err
+	}
+	logger := log.NewLogger(file, log.Header(c.HeaderFormat), c.Name)
+	logger.DisableLevels(c.DisableLevel)
+	log.SetLogger(logger)
+	//
+	return nil
+}
+
+// SerCfg 服务配置
+type SerCfg struct {
+	// 监听地址
+	Addr string `json:"addr" yaml:"addr" validate:"required"`
+	// 证书路径
+	CertFile string `json:"certFile" yaml:"certFile" validate:"filepath"`
+	// 证书路径
+	KeyFile string `json:"keyFile" yaml:"keyFile" validate:"filepath"`
+	// 日志配置
+	Log LogCfg `json:"log" yaml:"log"`
 }
