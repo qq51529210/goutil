@@ -13,12 +13,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// ReadCfg 读取第一个运行参数
+// ReadCfg 读取配置，如果没有入参，则读取与 app 同目录下的 cfg.yaml
 func ReadCfg(ptr any) error {
-	uri := "app.cfg"
+	// 默认是 app.cfg
+	var uri string
 	if len(os.Args) > 1 {
 		uri = os.Args[1]
+	} else {
+		p, err := filepath.Abs(os.Args[0])
+		if err != nil {
+			return err
+		}
+		uri = filepath.Join(filepath.Dir(p), "cfg.yaml")
 	}
+	//
 	_u, err := url.Parse(uri)
 	if err != nil {
 		return err
