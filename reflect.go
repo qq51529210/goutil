@@ -49,93 +49,81 @@ func isStructNilOrEmpty(v reflect.Value) bool {
 	return true
 }
 
-// CopyStruct 拷贝 src 和 dst 中的相同名称和类型的字段，
-// 如果 dst 的字段不是零值则不拷贝。
-func CopyStruct(dst, src any) {
+func copyStructCheck(dst, src any) (dstVal, srcVal reflect.Value) {
 	// dst
-	dstVal := reflect.ValueOf(dst)
+	dstVal = reflect.ValueOf(dst)
 	if dstVal.Kind() != reflect.Pointer {
 		panic("dst must be pointer")
 	}
-	dstElem := dstVal.Elem()
-	if dstElem.Kind() != reflect.Struct {
+	dstVal = dstVal.Elem()
+	if dstVal.Kind() != reflect.Struct {
 		panic("dst must be struct pointer")
 	}
 	// src
-	srcVal := reflect.ValueOf(src)
+	srcVal = reflect.ValueOf(src)
 	if srcVal.Kind() != reflect.Pointer {
 		panic("src must be pointer")
 	}
-	srcElem := srcVal.Elem()
-	if srcElem.Kind() != reflect.Struct {
+	srcVal = srcVal.Elem()
+	if srcVal.Kind() != reflect.Struct {
 		panic("src must be struct pointer")
 	}
-	copyStruct(dstElem, srcElem)
+	//
+	return
+}
+
+// CopyStruct 拷贝 src 和 dst 中的相同名称和类型的字段，
+// 如果 dst 的字段不是零值则不拷贝。
+func CopyStruct(dst, src any) {
+	copyStruct(copyStructCheck(dst, src))
 }
 
 // copyStruct 封装 CopyStruct 代码
 func copyStruct(dst, src reflect.Value) {
-	// type
+	// 结构类型
 	srcType := src.Type()
 	for i := 0; i < srcType.NumField(); i++ {
-		// 相同名称
 		srcField := src.Field(i)
+		// src 零值
 		if !srcField.IsValid() || srcField.IsZero() {
 			continue
 		}
 		srcTypeField := srcType.Field(i)
+		// dst 同名字段
 		dstField := dst.FieldByName(srcTypeField.Name)
-		if !dstField.IsValid() {
+		// dst 不为零
+		if !dstField.IsValid() || !dstField.CanSet() || !dstField.IsZero() {
 			continue
 		}
 		dstFieldType := dstField.Type()
-		// 检查类型
+		// 不同类型
 		if srcTypeField.Type != dstFieldType {
 			srcFieldKind := srcField.Kind()
-			dstFieldKind := dstField.Kind()
 			// 看看是不是结构体
 			if srcFieldKind == reflect.Pointer {
 				srcField = srcField.Elem()
 				srcFieldKind = srcField.Kind()
 			}
+			dstFieldKind := dstField.Kind()
 			if dstFieldKind == reflect.Pointer {
 				dstField = dstField.Elem()
 				dstFieldKind = dstField.Kind()
 			}
+			// 都是结构体，进去赋值
 			if srcFieldKind == reflect.Struct && dstFieldKind == reflect.Struct {
 				copyStruct(dstField, srcField)
 			}
+			// 不是就算了
 			continue
 		}
-		if !dstField.CanSet() || !dstField.IsZero() {
-			continue
-		}
-		// 赋值
+		// 相同类型，赋值
 		dstField.Set(srcField)
 	}
 }
 
 // CopyStructAll 拷贝 src 和 dst 中的相同名称和类型的字段
 func CopyStructAll(dst, src any) {
-	// dst
-	dstVal := reflect.ValueOf(dst)
-	if dstVal.Kind() != reflect.Pointer {
-		panic("dst must be pointer")
-	}
-	dstElem := dstVal.Elem()
-	if dstElem.Kind() != reflect.Struct {
-		panic("dst must be struct pointer")
-	}
-	// src
-	srcVal := reflect.ValueOf(src)
-	if srcVal.Kind() != reflect.Pointer {
-		panic("src must be pointer")
-	}
-	srcElem := srcVal.Elem()
-	if srcElem.Kind() != reflect.Struct {
-		panic("src must be struct pointer")
-	}
-	copyStructAll(dstElem, srcElem)
+	copyStructAll(copyStructCheck(dst, src))
 }
 
 // copyStructAll 封装 CopyStructAll 代码
@@ -143,39 +131,82 @@ func copyStructAll(dst, src reflect.Value) {
 	// type
 	srcType := src.Type()
 	for i := 0; i < srcType.NumField(); i++ {
-		// 相同名称
 		srcField := src.Field(i)
-		if !srcField.IsValid() || srcField.IsZero() {
+		if !srcField.IsValid() {
 			continue
 		}
 		srcTypeField := srcType.Field(i)
 		dstField := dst.FieldByName(srcTypeField.Name)
-		if !dstField.IsValid() {
+		if !dstField.IsValid() || !dstField.CanSet() {
 			continue
 		}
 		dstFieldType := dstField.Type()
-		// 检查类型
+		// 不同类型
 		if srcTypeField.Type != dstFieldType {
 			srcFieldKind := srcField.Kind()
-			dstFieldKind := dstField.Kind()
 			// 看看是不是结构体
 			if srcFieldKind == reflect.Pointer {
 				srcField = srcField.Elem()
 				srcFieldKind = srcField.Kind()
 			}
+			dstFieldKind := dstField.Kind()
 			if dstFieldKind == reflect.Pointer {
 				dstField = dstField.Elem()
 				dstFieldKind = dstField.Kind()
 			}
+			// 都是结构体，进去赋值
 			if srcFieldKind == reflect.Struct && dstFieldKind == reflect.Struct {
-				copyStruct(dstField, srcField)
+				copyStructAll(dstField, srcField)
 			}
 			continue
 		}
-		if !dstField.CanSet() {
+		// 相同类型，赋值
+		dstField.Set(srcField)
+	}
+}
+
+// CopyStructNotEmpty 拷贝 src 和 dst 中的相同名称和类型的字段
+// src 为零值不拷贝，dst 不为零值，也拷贝哦
+func CopyStructNotEmpty(dst, src any) {
+	copyStructNotEmpty(copyStructCheck(dst, src))
+}
+
+func copyStructNotEmpty(dst, src reflect.Value) {
+	// type
+	srcType := src.Type()
+	for i := 0; i < srcType.NumField(); i++ {
+		srcField := src.Field(i)
+		// src 零值
+		if !srcField.IsValid() || srcField.IsZero() {
 			continue
 		}
-		// 赋值
+		srcTypeField := srcType.Field(i)
+		dstField := dst.FieldByName(srcTypeField.Name)
+		if !dstField.IsValid() || !dstField.CanSet() {
+			continue
+		}
+		dstFieldType := dstField.Type()
+		// 不同类型
+		if srcTypeField.Type != dstFieldType {
+			srcFieldKind := srcField.Kind()
+			// 看看是不是结构体
+			if srcFieldKind == reflect.Pointer {
+				srcField = srcField.Elem()
+				srcFieldKind = srcField.Kind()
+			}
+			dstFieldKind := dstField.Kind()
+			if dstFieldKind == reflect.Pointer {
+				dstField = dstField.Elem()
+				dstFieldKind = dstField.Kind()
+			}
+			// 都是结构体，进去赋值
+			if srcFieldKind == reflect.Struct && dstFieldKind == reflect.Struct {
+				copyStructNotEmpty(dstField, srcField)
+			}
+			// 不是就算了
+			continue
+		}
+		// 相同类型，赋值
 		dstField.Set(srcField)
 	}
 }
@@ -250,4 +281,67 @@ func structToMapIgnore(vVal reflect.Value) map[string]any {
 		}
 	}
 	return result
+}
+
+// StructDiffFieldsIgnore 找出 v1 和 v2 中不同值的字段，然后返回 v2 的值
+// 忽略零值字段
+// v1 和 v2 必须是同一种类型结构，判断一层
+func StructDiffFieldsIgnore(v1, v2 any) map[string]any {
+	// v1
+	v1Val := reflect.ValueOf(v1)
+	v1Kind := v1Val.Kind()
+	if v1Kind == reflect.Pointer {
+		v1Val = v1Val.Elem()
+		v1Kind = v1Val.Kind()
+	}
+	if v1Kind != reflect.Struct {
+		panic("v1 must be struct")
+	}
+	// v2
+	v2Val := reflect.ValueOf(v2)
+	v2Kind := v2Val.Kind()
+	if v2Kind == reflect.Pointer {
+		v2Val = v2Val.Elem()
+		v2Kind = v2Val.Kind()
+	}
+	if v2Kind != reflect.Struct {
+		panic("v2 must be struct")
+	}
+	// 同一类型
+	if v1Val.Type() != v2Val.Type() {
+		panic("v1 v2 must be same type")
+	}
+	//
+	return structDiffFieldsIgnore(v1Val, v2Val, make(map[string]any))
+}
+
+// structDiffFields 封装 StructDiffFields 的代码
+func structDiffFieldsIgnore(v1, v2 reflect.Value, m map[string]any) map[string]any {
+	_type := v1.Type()
+	for i := 0; i < _type.NumField(); i++ {
+		v1Field, v2Field := v1.Field(i), v2.Field(i)
+		if !v1Field.IsValid() || !v2Field.IsValid() || v2Field.IsZero() {
+			continue
+		}
+		kind := v1Field.Kind()
+		if v1Field.Kind() == reflect.Pointer {
+			v1Field = v1Field.Elem()
+			v2Field = v2Field.Elem()
+		}
+		kind = v1Field.Kind()
+		if kind == reflect.Struct {
+			structDiffFieldsIgnore(v1Field, v2Field, m)
+		} else {
+			v1Value := v1Field.Interface()
+			v2Value := v2Field.Interface()
+			if (kind >= reflect.Bool && kind <= reflect.Uint64) ||
+				kind == reflect.Float32 || kind == reflect.Float64 ||
+				kind == reflect.String {
+				if v1Value != v2Value {
+					m[_type.Field(i).Name] = v2Value
+				}
+			}
+		}
+	}
+	return m
 }
