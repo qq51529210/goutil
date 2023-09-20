@@ -12,34 +12,11 @@ import (
 	"time"
 )
 
-// HTTPError 表示 JSON 错误
-type HTTPError struct {
-	Phrase string
-	Detail string
-}
-
-func (e *HTTPError) Error() string {
-	return fmt.Sprintf("phrase: %s, detail: %s", e.Phrase, e.Detail)
-}
-
 // HTTPStatusError 表示状态错误
 type HTTPStatusError int
 
 func (e HTTPStatusError) Error() string {
 	return fmt.Sprintf("status code %d", e)
-}
-
-// HTTPStatusErrorHandle 判断状态码
-func HTTPStatusErrorHandle(res *http.Response, code int) error {
-	if res.StatusCode != code {
-		e := new(HTTPError)
-		err := json.NewDecoder(res.Body).Decode(e)
-		if err != nil {
-			return err
-		}
-		return e
-	}
-	return nil
 }
 
 var (
@@ -96,7 +73,7 @@ func httpQuery(v reflect.Value, q url.Values) url.Values {
 		if tn == "" || tn == "-" {
 			continue
 		}
-		q.Set(tn, fmt.Sprintf("%v", fv.Interface()))
+		q.Add(tn, fmt.Sprintf("%v", fv.Interface()))
 	}
 	return q
 }
