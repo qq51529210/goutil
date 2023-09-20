@@ -76,13 +76,6 @@ type Set[K comparable] struct {
 	D map[K]struct{}
 }
 
-// NewSet 创建
-func NewSet[K comparable]() *Set[K] {
-	s := new(Set[K])
-	s.Init()
-	return s
-}
-
 // Init 初始化
 func (s *Set[K]) Init() {
 	s.D = make(map[K]struct{})
