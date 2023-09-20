@@ -324,7 +324,7 @@ func structDiffFieldsIgnore(v1, v2 reflect.Value, m map[string]any) map[string]a
 			continue
 		}
 		kind := v1Field.Kind()
-		if v1Field.Kind() == reflect.Pointer {
+		if kind == reflect.Pointer {
 			v1Field = v1Field.Elem()
 			v2Field = v2Field.Elem()
 		}

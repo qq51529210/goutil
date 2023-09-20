@@ -97,8 +97,6 @@ func ReadYAMLCfg(path string, ptr any) error {
 // LogCfg 日志的配置
 type LogCfg struct {
 	log.FileConfig `yaml:",inline"`
-	// 标识名称
-	Name string `json:"name" yaml:"name" validate:"required,max=32"`
 	// 日志头格式
 	HeaderFormat string `json:"headerFormat" yaml:"headerFormat" validate:"omitempty,oneof=default fileName filePath"`
 	// 禁用的日志级别
@@ -106,12 +104,12 @@ type LogCfg struct {
 }
 
 // Init 初始化文件日志
-func (c *LogCfg) Init() error {
+func (c *LogCfg) Init(name string) error {
 	file, err := log.NewFile(&c.FileConfig)
 	if err != nil {
 		return err
 	}
-	logger := log.NewLogger(file, log.Header(c.HeaderFormat), c.Name)
+	logger := log.NewLogger(file, log.Header(c.HeaderFormat), name)
 	logger.DisableLevels(c.DisableLevel)
 	log.SetLogger(logger)
 	//
