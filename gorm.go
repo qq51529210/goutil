@@ -244,11 +244,11 @@ type GORMTime struct {
 // GORMPageQuery 分页查询参数
 type GORMPageQuery struct {
 	// 偏移，小于 0 不匹配
-	Offset *int `form:"offset" binding:"omitempty,min=0"`
+	Offset *int `json:"offset,omitempty" form:"offset" binding:"omitempty,min=0"`
 	// 条数，小于 1 不匹配
-	Count *int `form:"count" binding:"omitempty,min=1"`
+	Count *int `json:"count,omitempty" form:"count" binding:"omitempty,min=1"`
 	// 排序，"column [desc]"
-	Order string `form:"order"`
+	Order string `json:"order,omitempty" form:"order"`
 }
 
 // GORMPageResult 是 GORMPage 的返回值
