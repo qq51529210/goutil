@@ -111,9 +111,7 @@ type SerCfg struct {
 	// 监听地址
 	Addr string `json:"addr" yaml:"addr" validate:"required"`
 	// 证书路径
-	CertFile string `json:"certFile" yaml:"certFile" validate:"filepath"`
+	CertFile string `json:"certFile" yaml:"certFile" validate:"omitempty,filepath"`
 	// 证书路径
-	KeyFile string `json:"keyFile" yaml:"keyFile" validate:"filepath"`
-	// 日志配置
-	Log LogCfg `json:"log" yaml:"log"`
+	KeyFile string `json:"keyFile" yaml:"keyFile" validate:"omitempty,filepath"`
 }
