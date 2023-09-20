@@ -293,10 +293,10 @@ func GORMPage[M any](db *gorm.DB, page *GORMPageQuery, res *GORMPageResult[M]) e
 }
 
 // GORMAll 用于查询全部
-func GORMAll[M any](db *gorm.DB, query GORMQuery) (ms []M, err error) {
+func GORMAll[M any](db *gorm.DB, query any) (ms []M, err error) {
 	// 查询条件
 	if query != nil {
-		db = query.Init(db)
+		db = InitGORMQuery(db, query)
 	}
 	// 查询
 	err = db.Scan(&ms).Error
