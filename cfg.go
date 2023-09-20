@@ -26,7 +26,7 @@ func ReadCfg(ptr any) error {
 		}
 		uri = filepath.Join(filepath.Dir(p), "cfg.yaml")
 	}
-	//
+	// 不同方式加载
 	_u, err := url.Parse(uri)
 	if err != nil {
 		return err
