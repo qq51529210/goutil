@@ -11,62 +11,62 @@ type Slice[K comparable] struct {
 }
 
 // Init 初始化
-func (s *Slice[K]) Init() {
-	s.D = make([]K, 0)
+func (p *Slice[K]) Init() {
+	p.D = make([]K, 0)
 }
 
 // Set 设置，存在返回 false
-func (s *Slice[K]) Set(k K) bool {
+func (p *Slice[K]) Set(k K) bool {
 	ok := false
-	s.Lock()
-	for i := 0; i < len(s.D); i++ {
-		if s.D[i] == k {
+	p.Lock()
+	for i := 0; i < len(p.D); i++ {
+		if p.D[i] == k {
 			ok = true
 			break
 		}
 	}
-	s.Unlock()
+	p.Unlock()
 	//
 	if !ok {
-		s.D = append(s.D, k)
+		p.D = append(p.D, k)
 	}
 	return !ok
 }
 
 // Has 是否存在
-func (s *Slice[K]) Has(k K) bool {
+func (p *Slice[K]) Has(k K) bool {
 	ok := false
-	s.RLock()
-	for i := 0; i < len(s.D); i++ {
-		if s.D[i] == k {
+	p.RLock()
+	for i := 0; i < len(p.D); i++ {
+		if p.D[i] == k {
 			ok = true
 			break
 		}
 	}
-	s.RUnlock()
+	p.RUnlock()
 	return ok
 }
 
 // Del 移除
-func (s *Slice[K]) Del(k K) {
-	s.Lock()
-	for i := 0; i < len(s.D); i++ {
-		if s.D[i] == k {
-			s.D = append(s.D[:i], s.D[i+1:]...)
+func (p *Slice[K]) Del(k K) {
+	p.Lock()
+	for i := 0; i < len(p.D); i++ {
+		if p.D[i] == k {
+			p.D = append(p.D[:i], p.D[i+1:]...)
 			break
 		}
 	}
-	s.Unlock()
+	p.Unlock()
 }
 
 // Copy 返回拷贝
-func (s *Slice[K]) Copy() []K {
+func (p *Slice[K]) Copy() []K {
 	var k []K
-	s.RLock()
-	for i := 0; i < len(s.D); i++ {
-		k = append(k, s.D[i])
+	p.RLock()
+	for i := 0; i < len(p.D); i++ {
+		k = append(k, p.D[i])
 	}
-	s.RUnlock()
+	p.RUnlock()
 	return k
 }
 
@@ -77,50 +77,50 @@ type Set[K comparable] struct {
 }
 
 // Init 初始化
-func (s *Set[K]) Init() {
-	s.D = make(map[K]struct{})
+func (p *Set[K]) Init() {
+	p.D = make(map[K]struct{})
 }
 
 // Set 设置
-func (s *Set[K]) Set(k K) {
-	s.Lock()
-	s.D[k] = struct{}{}
-	s.Unlock()
+func (p *Set[K]) Set(k K) {
+	p.Lock()
+	p.D[k] = struct{}{}
+	p.Unlock()
 }
 
 // TrySet 尝试设置，存在返回 false
-func (s *Set[K]) TrySet(k K) bool {
-	s.Lock()
-	_, ok := s.D[k]
+func (p *Set[K]) TrySet(k K) bool {
+	p.Lock()
+	_, ok := p.D[k]
 	if !ok {
-		s.D[k] = struct{}{}
+		p.D[k] = struct{}{}
 	}
-	s.Unlock()
+	p.Unlock()
 	return !ok
 }
 
 // Has 是否存在
-func (s *Set[K]) Has(k K) bool {
-	s.RLock()
-	_, ok := s.D[k]
-	s.RUnlock()
+func (p *Set[K]) Has(k K) bool {
+	p.RLock()
+	_, ok := p.D[k]
+	p.RUnlock()
 	return ok
 }
 
 // Del 移除
-func (s *Set[K]) Del(k K) {
-	s.Lock()
-	delete(s.D, k)
-	s.Unlock()
+func (p *Set[K]) Del(k K) {
+	p.Lock()
+	delete(p.D, k)
+	p.Unlock()
 }
 
 // Keys 返回所有键
-func (s *Set[K]) Keys() (k []K) {
-	s.RLock()
-	for d := range s.D {
+func (p *Set[K]) Keys() (k []K) {
+	p.RLock()
+	for d := range p.D {
 		k = append(k, d)
 	}
-	s.RUnlock()
+	p.RUnlock()
 	return
 }
 
@@ -133,59 +133,149 @@ type Map[K comparable, V any] struct {
 }
 
 // Init 初始化
-func (m *Map[K, V]) Init() {
-	m.D = make(map[K]V)
+func (p *Map[K, V]) Init() {
+	p.D = make(map[K]V)
 }
 
 // Set 设置
-func (m *Map[K, V]) Set(k K, v V) {
-	m.Lock()
-	m.D[k] = v
-	m.Unlock()
+func (p *Map[K, V]) Set(k K, v V) {
+	p.Lock()
+	p.D[k] = v
+	p.Unlock()
 }
 
 // TrySet 尝试设置，存在返回 false
-func (m *Map[K, V]) TrySet(k K, v V) bool {
-	m.Lock()
-	_, ok := m.D[k]
+func (p *Map[K, V]) TrySet(k K, v V) bool {
+	p.Lock()
+	_, ok := p.D[k]
 	if !ok {
-		m.D[k] = v
+		p.D[k] = v
 	}
-	m.Unlock()
+	p.Unlock()
 	return !ok
 }
 
 // Get 返回
-func (m *Map[K, V]) Get(k K) (v V) {
-	m.RLock()
-	v = m.D[k]
-	m.RUnlock()
+func (p *Map[K, V]) Get(k K) (v V) {
+	p.RLock()
+	v = p.D[k]
+	p.RUnlock()
 	return v
 }
 
 // Del 移除
-func (m *Map[K, V]) Del(k K) {
-	m.Lock()
-	delete(m.D, k)
-	m.Unlock()
+func (p *Map[K, V]) Del(k K) {
+	p.Lock()
+	delete(p.D, k)
+	p.Unlock()
 }
 
 // Values 返回所有值
-func (m *Map[K, V]) Values() (v []V) {
-	m.RLock()
-	for _, d := range m.D {
+func (p *Map[K, V]) Values() (v []V) {
+	p.RLock()
+	for _, d := range p.D {
 		v = append(v, d)
 	}
-	m.RUnlock()
+	p.RUnlock()
 	return
 }
 
 // Keys 返回所有键
-func (m *Map[K, V]) Keys() (k []K) {
-	m.RLock()
-	for d := range m.D {
+func (p *Map[K, V]) Keys() (k []K) {
+	p.RLock()
+	for d := range p.D {
 		k = append(k, d)
 	}
-	m.RUnlock()
+	p.RUnlock()
 	return
+}
+
+// MapSlice 封装同步的 map + slice
+type MapSlice[K comparable, V any] struct {
+	// 同步锁
+	sync.RWMutex
+	// map 数据
+	D map[K]V
+	// slice 数据
+	S []V
+}
+
+// Init 初始化
+func (p *MapSlice[K, V]) Init() {
+	p.D = make(map[K]V)
+}
+
+// All 返回所有
+func (p *MapSlice[K, V]) All() []V {
+	p.RLock()
+	a := p.S
+	p.RUnlock()
+	return a
+}
+
+// Set 添加
+func (p *MapSlice[K, V]) Set(k K, v V) {
+	p.Lock()
+	p.D[k] = v
+	p.resetSlice()
+	p.Unlock()
+}
+
+// TrySet 尝试设置，存在返回 false
+func (p *MapSlice[K, V]) TrySet(k K, v V) bool {
+	p.Lock()
+	_, ok := p.D[k]
+	if !ok {
+		p.D[k] = v
+		p.resetSlice()
+	}
+	p.Unlock()
+	return !ok
+}
+
+// Get 返回
+func (p *MapSlice[K, V]) Get(k K) (v V) {
+	p.RLock()
+	v = p.D[k]
+	p.RUnlock()
+	return v
+}
+
+// Del 删除
+func (p *MapSlice[K, V]) Del(k K) {
+	p.Lock()
+	n := len(p.D)
+	delete(p.D, k)
+	if n != len(p.D) {
+		p.resetSlice()
+	}
+	p.Unlock()
+}
+
+// Values 返回所有值
+func (p *MapSlice[K, V]) Values() (v []V) {
+	p.RLock()
+	for _, d := range p.D {
+		v = append(v, d)
+	}
+	p.RUnlock()
+	return
+}
+
+// Keys 返回所有键
+func (p *MapSlice[K, V]) Keys() (k []K) {
+	p.RLock()
+	for d := range p.D {
+		k = append(k, d)
+	}
+	p.RUnlock()
+	return
+}
+
+// resetSlice 重置切片
+func (p *MapSlice[K, V]) resetSlice() {
+	p.S = p.S[:0]
+	for _, v := range p.D {
+		p.S = append(p.S, v)
+	}
 }
