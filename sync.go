@@ -217,7 +217,7 @@ func (p *MapSlice[K, V]) All() []V {
 func (p *MapSlice[K, V]) Set(k K, v V) {
 	p.Lock()
 	p.D[k] = v
-	p.resetSlice()
+	p.ResetSlice()
 	p.Unlock()
 }
 
@@ -227,7 +227,7 @@ func (p *MapSlice[K, V]) TrySet(k K, v V) bool {
 	_, ok := p.D[k]
 	if !ok {
 		p.D[k] = v
-		p.resetSlice()
+		p.ResetSlice()
 	}
 	p.Unlock()
 	return !ok
@@ -247,7 +247,7 @@ func (p *MapSlice[K, V]) Del(k K) {
 	n := len(p.D)
 	delete(p.D, k)
 	if n != len(p.D) {
-		p.resetSlice()
+		p.ResetSlice()
 	}
 	p.Unlock()
 }
@@ -272,8 +272,8 @@ func (p *MapSlice[K, V]) Keys() (k []K) {
 	return
 }
 
-// resetSlice 重置切片
-func (p *MapSlice[K, V]) resetSlice() {
+// ResetSlice 重置切片，没有锁
+func (p *MapSlice[K, V]) ResetSlice() {
 	p.S = p.S[:0]
 	for _, v := range p.D {
 		p.S = append(p.S, v)
