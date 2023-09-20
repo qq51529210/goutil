@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"time"
 )
 
 // HTTPStatusError 表示状态错误
@@ -88,16 +87,21 @@ type HTTPClient[reqData any] struct {
 	OnRes func(*http.Response) error
 }
 
-// DoWithContext 发送请求，query 使用 HTTPQuery 来组成参数
-func (c *HTTPClient[reqData]) Do(method string, query any, reqBody *reqData, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	return c.DoWithContext(ctx, method, query, reqBody)
+// Do 发送请求
+func (c *HTTPClient[reqData]) Do(ctx context.Context, method string, query url.Values, reqBody *reqData) error {
+	return HTTPWithContext[reqData](ctx, c.C, method, c.URL, query, reqBody, c.OnRes)
 }
 
-// DoWithContext 发送请求，query 使用 HTTPQuery 来组成参数
-func (c *HTTPClient[reqData]) DoWithContext(ctx context.Context, method string, query any, reqBody *reqData) error {
-	// 请求 body
+// HTTPWithContext 封装 http 操作
+// ctx 超时上下文
+// client 使用的客户端
+// method 方法
+// url 请求地址
+// query 请求参数
+// reqBody 格式化 json 后写入 body
+// onResponse 处理结果
+func HTTPWithContext[reqData any](ctx context.Context, client *http.Client, method, url string, query url.Values, reqBody *reqData, onResponse func(res *http.Response) error) error {
+	// body
 	var body io.Reader = nil
 	if reqBody != nil {
 		buf := bytes.NewBuffer(nil)
@@ -105,20 +109,27 @@ func (c *HTTPClient[reqData]) DoWithContext(ctx context.Context, method string, 
 		body = buf
 	}
 	// 请求
-	req, err := http.NewRequestWithContext(ctx, method, c.URL, body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return err
 	}
 	// 参数
 	if query != nil {
-		req.URL.RawQuery = HTTPQuery(query, req.URL.Query()).Encode()
+		q := req.URL.Query()
+		for k, vs := range query {
+			for _, v := range vs {
+				q.Add(k, v)
+			}
+		}
+		req.URL.RawQuery = q.Encode()
 	}
 	// 发送
-	res, err := http.DefaultClient.Do(req)
+	req = req.WithContext(ctx)
+	res, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer res.Body.Close()
 	// 回调
-	return c.OnRes(res)
+	return onResponse(res)
 }
