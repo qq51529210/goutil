@@ -133,3 +133,19 @@ func HTTPWithContext[reqData any](ctx context.Context, client *http.Client, meth
 	// 回调
 	return onResponse(res)
 }
+
+// HTTPServer 封装代码
+type HTTPServer struct {
+	S http.Server
+	// 证书路径
+	CertFile string
+	KeyFile  string
+}
+
+// Serve 如果证书路径不为空，监听 tls
+func (s *HTTPServer) Serve() error {
+	if s.CertFile != "" && s.KeyFile != "" {
+		return s.S.ListenAndServeTLS(s.CertFile, s.KeyFile)
+	}
+	return s.S.ListenAndServe()
+}
