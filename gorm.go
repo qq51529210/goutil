@@ -251,11 +251,6 @@ type GORMPageQuery struct {
 	Order string `form:"order"`
 }
 
-// GORMQuery 是 All 函数格式化查询参数的接口
-type GORMQuery interface {
-	Init(*gorm.DB) *gorm.DB
-}
-
 // GORMPageResult 是 GORMPage 的返回值
 type GORMPageResult[M any] struct {
 	// 总数
