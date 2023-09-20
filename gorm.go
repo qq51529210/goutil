@@ -297,3 +297,38 @@ func GORMAll[M any](db *gorm.DB, query any) (ms []M, err error) {
 	err = db.Scan(&ms).Error
 	return
 }
+
+// GORMDA 封装访问
+type GORMDA[K, M any] struct {
+	DB *gorm.DB
+	M  M
+}
+
+// Add 添加
+func (g *GORMDA[K, M]) Add(ctx context.Context, m M) (int64, error) {
+	db := g.DB.WithContext(ctx).Create(m)
+	return db.RowsAffected, db.Error
+}
+
+// Update 更新
+func (g *GORMDA[K, M]) Update(ctx context.Context, m M) (int64, error) {
+	db := g.DB.WithContext(ctx).Updates(m)
+	return db.RowsAffected, db.Error
+}
+
+// Get 获取
+func (g *GORMDA[K, M]) Get(ctx context.Context, m M) error {
+	return g.DB.WithContext(ctx).Scan(m).Error
+}
+
+// Delete 删除
+func (g *GORMDA[K, M]) Delete(ctx context.Context, k K) (int64, error) {
+	db := g.DB.WithContext(ctx).Where("`ID`=?", k).Delete(g.M)
+	return db.RowsAffected, db.Error
+}
+
+// BatchDelete 删除
+func (g *GORMDA[K, M]) BatchDelete(ctx context.Context, k []K) (int64, error) {
+	db := g.DB.WithContext(ctx).Where("`ID` IN ?", k).Delete(g.M)
+	return db.RowsAffected, db.Error
+}
