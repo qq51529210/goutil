@@ -121,7 +121,7 @@ func (c *LogCfg) Init() error {
 // SerCfg 服务配置
 type SerCfg struct {
 	// 监听地址
-	Addr string `json:"addr" yaml:"addr" validate:"required"`
+	Addr string `json:"addr" yaml:"addr" validate:"required,tcp_addr"`
 	// 证书路径
 	CertFile string `json:"certFile" yaml:"certFile" validate:"omitempty,filepath"`
 	// 证书路径
