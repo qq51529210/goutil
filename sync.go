@@ -252,6 +252,19 @@ func (p *MapSlice[K, V]) Del(k K) {
 	p.Unlock()
 }
 
+// BatchDel 批量删除
+func (p *MapSlice[K, V]) BatchDel(k []K) {
+	p.Lock()
+	n := len(p.D)
+	for i := 0; i < len(k); i++ {
+		delete(p.D, k[i])
+	}
+	if n != len(p.D) {
+		p.ResetSlice()
+	}
+	p.Unlock()
+}
+
 // Values 返回所有值
 func (p *MapSlice[K, V]) Values() (v []V) {
 	p.RLock()
