@@ -3,7 +3,6 @@ package zlm
 import (
 	"context"
 	"fmt"
-	"net/netip"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -72,8 +71,8 @@ type Server struct {
 	historySSRC ssrcPool
 	// 是否有更新
 	isUpdated bool
-	// 负载
-	load int32
+	// 总播放人数
+	player int
 }
 
 // IsOK 返回 s 是否可用
@@ -201,197 +200,197 @@ type servers struct {
 	t *time.Timer
 }
 
-// init 初始化
-func (ss *servers) init() error {
-	// 数据库
-	var q db.ServerQuery
-	q.Enable = &db.True
-	ms, err := db.AllServer(context.Background(), &q)
-	if err != nil {
-		return err
-	}
-	// 内存
-	ss.D = make(map[string]*Server)
-	for _, m := range ms {
-		ss.D[m.ID] = ss.new(m)
-	}
-	ss.resetSlice()
-	// 计时器
-	ss.t = time.NewTimer(ss.d)
-	// 检查协程
-	go ss.checkServerRoutine()
-	// 更新数据库协程
-	go ss.updateDBRoutine()
-	//
-	return nil
-}
+// // init 初始化
+// func (ss *servers) init() error {
+// 	// 数据库
+// 	var q db.ServerQuery
+// 	q.Enable = &db.True
+// 	ms, err := db.AllServer(context.Background(), &q)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// 内存
+// 	ss.D = make(map[string]*Server)
+// 	for _, m := range ms {
+// 		ss.D[m.ID] = ss.new(m)
+// 	}
+// 	ss.resetSlice()
+// 	// 计时器
+// 	ss.t = time.NewTimer(ss.d)
+// 	// 检查协程
+// 	go ss.checkServerRoutine()
+// 	// 更新数据库协程
+// 	go ss.updateDBRoutine()
+// 	//
+// 	return nil
+// }
 
-// add 添加
-func (ss *servers) add(m *db.Server) {
-	// 上锁
-	ss.Lock()
-	defer ss.Unlock()
-	// 检查
-	s := ss.D[m.ID]
-	if s != nil {
-		// 检查数据版本，防止并发修改操作出错
-		if s.modelVersion > m.UpdatedAt {
-			// 内存是新数据
-			return
-		}
-	}
-	// 添加
-	ss.D[m.ID] = ss.new(m)
-	ss.resetSlice()
-}
+// // add 添加
+// func (ss *servers) add(m *db.Server) {
+// 	// 上锁
+// 	ss.Lock()
+// 	defer ss.Unlock()
+// 	// 检查
+// 	s := ss.D[m.ID]
+// 	if s != nil {
+// 		// 检查数据版本，防止并发修改操作出错
+// 		if s.modelVersion > m.UpdatedAt {
+// 			// 内存是新数据
+// 			return
+// 		}
+// 	}
+// 	// 添加
+// 	ss.D[m.ID] = ss.new(m)
+// 	ss.resetSlice()
+// }
 
-// new 创建
-func (ss *servers) new(m *db.Server) *Server {
-	s := new(Server)
-	s.Server = m
-	s.modelVersion = m.UpdatedAt
-	s.mediaInfos = make(map[mediaInfoKey]*MediaInfo)
-	s.pullStreams = make(map[mediaInfoKey]struct{})
-	s.snapshots = make(map[mediaInfoKey]struct{})
-	keepaliveTime := time.Unix(m.KeepaliveTime, 0)
-	s.keepaliveTime = &keepaliveTime
-	s.syncMediaTime = &time.Time{}
-	s.syncMediaDur = time.Duration(m.SyncMediaInterval) * time.Second
-	s.apiCallTime = &time.Time{}
-	// 不判断了，api 那里判断过了
-	ip, _ := netip.ParseAddr(m.PublicIP)
-	s.IsIPV6 = ip.Is6()
-	return s
-}
+// // new 创建
+// func (ss *servers) new(m *db.Server) *Server {
+// 	s := new(Server)
+// 	s.Server = m
+// 	s.modelVersion = m.UpdatedAt
+// 	s.mediaInfos = make(map[mediaInfoKey]*MediaInfo)
+// 	s.pullStreams = make(map[mediaInfoKey]struct{})
+// 	s.snapshots = make(map[mediaInfoKey]struct{})
+// 	keepaliveTime := time.Unix(m.KeepaliveTime, 0)
+// 	s.keepaliveTime = &keepaliveTime
+// 	s.syncMediaTime = &time.Time{}
+// 	s.syncMediaDur = time.Duration(m.SyncMediaInterval) * time.Second
+// 	s.apiCallTime = &time.Time{}
+// 	// 不判断了，api 那里判断过了
+// 	ip, _ := netip.ParseAddr(m.PublicIP)
+// 	s.IsIPV6 = ip.Is6()
+// 	return s
+// }
 
-// resetSlice 重新组装一下切片，顺便找出最小心跳
-func (ss *servers) resetSlice() {
-	// 心跳比这个还大就没意义了
-	dur := time.Hour
-	// 重置数据
-	ss.S = make([]*Server, 0, len(ss.D))
-	for _, v := range ss.D {
-		if v.keepaliveTimeout < dur {
-			dur = v.keepaliveTimeout
-		}
-		ss.S = append(ss.S, v)
-	}
-	ss.d = dur
-	// 重置计时器
-	ss.t = time.NewTimer(ss.d)
-}
+// // resetSlice 重新组装一下切片，顺便找出最小心跳
+// func (ss *servers) resetSlice() {
+// 	// 心跳比这个还大就没意义了
+// 	dur := time.Hour
+// 	// 重置数据
+// 	ss.S = make([]*Server, 0, len(ss.D))
+// 	for _, v := range ss.D {
+// 		if v.keepaliveTimeout < dur {
+// 			dur = v.keepaliveTimeout
+// 		}
+// 		ss.S = append(ss.S, v)
+// 	}
+// 	ss.d = dur
+// 	// 重置计时器
+// 	ss.t = time.NewTimer(ss.d)
+// }
 
-// initSSRC 查询 invite 信息，初始化所有服务的 ssrc 池
-func (ss *servers) initSSRC() error {
-	// // 数据库
-	// ms, err := db.DeviceInviteDA.All()
-	// if err != nil {
-	// 	return fmt.Errorf("zlm init ssrc Err:%s", err.Error())
-	// }
-	// // 更新
-	// for _, m := range ms {
-	// 	s := ss.get(m.ID)
-	// 	if s != nil {
-	// 		s.PutSSRC(m.SSRC)
-	// 	}
-	// }
-	//
-	return nil
-}
+// // initSSRC 查询 invite 信息，初始化所有服务的 ssrc 池
+// func (ss *servers) initSSRC() error {
+// 	// // 数据库
+// 	// ms, err := db.DeviceInviteDA.All()
+// 	// if err != nil {
+// 	// 	return fmt.Errorf("zlm init ssrc Err:%s", err.Error())
+// 	// }
+// 	// // 更新
+// 	// for _, m := range ms {
+// 	// 	s := ss.get(m.ID)
+// 	// 	if s != nil {
+// 	// 		s.PutSSRC(m.SSRC)
+// 	// 	}
+// 	// }
+// 	//
+// 	return nil
+// }
 
-// checkServerRoutine 在协程中定时检查每一个 Server
-func (ss *servers) checkServerRoutine() {
-	log.InfoTrace(logTraceID, "check server routine start")
-	defer func() {
-		log.InfoTrace(logTraceID, "check server routine stop")
-		// 异常
-		log.Recover(recover())
-	}()
-	// 循环检查
-	for {
-		now := <-ss.t.C
-		// 检查
-		ms := ss.All()
-		for _, m := range ms {
-			m.checkAndSync(&now)
-		}
-		// 重置计时器
-		ss.t.Reset(ss.d)
-	}
-}
+// // checkServerRoutine 在协程中定时检查每一个 Server
+// func (ss *servers) checkServerRoutine() {
+// 	log.InfoTrace(logTraceID, "check server routine start")
+// 	defer func() {
+// 		log.InfoTrace(logTraceID, "check server routine stop")
+// 		// 异常
+// 		log.Recover(recover())
+// 	}()
+// 	// 循环检查
+// 	for {
+// 		now := <-ss.t.C
+// 		// 检查
+// 		ms := ss.All()
+// 		for _, m := range ms {
+// 			m.checkAndSync(&now)
+// 		}
+// 		// 重置计时器
+// 		ss.t.Reset(ss.d)
+// 	}
+// }
 
-// updateDBRoutine 在协程中定时更新需要更新的数据
-// 集中更新是为了避免并发更新出现的 too many connections
-func (ss *servers) updateDBRoutine() {
-	log.InfoTrace(logTraceID, "udpate db routine start")
-	defer func() {
-		log.InfoTrace(logTraceID, "udpate db routine stop")
-		// 异常
-		log.Recover(recover())
-	}()
-	// 循环检查
-	for {
-		<-ss.t.C
-		ctx := context.Background()
-		ms := ss.All()
-		for _, m := range ms {
-			// 如果更新失败，等下一次
-			if atomic.CompareAndSwapInt32(&m.updateDB, 1, 0) {
-				db.UpdateServerOnline(ctx, m.Server)
-			}
-		}
-		// 重置计时器
-		ss.t.Reset(ss.d)
-	}
-}
+// // updateDBRoutine 在协程中定时更新需要更新的数据
+// // 集中更新是为了避免并发更新出现的 too many connections
+// func (ss *servers) updateDBRoutine() {
+// 	log.InfoTrace(logTraceID, "udpate db routine start")
+// 	defer func() {
+// 		log.InfoTrace(logTraceID, "udpate db routine stop")
+// 		// 异常
+// 		log.Recover(recover())
+// 	}()
+// 	// 循环检查
+// 	for {
+// 		<-ss.t.C
+// 		ctx := context.Background()
+// 		ms := ss.All()
+// 		for _, m := range ms {
+// 			// 如果更新失败，等下一次
+// 			if atomic.CompareAndSwapInt32(&m.updateDB, 1, 0) {
+// 				db.UpdateServerOnline(ctx, m.Server)
+// 			}
+// 		}
+// 		// 重置计时器
+// 		ss.t.Reset(ss.d)
+// 	}
+// }
 
-// loadServerRoutine 在协程中加载指定 id 数据
-func (ss *servers) loadServerRoutine(id string) {
-	// 计时器
-	timer := time.NewTimer(0)
-	defer func() {
-		// 异常
-		log.Recover(recover())
-		// 计时器
-		timer.Stop()
-	}()
-	// 数据库
-	m := ss.mustLoadServer(timer, id)
-	// 不存在/禁用
-	if m == nil || *m.Enable == db.False {
-		// 清理内存
-		RemoveServer(id)
-		return
-	}
-	// 添加
-	ss.add(m)
-}
+// // loadServerRoutine 在协程中加载指定 id 数据
+// func (ss *servers) loadServerRoutine(id string) {
+// 	// 计时器
+// 	timer := time.NewTimer(0)
+// 	defer func() {
+// 		// 异常
+// 		log.Recover(recover())
+// 		// 计时器
+// 		timer.Stop()
+// 	}()
+// 	// 数据库
+// 	m := ss.mustLoadServer(timer, id)
+// 	// 不存在/禁用
+// 	if m == nil || *m.Enable == db.False {
+// 		// 清理内存
+// 		RemoveServer(id)
+// 		return
+// 	}
+// 	// 添加
+// 	ss.add(m)
+// }
 
-// mustLoadServer 确保成功加载指定 id 数据
-func (ss *servers) mustLoadServer(timer *time.Timer, id string) *db.Server {
-	m := new(db.Server)
-	m.ID = id
-	// 加载
-	for {
-		<-timer.C
-		// 查询
-		err := db.GetServer(context.Background(), m)
-		if err == nil {
-			return m
-		}
-		// 没有数据
-		if db.IsDataNotFound(err) {
-			return nil
-		}
-		log.ErrorfTrace(logTraceID, "load db %s error %s", id, err.Error())
-		// 失败，重试
-		timer.Reset(time.Second)
-	}
-}
+// // mustLoadServer 确保成功加载指定 id 数据
+// func (ss *servers) mustLoadServer(timer *time.Timer, id string) *db.Server {
+// 	m := new(db.Server)
+// 	m.ID = id
+// 	// 加载
+// 	for {
+// 		<-timer.C
+// 		// 查询
+// 		err := db.GetServer(context.Background(), m)
+// 		if err == nil {
+// 			return m
+// 		}
+// 		// 没有数据
+// 		if db.IsDataNotFound(err) {
+// 			return nil
+// 		}
+// 		log.ErrorfTrace(logTraceID, "load db %s error %s", id, err.Error())
+// 		// 失败，重试
+// 		timer.Reset(time.Second)
+// 	}
+// }
 
 // LoadServer 加载
 func LoadServer(id string) {
-	go _servers.loadServerRoutine(id)
+	// go _servers.loadServerRoutine(id)
 }
 
 // GetServer 获取
@@ -409,21 +408,47 @@ func BatchRemoveServer(ids []string) {
 	_servers.BatchDel(ids)
 }
 
-// GetMinLoadServer 返回所有服务中，最小负载的服务
+// GetMinLoadServer 返回所有服务中，最小收流负载的服务
 func GetMinLoadServer() *Server {
 	// 上锁
 	_servers.RLock()
 	defer _servers.RUnlock()
 	// 负载
-	load := int32(0)
 	var ser *Server
+	load := -1
 	for _, s := range _servers.D {
 		// 在线
 		if !s.online {
 			continue
 		}
 		// 负载
-		n := atomic.LoadInt32(&s.load)
+		n := s.mediaInfos.Len()
+		if load < 1 || load > n {
+			load = n
+			ser = s
+		}
+	}
+	// 返回
+	return ser
+}
+
+// GetMinPlayerServer 返回所有服务中，最小播放负载的服务
+func GetMinPlayerServer() *Server {
+	// 上锁
+	_servers.RLock()
+	defer _servers.RUnlock()
+	// 负载
+	var ser *Server
+	load := -1
+	for _, s := range _servers.D {
+		// 在线
+		if !s.online {
+			continue
+		}
+		// 负载
+		s.mediaInfos.RLock()
+		n := s.player
+		s.mediaInfos.RUnlock()
 		if load < 1 || load > n {
 			load = n
 			ser = s

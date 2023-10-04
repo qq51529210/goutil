@@ -2,7 +2,6 @@ package zlm
 
 import (
 	"context"
-	"sync/atomic"
 )
 
 // GetMediaListReq 是 GetMediaList 的参数
@@ -71,6 +70,7 @@ func (s *Server) GetMediaList(ctx context.Context, req *GetMediaListReq) ([]*Med
 		return nil, &res.apiError
 	}
 	// 更新内存
+	player := 0
 	infos := make(map[mediaInfoKey]*MediaInfo)
 	for _, d := range res.Data {
 		// 使用 rtmp 的即可
@@ -83,13 +83,15 @@ func (s *Server) GetMediaList(ctx context.Context, req *GetMediaListReq) ([]*Med
 			App:    d.App,
 			Stream: d.Stream,
 		}] = info
+		//
+		player += int(d.TotalReaderCount)
 	}
 	// 赋值
-	s.lock.Lock()
-	s.mediaInfos = infos
-	s.lock.Unlock()
-	// 媒体流个数作为负载
-	atomic.SwapInt32(&s.load, int32(len(s.mediaInfos)))
+	s.mediaInfos.Lock()
+	s.mediaInfos.D = infos
+	s.mediaInfos.ResetSlice()
+	s.player = player
+	s.mediaInfos.Unlock()
 	//
 	return res.Data, nil
 }

@@ -1,10 +1,5 @@
 package zlm
 
-import (
-	"github.com/gin-gonic/gin"
-	"github.com/qq51529210/uuid"
-)
-
 // OnStreamNotFoundReq 表示 on_stream_not_found 提交的数据
 type OnStreamNotFoundReq struct {
 	// 服务器id,通过配置文件设置
@@ -29,14 +24,14 @@ type OnStreamNotFoundReq struct {
 	// Port int `json:"port"`
 }
 
-// OnStreamNotFound 处理 zlm 的 on_stream_not_found 回调
-func OnStreamNotFound(ctx *gin.Context, req *OnStreamNotFoundReq) {
-	// 获取实例
-	ser := GetServer(req.MediaServerID)
-	if !ser.IsOK() {
-		return
-	}
-	req.TraceID = uuid.SnowflakeIDString()
-	// 回调
-	HandleStreamNotFound(ctx, ser, req)
-}
+// // OnStreamNotFound 处理 zlm 的 on_stream_not_found 回调
+// func OnStreamNotFound(ctx *gin.Context, req *OnStreamNotFoundReq) {
+// 	// 获取实例
+// 	ser := GetServer(req.MediaServerID)
+// 	if !ser.IsOK() {
+// 		return
+// 	}
+// 	req.TraceID = uuid.SnowflakeIDString()
+// 	// 回调
+// 	HandleStreamNotFound(ctx, ser, req)
+// }

@@ -17,7 +17,6 @@ type AddFFMPEGSourceReq struct {
 	// 是否开启mp4录制，0/1
 	EnableMP4 string `query:"enable_mp4"`
 	// 配置文件中FFmpeg命令参数模板key(非内容)，置空则采用默认模板:ffmpeg.cmd
-	// ffmpeg_cmd_key
 	CmdKey string `query:"ffmpeg_cmd_key"`
 }
 

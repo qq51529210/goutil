@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/binary"
-	"hash"
 	"math/rand"
 	"net"
 	"os"
@@ -55,12 +54,8 @@ type uuid struct {
 	gid int
 	// v2 uid
 	uid int
-	// v3 md5 池
-	md5 sync.Pool
 	// v4 随机数
 	rand *rand.Rand
-	// v5 sha1 池
-	sha1 sync.Pool
 }
 
 func (m *uuid) init() {
@@ -92,14 +87,6 @@ func (m *uuid) init() {
 		if !ok {
 			m.rand.Read(m.node[:])
 		}
-	}
-	// v3
-	m.md5.New = func() interface{} {
-		return md5.New()
-	}
-	// v5
-	m.sha1.New = func() interface{} {
-		return sha1.New()
 	}
 }
 
@@ -168,12 +155,11 @@ func (m *uuid) v2(data []byte) {
 }
 
 func (m *uuid) v3(namespace, name, data []byte) {
-	h := m.md5.Get().(hash.Hash)
+	h := md5.New()
 	h.Reset()
 	h.Write(namespace)
 	h.Write(name)
 	b := h.Sum(nil)
-	m.md5.Put(h)
 	b[6] = (b[6] & 0x0f) | 0x30
 	b[8] = (b[8] & 0x3f) | 0x80
 	copy(data, b)
@@ -186,12 +172,11 @@ func (m *uuid) v4(data []byte) {
 }
 
 func (m *uuid) v5(namespace, name, data []byte) {
-	h := m.sha1.Get().(hash.Hash)
+	h := sha1.New()
 	h.Reset()
 	h.Write(namespace)
 	h.Write(name)
 	b := h.Sum(nil)
-	m.sha1.Put(h)
 	b[6] = (b[6] & 0x0f) | 0x50
 	b[8] = (b[8] & 0x3f) | 0x80
 	copy(data, b)

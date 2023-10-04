@@ -1,10 +1,5 @@
 package zlm
 
-import (
-	"github.com/gin-gonic/gin"
-	"github.com/qq51529210/log"
-)
-
 // OnStreamNoneReaderReq 表示 on_stream_none_reader 提交的数据
 type OnStreamNoneReaderReq struct {
 	// 服务器id,通过配置文件设置
@@ -33,18 +28,18 @@ func (r *OnStreamNoneReaderRes) Keep() {
 	r.Close = &ok
 }
 
-// OnStreamNoneReader 处理 zlm 的 on_stream_none_reader 回调
-func OnStreamNoneReader(ctx *gin.Context, req *OnStreamNoneReaderReq, res *OnStreamNoneReaderRes) {
-	// 获取实例
-	ser := GetServer(req.MediaServerID)
-	if !ser.IsOK() {
-		return
-	}
-	req.TraceID, _ = ctx.Value(CtxKeyTraceID).(string)
-	// 回调
-	close := true
-	res.Close = &close
-	HandleStreamNoneReader(ctx, ser, req, res)
-	// 日志
-	log.Debugf("%s res close %t", req.TraceID, *res.Close)
-}
+// // OnStreamNoneReader 处理 zlm 的 on_stream_none_reader 回调
+// func OnStreamNoneReader(ctx *gin.Context, req *OnStreamNoneReaderReq, res *OnStreamNoneReaderRes) {
+// 	// 获取实例
+// 	ser := GetServer(req.MediaServerID)
+// 	if !ser.IsOK() {
+// 		return
+// 	}
+// 	req.TraceID, _ = ctx.Value(CtxKeyTraceID).(string)
+// 	// 回调
+// 	close := true
+// 	res.Close = &close
+// 	HandleStreamNoneReader(ctx, ser, req, res)
+// 	// 日志
+// 	log.Debugf("%s res close %t", req.TraceID, *res.Close)
+// }

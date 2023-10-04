@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"mms/util"
 	"net/http"
 	"os"
 	"path/filepath"
+	"util"
 )
 
 // GetSnapReq 是 GetSnap 的参数

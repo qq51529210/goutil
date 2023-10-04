@@ -6,14 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mms/cfg"
-	"mms/util"
-	"mms/util/log"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"time"
+	"util"
+	"util/log"
 )
 
 // 对应接口参数
@@ -51,22 +50,26 @@ const (
 
 // Init 初始化
 func Init() error {
-	// 服务
-	err := _servers.init()
-	if err != nil {
-		return err
-	}
-	// token
-	_playToken.init()
+	// // 服务
+	// err := _servers.init()
+	// if err != nil {
+	// 	return err
+	// }
+	// // token
+	// _playToken.init()
 	//
 	return nil
 }
 
 // WriteSnapshotTo 将指定 app 和 stream 的截图快照写到 write
-func WriteSnapshotTo(writer io.Writer, app, stream string) error {
+func WriteSnapshotTo(writer io.Writer, dir, app, stream string) error {
+	dir = filepath.Join(dir, app)
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
 	// 打开文件
-	filePath := filepath.Join(cfg.Cfg.Media.SnapshotDir, app, stream)
-	file, err := os.Open(filePath)
+	file, err := os.OpenFile(filepath.Join(dir, stream), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -77,9 +80,14 @@ func WriteSnapshotTo(writer io.Writer, app, stream string) error {
 }
 
 // ReadSnapshot 返回 app 和 stream 的截图快照数据
-func ReadSnapshot(buf *bytes.Buffer, app, stream string) error {
+func ReadSnapshot(buf *bytes.Buffer, dir, app, stream string) error {
+	dir = filepath.Join(dir, app)
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
 	// 文件
-	file, err := os.Open(filepath.Join(cfg.Cfg.Media.SnapshotDir, app, stream))
+	file, err := os.Open(filepath.Join(dir, stream))
 	if err != nil {
 		return err
 	}
@@ -113,7 +121,7 @@ func httpCall[Query any](ctx context.Context, ser *Server, path string, query *Q
 	apiURL := fmt.Sprintf("%s/index/api/%s?%s", ser.APIBaseURL, path, q.Encode())
 	// 请求
 	old := time.Now()
-	err := util.HTTP[any](ctx, http.DefaultClient, http.MethodGet, apiURL, nil, nil, onRes)
+	err := util.HTTPWithContext[any](ctx, http.DefaultClient, http.MethodGet, apiURL, nil, nil, onRes)
 	// 日志
 	now := time.Now()
 	log.Debugf("api call %s cost %v", apiURL, now.Sub(old))

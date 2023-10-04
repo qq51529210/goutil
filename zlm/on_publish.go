@@ -1,10 +1,5 @@
 package zlm
 
-import (
-	"github.com/gin-gonic/gin"
-	"github.com/qq51529210/log"
-)
-
 // OnPublishReq 表示 on_publish 提交的数据
 type OnPublishReq struct {
 	// 服务器id,通过配置文件设置
@@ -61,24 +56,24 @@ type OnPublishRes struct {
 	ModifyStamp *bool `json:"modify_stamp"`
 }
 
-// OnPublish 处理 zlm 的 on_publish 回调
-func OnPublish(ctx *gin.Context, req *OnPublishReq, res *OnPublishRes) {
-	// 获取实例
-	ser := GetServer(req.MediaServerID)
-	if !ser.IsOK() {
-		return
-	}
-	req.TraceID, _ = ctx.Value(CtxKeyTraceID).(string)
-	// 处理
-	_true := true
-	_false := false
-	res.Code = -1
-	res.EnableRTMP = &_true
-	res.EnableRTSP = &_true
-	res.MP4AsPlayer = &_true
-	res.EnableMP4 = &_false
-	// 回调
-	HandlePublish(ctx, ser, req, res)
-	// 日志
-	log.Debugf("%s res code %d", req.TraceID, res.Code)
-}
+// // OnPublish 处理 zlm 的 on_publish 回调
+// func OnPublish(ctx *gin.Context, req *OnPublishReq, res *OnPublishRes) {
+// 	// 获取实例
+// 	ser := GetServer(req.MediaServerID)
+// 	if !ser.IsOK() {
+// 		return
+// 	}
+// 	req.TraceID, _ = ctx.Value(CtxKeyTraceID).(string)
+// 	// 处理
+// 	_true := true
+// 	_false := false
+// 	res.Code = -1
+// 	res.EnableRTMP = &_true
+// 	res.EnableRTSP = &_true
+// 	res.MP4AsPlayer = &_true
+// 	res.EnableMP4 = &_false
+// 	// 回调
+// 	HandlePublish(ctx, ser, req, res)
+// 	// 日志
+// 	log.Debugf("%s res code %d", req.TraceID, res.Code)
+// }

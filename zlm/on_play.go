@@ -1,11 +1,5 @@
 package zlm
 
-import (
-	"net/url"
-
-	"github.com/gin-gonic/gin"
-)
-
 // OnPlayReq 表示 on_play 提交的数据
 type OnPlayReq struct {
 	// 服务器id,通过配置文件设置
@@ -33,16 +27,16 @@ type OnPlayRes struct {
 	apiError
 }
 
-// OnPlay 处理 zlm 的 on_play 回调
-func OnPlay(ctx *gin.Context, req *OnPlayReq, res *OnPlayRes) {
-	res.Code = -1
-	// 解析查询参数
-	query, err := url.ParseQuery(req.Params)
-	if err != nil {
-		return
-	}
-	// 检查
-	if _playToken.has(query.Get(QueryNameToken)) {
-		res.Code = 0
-	}
-}
+// // OnPlay 处理 zlm 的 on_play 回调
+// func OnPlay(ctx *gin.Context, req *OnPlayReq, res *OnPlayRes) {
+// 	res.Code = -1
+// 	// 解析查询参数
+// 	query, err := url.ParseQuery(req.Params)
+// 	if err != nil {
+// 		return
+// 	}
+// 	// 检查
+// 	if _playToken.has(query.Get(QueryNameToken)) {
+// 		res.Code = 0
+// 	}
+// }

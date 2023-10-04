@@ -205,6 +205,14 @@ func (p *MapSlice[K, V]) Init() {
 	p.D = make(map[K]V)
 }
 
+// Len 返回数量
+func (p *MapSlice[K, V]) Len() int {
+	p.RLock()
+	n := len(p.D)
+	p.RUnlock()
+	return n
+}
+
 // All 返回所有
 func (p *MapSlice[K, V]) All() []V {
 	p.RLock()

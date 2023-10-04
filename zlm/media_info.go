@@ -36,7 +36,7 @@ type MediaInfo struct {
 // PlayInfo 返回播放信息，public 决定使用内网还是外网 ip
 func (m *MediaInfo) PlayInfo(public bool) *PlayInfo {
 	info := new(PlayInfo)
-	info.init(m, public, _playToken.new())
+	// info.init(m, public, _playToken.new())
 	return info
 }
 
@@ -286,50 +286,50 @@ func (m *PlayInfo) init(i *MediaInfo, public bool, token string) {
 	}
 }
 
-// HasMediaInfo 返回内存中 app 和 stream 的媒体流缓存是否存在
-func (s *Server) HasMediaInfo(app, stream string) bool {
-	key := mediaInfoKey{App: app, Stream: stream}
-	s.lock.RLock()
-	m := s.mediaInfos[key]
-	s.lock.RUnlock()
-	return m != nil
-}
+// // HasMediaInfo 返回内存中 app 和 stream 的媒体流缓存是否存在
+// func (s *Server) HasMediaInfo(app, stream string) bool {
+// 	key := mediaInfoKey{App: app, Stream: stream}
+// 	s.lock.RLock()
+// 	m := s.mediaInfos[key]
+// 	s.lock.RUnlock()
+// 	return m != nil
+// }
 
-// GetMediaInfo 返回内存中 app 和 stream 的媒体流缓存
-func (s *Server) GetMediaInfo(app, stream string) *MediaInfo {
-	key := mediaInfoKey{App: app, Stream: stream}
-	s.lock.RLock()
-	m := s.mediaInfos[key]
-	s.lock.RUnlock()
-	return m
-}
+// // GetMediaInfo 返回内存中 app 和 stream 的媒体流缓存
+// func (s *Server) GetMediaInfo(app, stream string) *MediaInfo {
+// 	key := mediaInfoKey{App: app, Stream: stream}
+// 	s.lock.RLock()
+// 	m := s.mediaInfos[key]
+// 	s.lock.RUnlock()
+// 	return m
+// }
 
-// GetAppMediaInfo 返回内存中 app 的媒体流缓存
-func (s *Server) GetAppMediaInfo(app string) []*MediaInfo {
-	var ms []*MediaInfo
-	s.lock.RLock()
-	for _, m := range s.mediaInfos {
-		if m.App == app {
-			ms = append(ms, m)
-		}
-	}
-	s.lock.RUnlock()
-	return ms
-}
+// // GetAppMediaInfo 返回内存中 app 的媒体流缓存
+// func (s *Server) GetAppMediaInfo(app string) []*MediaInfo {
+// 	var ms []*MediaInfo
+// 	s.lock.RLock()
+// 	for _, m := range s.mediaInfos {
+// 		if m.App == app {
+// 			ms = append(ms, m)
+// 		}
+// 	}
+// 	s.lock.RUnlock()
+// 	return ms
+// }
 
-// IsRecording 返回，是否有流，是否在录像
-func (s *Server) IsRecording(app, stream string) (bool, bool) {
-	// 查询
-	key := mediaInfoKey{App: app, Stream: stream}
-	s.lock.RLock()
-	m := s.mediaInfos[key]
-	s.lock.RUnlock()
-	// 返回
-	if m == nil {
-		return false, false
-	}
-	return true, m.IsRecordingMP4
-}
+// // IsRecording 返回，是否有流，是否在录像
+// func (s *Server) IsRecording(app, stream string) (bool, bool) {
+// 	// 查询
+// 	key := mediaInfoKey{App: app, Stream: stream}
+// 	s.lock.RLock()
+// 	m := s.mediaInfos[key]
+// 	s.lock.RUnlock()
+// 	// 返回
+// 	if m == nil {
+// 		return false, false
+// 	}
+// 	return true, m.IsRecordingMP4
+// }
 
 // // GetMediaInfoTimestamp 返回内存中 app 和 stream 的媒体流缓存是否存在
 // func (s *Server) GetMediaInfoTimestamp(app, stream string) int64 {
