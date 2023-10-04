@@ -72,35 +72,36 @@ func gormSqlite(dsn string, cfg *gorm.Config) (*gorm.DB, error) {
 }
 
 type gormLog struct {
+	traceID string
 }
 
 // NewGORMLog 用于接收 gorm 的日志
-func NewGORMLog() logger.Interface {
-	return new(gormLog)
+func NewGORMLog(traceID string) logger.Interface {
+	return &gormLog{traceID: traceID}
 }
 
-func (lg *gormLog) LogMode(logger.LogLevel) logger.Interface {
-	return lg
+func (g *gormLog) LogMode(logger.LogLevel) logger.Interface {
+	return g
 }
 
-func (lg *gormLog) Info(ctx context.Context, str string, args ...interface{}) {
-	log.Info(str)
+func (g *gormLog) Info(ctx context.Context, str string, args ...interface{}) {
+	log.InfoTrace(g.traceID, str)
 }
 
-func (lg *gormLog) Warn(ctx context.Context, str string, args ...interface{}) {
-	log.Warn(str)
+func (g *gormLog) Warn(ctx context.Context, str string, args ...interface{}) {
+	log.WarnTrace(g.traceID, str)
 }
 
-func (lg *gormLog) Error(ctx context.Context, str string, args ...interface{}) {
-	log.Error(str)
+func (g *gormLog) Error(ctx context.Context, str string, args ...interface{}) {
+	log.ErrorTrace(g.traceID, str)
 }
 
-func (lg *gormLog) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+func (g *gormLog) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	sql, _ := fc()
-	log.Debugf("%s cost %v", sql, time.Since(begin))
+	log.DebugfTrace(g.traceID, "%s cost %v", sql, time.Since(begin))
 	//
 	if err != nil {
-		log.Error(err)
+		log.ErrorTrace(g.traceID, err)
 		return
 	}
 }
@@ -235,9 +236,9 @@ func initGORMQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 
 // GORMTime 创建和更新时间
 type GORMTime struct {
-	// 数据库的创建时间，时间戳
+	// 创建时间戳，单位秒
 	CreatedAt int64 `json:"createdAt" gorm:""`
-	// 数据库的更新时间，时间戳
+	// 更新时间戳，单位秒
 	UpdatedAt int64 `json:"updatedAt" gorm:""`
 }
 
