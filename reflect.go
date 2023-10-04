@@ -366,37 +366,42 @@ func structFieldValue(structValue reflect.Value) {
 	structType := structValue.Type()
 	for i := 0; i < structType.NumField(); i++ {
 		structField := structType.Field(i)
-		kind := structField.Type.Kind()
-		if kind == reflect.Struct {
-			structFieldValue(structValue.Field(i))
-			continue
-		}
-		fieldValue := structValue.Field(i)
-		// 为空才赋值
-		if !fieldValue.IsValid() || !fieldValue.IsZero() {
-			continue
-		}
 		value := structField.Tag.Get("value")
 		if value != "" {
-			structFieldtDefaultValue(structValue, fieldValue, value)
+			structFieldtDefaultValue(structValue.Field(i), value)
 			continue
 		}
 		value = structField.Tag.Get("field")
 		if value != "" {
-			structFieldDefaultField(structValue, fieldValue, value)
+			structFieldDefaultField(structValue, structValue.Field(i), value)
+			continue
+		}
+		value = structField.Tag.Get("func")
+		if value != "" {
+			fieldValue := structValue.Field(i)
+			fieldValue.Set(structValue.MethodByName(value))
 			continue
 		}
 	}
 }
 
 // structFieldtDefaultValue 设置字段的为指定的值
-func structFieldtDefaultValue(structValue, fieldValue reflect.Value, defaultValue string) {
+func structFieldtDefaultValue(fieldValue reflect.Value, defaultValue string) {
 	kind := fieldValue.Kind()
+	// nil 指针
 	if kind == reflect.Pointer {
-		fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+		if fieldValue.IsNil() {
+			fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+		}
 		fieldValue = fieldValue.Elem()
-		kind = fieldValue.Kind()
 	}
+	// 结构
+	if kind == reflect.Struct {
+		structFieldValue(fieldValue)
+		return
+	}
+	kind = fieldValue.Kind()
+	// 字符串->数字
 	if kind >= reflect.Uint && kind <= reflect.Uint64 {
 		n, err := strconv.ParseInt(defaultValue, 10, 64)
 		if err != nil {
@@ -421,10 +426,12 @@ func structFieldtDefaultValue(structValue, fieldValue reflect.Value, defaultValu
 		fieldValue.SetFloat(n)
 		return
 	}
+	// 字符串
 	if kind == reflect.String {
 		fieldValue.SetString(defaultValue)
 		return
 	}
+	//
 	if kind == reflect.Bool {
 		fieldValue.SetBool(defaultValue == "true")
 		return
@@ -436,16 +443,22 @@ func structFieldtDefaultValue(structValue, fieldValue reflect.Value, defaultValu
 func structFieldDefaultField(structValue, fieldValue reflect.Value, fieldName string) {
 	// 找到标记的字段
 	srcFieldValue := structValue.FieldByName(fieldName)
+	// 无效就算了
 	if !srcFieldValue.IsValid() {
-		panic(fmt.Sprintf("field %s is invalid", fieldName))
+		return
 	}
 	dstKind := fieldValue.Kind()
-	srcKind := srcFieldValue.Kind()
 	if dstKind == reflect.Pointer {
-		dstKind = fieldValue.Type().Elem().Kind()
+		if fieldValue.IsNil() {
+			fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+		}
+		fieldValue = fieldValue.Elem()
+		dstKind = fieldValue.Kind()
 	}
+	srcKind := srcFieldValue.Kind()
 	if srcKind == reflect.Pointer {
-		srcKind = srcFieldValue.Type().Elem().Kind()
+		srcFieldValue = srcFieldValue.Elem()
+		srcKind = srcFieldValue.Kind()
 	}
 	// 不相同
 	if dstKind != srcKind {
