@@ -1,7 +1,9 @@
 package util
 
 import (
+	"fmt"
 	"reflect"
+	"strconv"
 )
 
 // IsNilOrEmpty 如果 v 是空指针，或者空值，返回 true
@@ -344,4 +346,117 @@ func structDiffFieldsIgnore(v1, v2 reflect.Value, m map[string]any) map[string]a
 		}
 	}
 	return m
+}
+
+// StructDefaultValue 给字段赋值，v 必须是结构指针
+func StructFieldValue(v any) {
+	vv := reflect.ValueOf(v)
+	if vv.Kind() != reflect.Pointer {
+		panic("v must be pointer")
+	}
+	vv = vv.Elem()
+	if vv.Kind() != reflect.Struct {
+		panic("v must be struct pointer")
+	}
+	structFieldValue(vv)
+}
+
+// structFieldValue 封装 StructFieldValue 的代码
+func structFieldValue(structValue reflect.Value) {
+	structType := structValue.Type()
+	for i := 0; i < structType.NumField(); i++ {
+		structField := structType.Field(i)
+		kind := structField.Type.Kind()
+		if kind == reflect.Struct {
+			structFieldValue(structValue.Field(i))
+			continue
+		}
+		fieldValue := structValue.Field(i)
+		// 为空才赋值
+		if !fieldValue.IsValid() || !fieldValue.IsZero() {
+			continue
+		}
+		value := structField.Tag.Get("value")
+		if value != "" {
+			structFieldtDefaultValue(structValue, fieldValue, value)
+			continue
+		}
+		value = structField.Tag.Get("field")
+		if value != "" {
+			structFieldDefaultField(structValue, fieldValue, value)
+			continue
+		}
+	}
+}
+
+// structFieldtDefaultValue 设置字段的为指定的值
+func structFieldtDefaultValue(structValue, fieldValue reflect.Value, defaultValue string) {
+	kind := fieldValue.Kind()
+	if kind == reflect.Pointer {
+		fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+		fieldValue = fieldValue.Elem()
+		kind = fieldValue.Kind()
+	}
+	if kind >= reflect.Uint && kind <= reflect.Uint64 {
+		n, err := strconv.ParseInt(defaultValue, 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		fieldValue.SetUint(uint64(n))
+		return
+	}
+	if kind >= reflect.Int && kind <= reflect.Int64 {
+		n, err := strconv.ParseInt(defaultValue, 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		fieldValue.SetInt(n)
+		return
+	}
+	if kind >= reflect.Float32 && kind <= reflect.Float64 {
+		n, err := strconv.ParseFloat(defaultValue, 64)
+		if err != nil {
+			panic(err)
+		}
+		fieldValue.SetFloat(n)
+		return
+	}
+	if kind == reflect.String {
+		fieldValue.SetString(defaultValue)
+		return
+	}
+	if kind == reflect.Bool {
+		fieldValue.SetBool(defaultValue == "true")
+		return
+	}
+	panic(fmt.Sprintf("unsupported field type %v", kind))
+}
+
+// structFieldDefaultField 设置字段的为指定的字段的值
+func structFieldDefaultField(structValue, fieldValue reflect.Value, fieldName string) {
+	// 找到标记的字段
+	srcFieldValue := structValue.FieldByName(fieldName)
+	if !srcFieldValue.IsValid() {
+		panic(fmt.Sprintf("field %s is invalid", fieldName))
+	}
+	dstKind := fieldValue.Kind()
+	srcKind := srcFieldValue.Kind()
+	if dstKind == reflect.Pointer {
+		dstKind = fieldValue.Type().Elem().Kind()
+	}
+	if srcKind == reflect.Pointer {
+		srcKind = srcFieldValue.Type().Elem().Kind()
+	}
+	// 不相同
+	if dstKind != srcKind {
+		panic(fmt.Sprintf("field %s different type %v", fieldName, srcKind))
+	}
+	// 相同
+	if (dstKind >= reflect.Bool && dstKind <= reflect.Uint64) ||
+		(dstKind >= reflect.Float32 && dstKind <= reflect.Float64) ||
+		dstKind == reflect.String {
+		fieldValue.Set(srcFieldValue)
+		return
+	}
+	panic(fmt.Sprintf("unsupported field type %v", dstKind))
 }
