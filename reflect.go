@@ -378,8 +378,7 @@ func structFieldValue(structValue reflect.Value) {
 		}
 		value = structField.Tag.Get("func")
 		if value != "" {
-			fieldValue := structValue.Field(i)
-			fieldValue.Set(structValue.MethodByName(value))
+			structFieldDefaultFunc(structValue, structValue.Field(i), value)
 			continue
 		}
 	}
@@ -394,13 +393,8 @@ func structFieldtDefaultValue(fieldValue reflect.Value, defaultValue string) {
 			fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
 		}
 		fieldValue = fieldValue.Elem()
+		kind = fieldValue.Kind()
 	}
-	// 结构
-	if kind == reflect.Struct {
-		structFieldValue(fieldValue)
-		return
-	}
-	kind = fieldValue.Kind()
 	// 字符串->数字
 	if kind >= reflect.Uint && kind <= reflect.Uint64 {
 		n, err := strconv.ParseInt(defaultValue, 10, 64)
@@ -472,4 +466,17 @@ func structFieldDefaultField(structValue, fieldValue reflect.Value, fieldName st
 		return
 	}
 	panic(fmt.Sprintf("unsupported field type %v", dstKind))
+}
+
+// structFieldDefaultFunc 设置字段的为指定的字段的值
+func structFieldDefaultFunc(structValue, fieldValue reflect.Value, funcName string) {
+	kind := fieldValue.Kind()
+	// nil 指针
+	if kind == reflect.Pointer {
+		if fieldValue.IsNil() {
+			fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+		}
+		fieldValue = fieldValue.Elem()
+	}
+	fieldValue.Set(structValue.MethodByName(funcName))
 }
