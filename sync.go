@@ -15,6 +15,14 @@ func (p *Slice[K]) Init() {
 	p.D = make([]K, 0)
 }
 
+// Len 返回数量
+func (p *Slice[K]) Len() int {
+	p.RLock()
+	n := len(p.D)
+	p.RUnlock()
+	return n
+}
+
 // Set 设置，存在返回 false
 func (p *Slice[K]) Set(k K) bool {
 	ok := false
@@ -81,6 +89,14 @@ func (p *Set[K]) Init() {
 	p.D = make(map[K]struct{})
 }
 
+// Len 返回数量
+func (p *Set[K]) Len() int {
+	p.RLock()
+	n := len(p.D)
+	p.RUnlock()
+	return n
+}
+
 // Set 设置
 func (p *Set[K]) Set(k K) {
 	p.Lock()
@@ -135,6 +151,14 @@ type Map[K comparable, V any] struct {
 // Init 初始化
 func (p *Map[K, V]) Init() {
 	p.D = make(map[K]V)
+}
+
+// Len 返回数量
+func (p *Map[K, V]) Len() int {
+	p.RLock()
+	n := len(p.D)
+	p.RUnlock()
+	return n
 }
 
 // Set 设置
