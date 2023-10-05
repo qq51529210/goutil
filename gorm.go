@@ -250,24 +250,28 @@ type GORMPageQuery struct {
 	Count *int `json:"count,omitempty" form:"count" binding:"omitempty,min=1"`
 	// 排序，"column [desc]"
 	Order string `json:"order,omitempty" form:"order"`
+	// 是否需要返回总数
+	Total int8 `json:"total,omitempty" form:"order" binding:"omitempty,oneof=0 1"`
 }
 
 // GORMPageResult 是 GORMPage 的返回值
 type GORMPageResult[M any] struct {
 	// 总数
-	Total int64 `json:"total"`
+	Total int64 `json:"total,omitempty"`
 	// 列表
 	Data []M `json:"data"`
 }
 
 // GORMPage 用于分页查询
-func GORMPage[M any](db *gorm.DB, page *GORMPageQuery, res *GORMPageResult[M]) error {
-	// 总数
-	err := db.Count(&res.Total).Error
-	if err != nil {
-		return err
-	}
+func GORMPage[M any](db *gorm.DB, page *GORMPageQuery, res *GORMPageResult[M]) (err error) {
 	if page != nil {
+		// 总数
+		if page.Total == 1 {
+			err = db.Count(&res.Total).Error
+			if err != nil {
+				return err
+			}
+		}
 		// 分页
 		if page.Offset != nil {
 			db = db.Offset(*page.Offset)
@@ -280,6 +284,7 @@ func GORMPage[M any](db *gorm.DB, page *GORMPageQuery, res *GORMPageResult[M]) e
 			db = db.Order(page.Order)
 		}
 	}
+	// 分页
 	err = db.Find(&res.Data).Error
 	if err != nil {
 		return err
