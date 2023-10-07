@@ -230,6 +230,18 @@ func initGORMQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 			db = db.Where(fmt.Sprintf("`%s` >= ?", ft.Name), fv.Interface())
 			continue
 		}
+		p = strings.TrimPrefix(tn, "null=")
+		if p != tn {
+			a, ok := fv.Interface().(int8)
+			if ok {
+				if a == 0 {
+					db = db.Where(fmt.Sprintf("`%s` IS NULL", p))
+				} else {
+					db = db.Where(fmt.Sprintf("`%s` IS NOT NULL", p))
+				}
+			}
+			continue
+		}
 		if tn == "null" {
 			a, ok := fv.Interface().(int8)
 			if ok {
