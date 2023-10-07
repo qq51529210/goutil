@@ -275,7 +275,7 @@ type GORMPageQuery struct {
 	// 排序，"column [desc]"
 	Order string `json:"order,omitempty" form:"order"`
 	// 是否需要返回总数
-	Total int8 `json:"total,omitempty" form:"total" binding:"omitempty,oneof=0 1"`
+	Total *int8 `json:"total,omitempty" form:"total" binding:"omitempty,oneof=0 1"`
 }
 
 // GORMPageResult 是 GORMPage 的返回值
@@ -290,7 +290,7 @@ type GORMPageResult[M any] struct {
 func GORMPage[M any](db *gorm.DB, page *GORMPageQuery, res *GORMPageResult[M]) (err error) {
 	if page != nil {
 		// 总数
-		if page.Total == 1 {
+		if page.Total != nil && *page.Total == 1 {
 			err = db.Count(&res.Total).Error
 			if err != nil {
 				return err
