@@ -121,6 +121,7 @@ var (
 //	  E *int64 `gq:"lt=A"` db.Where("`A` > ?", E)
 //	  F *int64 `gq:"let=A"` db.Where("`A` >= ?", F)
 //	  G *int64 `gq:"neq"` db.Where("`G` != ?", G)
+//	  H *int8 `gq:"null"` if H==0/1 db.Where("`H` IS NULL/IS NOT NULL")
 //	}
 //
 // 先这样，以后遇到再加
@@ -227,6 +228,17 @@ func initGORMQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 		}
 		if tn == "lte" {
 			db = db.Where(fmt.Sprintf("`%s` >= ?", ft.Name), fv.Interface())
+			continue
+		}
+		if tn == "null" {
+			a, ok := fv.Interface().(int8)
+			if ok {
+				if a == 0 {
+					db = db.Where(fmt.Sprintf("`%s` IS NULL", ft.Name))
+				} else {
+					db = db.Where(fmt.Sprintf("`%s` IS NOT NULL", ft.Name))
+				}
+			}
 			continue
 		}
 	}
