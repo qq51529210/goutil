@@ -275,7 +275,7 @@ type GORMPageQuery struct {
 	// 排序，"column [desc]"
 	Order string `json:"order,omitempty" form:"order"`
 	// 是否需要返回总数
-	Total int8 `json:"total,omitempty" form:"order" binding:"omitempty,oneof=0 1"`
+	Total int8 `json:"total,omitempty" form:"total" binding:"omitempty,oneof=0 1"`
 }
 
 // GORMPageResult 是 GORMPage 的返回值
