@@ -179,6 +179,14 @@ func (p *Map[K, V]) TrySet(k K, v V) bool {
 	return !ok
 }
 
+// Has 是否存在
+func (p *Map[K, V]) Has(k K) bool {
+	p.RLock()
+	_, ok := p.D[k]
+	p.RUnlock()
+	return ok
+}
+
 // Get 返回
 func (p *Map[K, V]) Get(k K) (v V) {
 	p.RLock()
@@ -263,6 +271,14 @@ func (p *MapSlice[K, V]) TrySet(k K, v V) bool {
 	}
 	p.Unlock()
 	return !ok
+}
+
+// Has 是否存在
+func (p *MapSlice[K, V]) Has(k K) bool {
+	p.RLock()
+	_, ok := p.D[k]
+	p.RUnlock()
+	return ok
 }
 
 // Get 返回
