@@ -100,9 +100,8 @@ func (g *gormLog) Trace(ctx context.Context, begin time.Time, fc func() (sql str
 	sql, _ := fc()
 	log.DebugfTrace(g.traceID, "%s cost %v", sql, time.Since(begin))
 	//
-	if err != nil {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		log.ErrorTrace(g.traceID, err)
-		return
 	}
 }
 
@@ -129,6 +128,9 @@ func InitGORMQuery(db *gorm.DB, q any) *gorm.DB {
 	v := reflect.ValueOf(q)
 	vk := v.Kind()
 	if vk == reflect.Pointer {
+		if v.IsNil() {
+			return db
+		}
 		v = v.Elem()
 		vk = v.Kind()
 	}
