@@ -222,6 +222,17 @@ func (p *Map[K, V]) Keys() (k []K) {
 	return
 }
 
+// TakeAll 返回所有值，清除列表
+func (p *Map[K, V]) TakeAll() (v []V) {
+	p.Lock()
+	for _, d := range p.D {
+		v = append(v, d)
+	}
+	p.D = make(map[K]V)
+	p.Unlock()
+	return
+}
+
 // MapSlice 封装同步的 map + slice
 type MapSlice[K comparable, V any] struct {
 	// 同步锁
@@ -330,6 +341,18 @@ func (p *MapSlice[K, V]) Keys() (k []K) {
 		k = append(k, d)
 	}
 	p.RUnlock()
+	return
+}
+
+// TakeAll 返回所有值，清除列表
+func (p *MapSlice[K, V]) TakeAll() (v []V) {
+	p.Lock()
+	for _, d := range p.D {
+		v = append(v, d)
+	}
+	p.D = make(map[K]V)
+	p.S = p.S[:0]
+	p.Unlock()
 	return
 }
 
