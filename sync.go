@@ -140,6 +140,17 @@ func (p *Set[K]) Keys() (k []K) {
 	return
 }
 
+// TakeAll 返回所有值，清除列表
+func (p *Set[K]) TakeAll() (k []K) {
+	p.Lock()
+	for d := range p.D {
+		k = append(k, d)
+	}
+	p.D = make(map[K]struct{})
+	p.Unlock()
+	return
+}
+
 // Map 封装同步的 map
 type Map[K comparable, V any] struct {
 	// 同步锁
