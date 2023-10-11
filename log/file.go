@@ -155,10 +155,8 @@ func (f *File) syncLoop(syncDur time.Duration) {
 		select {
 		case now := <-syncTimer.C:
 			// 检查过期
-			if now.Sub(checkTime) > time.Hour {
-				f.check(&checkTime)
-				checkTime = now
-			}
+			f.check(&checkTime)
+			checkTime = now
 			// 同步时间
 			f.lock.Lock()
 			f.flush()
@@ -224,11 +222,13 @@ func (f *File) check(now *time.Time) {
 
 // flush 将内存的数据保存到硬盘，如果写入失败，数据会丢弃。
 func (f *File) flush() {
-	_, err := f.file.Write(f.data)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	if len(f.data) > 0 {
+		_, err := f.file.Write(f.data)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		f.data = f.data[:0]
 	}
-	f.data = f.data[:0]
 }
 
 // open 打开一个新的文件
