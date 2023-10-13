@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // IsNilOrEmpty 如果 v 是空指针或者零值，返回 true
@@ -41,6 +42,127 @@ func isNilOrEmpty(v reflect.Value) bool {
 		// 其他
 		return !v.IsValid() || v.IsZero()
 	}
+}
+
+var (
+	// StructToMapTagName 是 StructToMap 结构解析的 tag 名称
+	StructToMapTagName = "map"
+)
+
+// StructToMap 将 v 转换为 map，v 必须是结构体
+// 嵌入的字段必须是结构，否则不处理
+//
+//	type S1 struct {
+//	   A string -> map["A"]=A 默认使用字段名称
+//	   B string `map:"b"` -> map["b"]=B 有 tag 则使用 tag
+//	   C string `map:"omitempty"` -> 忽略零值
+//	   D *string `map:"d,omitempty"` -> 指针不为 nil 不算零值
+//	}
+//
+//	type S2 struct {
+//	   S1 -> 直接嵌入 map["A"]=A , map["b"]=B ...
+//	   F S1 -> map["F"]=F
+//	}
+func StructToMap(v any) map[string]any {
+	m := make(map[string]any)
+	return structToMap(reflect.ValueOf(v), m)
+}
+
+// structToMap 封装 StructToMap 的代码
+func structToMap(v reflect.Value, m map[string]any) map[string]any {
+	// 无效
+	if !v.IsValid() {
+		return m
+	}
+	// 指针
+	vk := v.Kind()
+	if vk == reflect.Pointer {
+		v = v.Elem()
+		vk = v.Kind()
+	}
+	// 必须是结构
+	if vk != reflect.Struct {
+		panic("v type must be struct")
+	}
+	// 类型
+	t := v.Type()
+	// 所有字段
+	for i := 0; i < t.NumField(); i++ {
+		// 类型
+		ft := t.Field(i)
+		// 不可导出，但是嵌入的可能可以导出
+		if !ft.IsExported() && !ft.Anonymous {
+			continue
+		}
+		// 值
+		fv := v.Field(i)
+		// 无效
+		if !fv.IsValid() {
+			continue
+		}
+		zero := fv.IsZero()
+		// tag
+		name, omitempty, ignore := structToMapTag(&ft)
+		// 忽略字段
+		if ignore {
+			continue
+		}
+		// 指针
+		fvk := fv.Kind()
+		if fvk == reflect.Pointer {
+			fv = fv.Elem()
+			fvk = fv.Kind()
+		}
+		// 忽略空值
+		if omitempty && zero {
+			continue
+		}
+		// 结构
+		if fvk == reflect.Struct {
+			// 嵌入的
+			if ft.Anonymous {
+				m = structToMap(fv, m)
+			} else {
+				m[name] = structToMap(fv, make(map[string]any))
+			}
+			continue
+		}
+		// 其他值
+		if fv.IsValid() {
+			m[name] = fv.Interface()
+		} else {
+			m[name] = nil
+		}
+	}
+	return m
+}
+
+// structToMapTag 是 structToMap 解析 tag 的封装
+func structToMapTag(f *reflect.StructField) (name string, omitempty, ignore bool) {
+	name = f.Name
+	tag := f.Tag.Get(StructToMapTagName)
+	for tag != "" {
+		var s string
+		i := strings.IndexByte(tag, ',')
+		if i < 0 {
+			s = tag
+			tag = ""
+		} else {
+			s = tag[:i]
+			tag = tag[i+1:]
+		}
+		switch s {
+		case "omitempty":
+			omitempty = true
+		case "-":
+			ignore = true
+		default:
+			if s != "" {
+				name = s
+			}
+		}
+	}
+	return
 }
 
 func copyStructCheck(dst, src any) (dstVal, srcVal reflect.Value) {
@@ -203,42 +325,6 @@ func copyStructNotEmpty(dst, src reflect.Value) {
 		// 相同类型，赋值
 		dstField.Set(srcField)
 	}
-}
-
-// StructToMap 将 v 转换为 map，v 必须是结构体
-func StructToMap(v any) map[string]any {
-	return structToMap(reflect.ValueOf(v))
-}
-
-// structToMap 封装 StructToMap 的代码
-func structToMap(vVal reflect.Value) map[string]any {
-	if vVal.Kind() == reflect.Pointer {
-		vVal = vVal.Elem()
-	}
-	vType := vVal.Type()
-	result := make(map[string]any)
-	for i := 0; i < vType.NumField(); i++ {
-		field := vVal.Field(i)
-		if !field.IsValid() {
-			continue
-		}
-		fieldName := vType.Field(i).Name
-		fieldKind := field.Kind()
-		if fieldKind == reflect.Pointer {
-			field = field.Elem()
-			fieldKind = field.Kind()
-			if fieldKind == reflect.Invalid {
-				result[fieldName] = nil
-				continue
-			}
-		}
-		if fieldKind == reflect.Struct {
-			result[fieldName] = structToMap(field)
-		} else {
-			result[fieldName] = field.Interface()
-		}
-	}
-	return result
 }
 
 // StructToMapIgnore 将 v 转换为 map，v 必须是结构体
