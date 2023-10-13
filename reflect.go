@@ -6,49 +6,41 @@ import (
 	"strconv"
 )
 
-// IsNilOrEmpty 如果 v 是空指针，或者空值，返回 true
-// 指针的值是空值，不算空值，也返回 true
+// IsNilOrEmpty 如果 v 是空指针或者零值，返回 true
+// 指针有零值不算零值
 func IsNilOrEmpty(v any) bool {
 	return isNilOrEmpty(reflect.ValueOf(v))
 }
 
-// isNilOrEmpty 如果 v 是空指针，或者空值，返回 true
-// 指针的值是空值，不算空值，也返回 true
+// isNilOrEmpty 是 IsNilOrEmpty 的实现
 func isNilOrEmpty(v reflect.Value) bool {
-	switch v.Kind() {
-	case reflect.Ptr, reflect.Interface:
-		if v.IsNil() {
-			return true
-		}
+	// 无效
+	if !v.IsValid() || v.IsZero() {
+		return true
+	}
+	k := v.Kind()
+	// 指针
+	for k == reflect.Pointer {
 		v = v.Elem()
-		switch v.Kind() {
-		case reflect.Struct:
-			return isStructNilOrEmpty(v)
-		default:
-			return false
-		}
-	case reflect.Func:
-		return v.IsNil()
-	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
+		k = v.Kind()
+	}
+	// 类型
+	switch k {
+	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice:
+		// 没有数据算空
 		return v.Len() == 0
 	case reflect.Struct:
-		return isStructNilOrEmpty(v)
-	case reflect.Float32, reflect.Float64,
-		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return v.IsZero()
-	}
-	return false
-}
-
-// isStructNilOrEmpty 封装 IsNilOrEmpty 中判断 struct 的代码
-func isStructNilOrEmpty(v reflect.Value) bool {
-	for i := 0; i < v.NumField(); i++ {
-		if !isNilOrEmpty(v.Field(i)) {
-			return false
+		// 所有的字段为空才算空
+		for i := 0; i < v.NumField(); i++ {
+			if !isNilOrEmpty(v.Field(i)) {
+				return false
+			}
 		}
+		return true
+	default:
+		// 其他
+		return !v.IsValid() || v.IsZero()
 	}
-	return true
 }
 
 func copyStructCheck(dst, src any) (dstVal, srcVal reflect.Value) {
@@ -348,7 +340,7 @@ func structDiffFieldsIgnore(v1, v2 reflect.Value, m map[string]any) map[string]a
 	return m
 }
 
-// StructDefaultValue 给字段赋值，v 必须是结构指针
+// StructFieldValue 给字段赋值，v 必须是结构指针
 func StructFieldValue(v any) {
 	vv := reflect.ValueOf(v)
 	if vv.Kind() != reflect.Pointer {
