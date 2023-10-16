@@ -71,61 +71,60 @@ func StructToMap(v any) map[string]any {
 
 // structToMap 封装 StructToMap 的代码
 func structToMap(v reflect.Value, m map[string]any) map[string]any {
-	// 无效
-	if !v.IsValid() {
-		return m
-	}
-	// 指针
-	vk := v.Kind()
-	if vk == reflect.Pointer {
-		v = v.Elem()
-		vk = v.Kind()
-	}
-	// 必须是结构
-	if vk != reflect.Struct {
-		panic("v type must be struct")
-	}
 	// 类型
-	t := v.Type()
+	st := v.Type()
 	// 所有字段
-	for i := 0; i < t.NumField(); i++ {
+	for i := 0; i < st.NumField(); i++ {
 		// 类型
-		ft := t.Field(i)
-		// 不可导出，但是嵌入的可能可以导出
-		if !ft.IsExported() && !ft.Anonymous {
+		ft := st.Field(i)
+		// tag
+		name, omitempty, ignore := structToMapTag(&ft)
+		// 忽略
+		if ignore {
 			continue
 		}
 		// 值
 		fv := v.Field(i)
-		// 无效
-		if !fv.IsValid() {
+		// 无效/零值
+		if !fv.IsValid() || (omitempty && fv.IsZero()) {
 			continue
 		}
-		// tag
-		name, omitempty, ignore := structToMapTag(&ft)
-		// 忽略字段 / 零值
-		if ignore || (omitempty && fv.IsZero()) {
-			continue
-		}
-		// 指针
-		fvk := fv.Kind()
-		if fvk == reflect.Pointer {
+		// 数据类型
+		fk := ft.Type.Kind()
+		if fk == reflect.Pointer {
 			fv = fv.Elem()
-			fvk = fv.Kind()
+			fk = ft.Type.Elem().Kind()
 		}
-		// 结构
-		if fvk == reflect.Struct {
+		// 数据类型，结构
+		if fk == reflect.Struct {
 			// 嵌入的
 			if ft.Anonymous {
+				if !fv.IsValid() {
+					continue
+				}
 				m = structToMap(fv, m)
 			} else {
+				// 不可导出
+				if !ft.IsExported() {
+					continue
+				}
+				if !fv.IsValid() {
+					m[name] = nil
+					continue
+				}
 				m[name] = structToMap(fv, make(map[string]any))
 			}
 			continue
 		}
-		// 其他值
+		// 数据类型，其他
+		if ft.Anonymous {
+			// 嵌入的必须是结构
+			continue
+		}
 		if fv.IsValid() {
-			m[name] = fv.Interface()
+			if fv.CanInterface() {
+				m[name] = fv.Interface()
+			}
 		} else {
 			m[name] = nil
 		}
