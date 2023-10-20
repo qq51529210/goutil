@@ -459,6 +459,11 @@ func structCopy(dstStructValue, srcStructValue reflect.Value) {
 	}
 }
 
+var (
+	// StructDiffFieldTagName 是 StructDiffField 结构解析的 tag 名称
+	StructDiffFieldTagName = "diff"
+)
+
 // StructDiffField 从 src 中找出 与 dst 不同值的字段，然后返回这些字段的 map
 // src 和 dst 是相同数据类型的结构
 func StructDiffField(dst, src any) map[string]any {
@@ -496,6 +501,10 @@ func structDiffField(dstStructValue, srcStructValue reflect.Value, m map[string]
 	for i := 0; i < srcStructType.NumField(); i++ {
 		// 字段类型
 		fieldType := srcStructType.Field(i)
+		// 忽略
+		if fieldType.Tag.Get(StructDiffFieldTagName) == "-" {
+			continue
+		}
 		fieldKind := fieldType.Type.Kind()
 		srcFieldValue := srcStructValue.Field(i)
 		dstFieldValue := dstStructValue.Field(i)
