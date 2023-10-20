@@ -459,22 +459,9 @@ func structCopy(dstStructValue, srcStructValue reflect.Value) {
 	}
 }
 
-var (
-	// StructDiffFieldTagName 是 StructDiffField 结构解析的 tag 名称
-	StructDiffFieldTagName = "diff"
-)
-
-// StructDiffField 从 src 中找出 与 dst 相同类型（值可以与指针对比）
-// 和名称但不同值的字段，然后返回这些字段的 map
-//
-//	type src struct {
-//	   A string 默认与 dst.A 对比
-//	   B string `diff:"BB"` -> 与 dst.BB 对比
-//	   C string `diff:"omitempty"` -> 忽略零值
-//	   D *string `diff:"omitempty"` -> 指针不为 nil 不算零值
-//	   E string `diff:"-"` -> 忽略
-//	}
-func StructDiffField(dst, src any, ignore bool) map[string]any {
+// StructDiffField 从 src 中找出 与 dst 不同值的字段，然后返回这些字段的 map
+// src 和 dst 是相同数据类型的结构
+func StructDiffField(dst, src any) map[string]any {
 	// dst
 	dv := reflect.ValueOf(dst)
 	dk := dv.Kind()
@@ -483,7 +470,7 @@ func StructDiffField(dst, src any, ignore bool) map[string]any {
 		dk = dv.Kind()
 	}
 	if dk != reflect.Struct {
-		panic("dst must be struct type")
+		panic("dst must be struct")
 	}
 	// src
 	sv := reflect.ValueOf(src)
@@ -495,69 +482,95 @@ func StructDiffField(dst, src any, ignore bool) map[string]any {
 	if sk != reflect.Struct {
 		panic("src must be struct")
 	}
+	// type
+	if dv.Type() != sv.Type() {
+		panic("src dst must be same struct type")
+	}
 	//
 	return structDiffField(dv, sv, make(map[string]any))
 }
 
 // structDiffField 是 StructDiffFields 的实现
-func structDiffField(dst, src reflect.Value, m map[string]any) map[string]any {
-	st := src.Type()
-	for i := 0; i < st.NumField(); i++ {
-		// src 值
-		sfv := src.Field(i)
-		// src 值无效
-		if !sfv.IsValid() {
-			continue
-		}
-		// src 字段
-		sft := st.Field(i)
-		// 不可导出的
-		if !sft.IsExported() {
-			continue
-		}
-		// src 嵌入字段
-		if sft.Anonymous {
-			sfk := sfv.Kind()
-			if sfk == reflect.Pointer {
-				sfv = sfv.Elem()
+func structDiffField(dstStructValue, srcStructValue reflect.Value, m map[string]any) map[string]any {
+	srcStructType := srcStructValue.Type()
+	for i := 0; i < srcStructType.NumField(); i++ {
+		// 字段类型
+		fieldType := srcStructType.Field(i)
+		fieldKind := fieldType.Type.Kind()
+		srcFieldValue := srcStructValue.Field(i)
+		dstFieldValue := dstStructValue.Field(i)
+		// 指针
+		if fieldKind == reflect.Pointer {
+			fieldKind = fieldType.Type.Elem().Kind()
+			srcFieldValue = srcFieldValue.Elem()
+			dstFieldValue = dstFieldValue.Elem()
+			if srcFieldValue.IsValid() {
+				if !dstFieldValue.IsValid() {
+					// src 有效，dst 无效
+					// 是否结构
+					if fieldKind == reflect.Struct {
+						// 嵌入
+						if fieldType.Anonymous {
+							structDiffField(dstStructValue, srcFieldValue, m)
+						} else {
+							if !srcFieldValue.CanInterface() {
+								continue
+							}
+							m[fieldType.Name] = srcFieldValue.Interface()
+						}
+					} else {
+						if !srcFieldValue.CanInterface() {
+							continue
+						}
+						m[fieldType.Name] = srcFieldValue.Interface()
+					}
+				} else {
+					// src 有效，dst 有效
+					// 是否结构
+					if fieldKind == reflect.Struct {
+						// 嵌入
+						if fieldType.Anonymous {
+							structDiffField(dstStructValue, srcFieldValue, m)
+						} else {
+							if !srcFieldValue.CanInterface() {
+								continue
+							}
+							m[fieldType.Name] = srcFieldValue.Interface()
+						}
+					} else {
+						if !srcFieldValue.CanInterface() || !dstFieldValue.CanInterface() {
+							continue
+						}
+						// 比较
+						srcData, dstData := srcFieldValue.Interface(), dstFieldValue.Interface()
+						if !reflect.DeepEqual(srcData, dstData) {
+							m[fieldType.Name] = srcData
+						}
+					}
+				}
+				continue
+			} else {
+				// src 无效，dst 有效
+				if dstFieldValue.IsValid() {
+					m[fieldType.Name] = nil
+				}
 			}
-			m = structDiffField(dst, sfv, m)
 			continue
 		}
-		// src tag
-		name, omitempty, ignore := structParseTag(&sft, StructDiffFieldTagName)
-		// 忽略字段 / 零值
-		if ignore || (omitempty && sfv.IsZero()) {
-			continue
-		}
-		// dst 值
-		dfv := dst.FieldByName(name)
-		// sfk 类型
-		sfk := sfv.Kind()
-		if sfk == reflect.Pointer {
-			sfv = sfv.Elem()
-			if !sfv.IsValid() {
-				m[sft.Name] = nil
+		// 不是指针
+		if fieldKind == reflect.Struct {
+			// 嵌入
+			if fieldType.Anonymous {
+				structDiffField(dstFieldValue, srcFieldValue, m)
 				continue
 			}
-			sfk = sfv.Kind()
 		}
-		// dst 类型
-		dfk := dfv.Kind()
-		if dfk == reflect.Pointer {
-			dfv = dfv.Elem()
-			dfk = dfv.Kind()
-		}
-		// dst 值无效，一般是没有这个字段
-		if !dfv.IsValid() || sfk != dfk {
-			m[sft.Name] = sfv.Interface()
-			continue
-		}
-		// 比较值
-		sd, dd := sfv.Interface(), dfv.Interface()
-		if !reflect.DeepEqual(sd, dd) {
-			m[sft.Name] = sd
+		// 比较
+		srcData, dstData := srcFieldValue.Interface(), dstFieldValue.Interface()
+		if !reflect.DeepEqual(srcData, dstData) {
+			m[fieldType.Name] = srcData
 		}
 	}
+	//
 	return m
 }
