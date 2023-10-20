@@ -7,6 +7,34 @@ import (
 	"strings"
 )
 
+// structParseTag 解析 tag 的封装
+func structParseTag(f *reflect.StructField, tagName string) (name string, omitempty, ignore bool) {
+	name = f.Name
+	tag := f.Tag.Get(tagName)
+	for tag != "" {
+		var s string
+		i := strings.IndexByte(tag, ',')
+		if i < 0 {
+			s = tag
+			tag = ""
+		} else {
+			s = tag[:i]
+			tag = tag[i+1:]
+		}
+		switch s {
+		case "omitempty":
+			omitempty = true
+		case "-":
+			ignore = true
+		default:
+			if s != "" {
+				name = s
+			}
+		}
+	}
+	return
+}
+
 // IsNilOrEmpty 如果 v 是空指针或者零值，返回 true
 // 指针有零值不算零值
 func IsNilOrEmpty(v any) bool {
@@ -24,6 +52,10 @@ func isNilOrEmpty(v reflect.Value) bool {
 	for k == reflect.Pointer {
 		v = v.Elem()
 		k = v.Kind()
+		// 取的值有效，不管是不是零值
+		if v.IsValid() {
+			return false
+		}
 	}
 	// 类型
 	switch k {
@@ -50,7 +82,8 @@ var (
 )
 
 // StructToMap 将 v 转换为 map，v 必须是结构体
-// 嵌入的字段必须是结构，否则不处理
+// 嵌入的字段不是结构，或者是 nil 的结构指针，不处理
+// 不可导出的字段，不处理
 //
 //	type S1 struct {
 //	   A string -> map["A"]=A 默认使用字段名称
@@ -78,7 +111,7 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 		// 类型
 		ft := st.Field(i)
 		// tag
-		name, omitempty, ignore := structToMapTag(&ft)
+		name, omitempty, ignore := structParseTag(&ft, StructToMapTagName)
 		// 忽略
 		if ignore {
 			continue
@@ -95,69 +128,35 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 			fv = fv.Elem()
 			fk = ft.Type.Elem().Kind()
 		}
-		// 数据类型，结构
-		if fk == reflect.Struct {
-			// 嵌入的
-			if ft.Anonymous {
+		// 嵌入字段
+		if ft.Anonymous {
+			// 嵌入的必须是结构
+			if fk == reflect.Struct {
+				// 而且不能是 nil 指针
 				if !fv.IsValid() {
 					continue
 				}
 				m = structToMap(fv, m)
-			} else {
-				// 不可导出
-				if !ft.IsExported() {
-					continue
-				}
-				if !fv.IsValid() {
-					m[name] = nil
-					continue
-				}
+			}
+			continue
+		}
+		// 不可导出
+		if !ft.IsExported() {
+			continue
+		}
+		// 其他
+		if fv.IsValid() && fv.CanInterface() {
+			// 结构
+			if fk == reflect.Struct {
 				m[name] = structToMap(fv, make(map[string]any))
+				continue
 			}
-			continue
-		}
-		// 数据类型，其他
-		if ft.Anonymous {
-			// 嵌入的必须是结构
-			continue
-		}
-		if fv.IsValid() {
-			if fv.CanInterface() {
-				m[name] = fv.Interface()
-			}
+			m[name] = fv.Interface()
 		} else {
 			m[name] = nil
 		}
 	}
 	return m
-}
-
-// structToMapTag 是 structToMap 解析 tag 的封装
-func structToMapTag(f *reflect.StructField) (name string, omitempty, ignore bool) {
-	name = f.Name
-	tag := f.Tag.Get(StructToMapTagName)
-	for tag != "" {
-		var s string
-		i := strings.IndexByte(tag, ',')
-		if i < 0 {
-			s = tag
-			tag = ""
-		} else {
-			s = tag[:i]
-			tag = tag[i+1:]
-		}
-		switch s {
-		case "omitempty":
-			omitempty = true
-		case "-":
-			ignore = true
-		default:
-			if s != "" {
-				name = s
-			}
-		}
-	}
-	return
 }
 
 // StructFieldValue 给字段赋值，v 必须是结构指针
@@ -292,6 +291,171 @@ func structFieldDefaultFunc(structValue, fieldValue reflect.Value, funcName stri
 }
 
 var (
+	// StructCopyTagName 是 StructCopy 结构解析的 tag 名称
+	StructCopyTagName = "copy"
+)
+
+// StructCopy 将 src 的字段拷贝到 dst
+// 嵌入的字段不是结构，或者是 nil 的结构指针，不处理
+// 不可导出的字段，不处理
+//
+//	type src struct {
+//	   A string 默认拷贝到相同名称 dst.A
+//	   B string `copy:"BB"` -> 指定字段 dst.BB
+//	   C string `copy:"omitempty"` -> 忽略零值
+//	   D *string `copy:"d,omitempty"` -> 指针不为 nil 不算零值
+//	   E string `copy:"-"` -> 忽略
+//	   f *common 不导出，忽略
+//	   *common 忽略 nil
+//	}
+//
+//	type dst struct {
+//	   A *string 有拷贝则自动 new
+//	   BB string
+//	   C string
+//	   d *string 不导出，忽略
+//	   D *string
+//	   E string
+//	   A1 string
+//	   B1 string
+//	}
+//
+//	type common struct {
+//	   A1 string
+//	   B1 string
+//	}
+func StructCopy(dst, src any) {
+	dv := reflect.ValueOf(dst)
+	if !dv.IsValid() {
+		panic("dst is invalid")
+	}
+	dk := dv.Kind()
+	if dk != reflect.Pointer {
+		panic("dst must be pointer")
+	}
+	dv = dv.Elem()
+	dk = dv.Kind()
+	if dk != reflect.Struct {
+		panic("dst must be struct pointer")
+	}
+	//
+	sv := reflect.ValueOf(src)
+	if !sv.IsValid() {
+		panic("src is invalid")
+	}
+	//
+	structCopy(dv, sv)
+}
+
+// structCopy 是 StructCopy 的实现
+func structCopy(dstStructValue, srcStructValue reflect.Value) {
+	// 类型
+	srcStructType := srcStructValue.Type()
+	// 所有字段
+	for i := 0; i < srcStructType.NumField(); i++ {
+		// src 字段类型
+		srcFieldType := srcStructType.Field(i)
+		// tag
+		name, omitempty, ignore := structParseTag(&srcFieldType, StructCopyTagName)
+		// 忽略字段
+		if ignore {
+			continue
+		}
+		// src 字段值
+		srcFieldValue := srcStructValue.Field(i)
+		srcFieldKind := srcFieldValue.Kind()
+		if srcFieldKind == reflect.Pointer {
+			srcFieldKind = srcFieldType.Type.Elem().Kind()
+			// nil 指针
+			if srcFieldValue.IsNil() {
+				// 结构
+				if srcFieldKind == reflect.Struct {
+					continue
+				}
+				// 嵌入 / 忽略零值 / 不可导出
+				if srcFieldType.Anonymous || omitempty || !srcFieldType.IsExported() {
+					continue
+				}
+			}
+			srcFieldValue = srcFieldValue.Elem()
+			// 往下
+		} else {
+			// 无论导出，处理嵌入的结构
+			if srcFieldType.Anonymous && srcFieldKind == reflect.Struct {
+				structCopy(dstStructValue, srcFieldValue)
+				continue
+			}
+			// 不可导出 / 忽略零值
+			if !srcFieldType.IsExported() || (omitempty && srcFieldValue.IsZero()) {
+				continue
+			}
+			// 往下
+		}
+		// dst 值
+		dstFieldValue := dstStructValue.FieldByName(name)
+		// 找不到
+		if !dstFieldValue.IsValid() || !dstFieldValue.CanSet() {
+			continue
+		}
+		dstFieldKind := dstFieldValue.Kind()
+		if dstFieldKind == reflect.Pointer {
+			// 需要 new 一个接值
+			if dstFieldValue.IsNil() {
+				// src 是无效，不处理
+				if !srcFieldValue.IsValid() {
+					continue
+				}
+				dataType := dstFieldValue.Type().Elem()
+				dstFieldKind = dataType.Kind()
+				// 数据类型不同
+				if dstFieldKind != srcFieldKind {
+					continue
+				}
+				dstFieldValue.Set(reflect.New(dataType))
+				dstFieldValue = dstFieldValue.Elem()
+			} else {
+				// src 是无效，但是没有忽略零值，这里可能需要设置 dst 为 nil
+				if !srcFieldValue.IsValid() {
+					dataType := dstFieldValue.Type().Elem()
+					dstFieldKind = dataType.Kind()
+					// 数据类型不同
+					if dstFieldKind != srcFieldKind {
+						continue
+					}
+					dstFieldValue.Set(reflect.Zero(srcFieldType.Type))
+					continue
+				}
+				// src 有效
+				dstFieldValue = dstFieldValue.Elem()
+				dstFieldKind = dstFieldValue.Kind()
+				// 数据类型不同
+				if dstFieldKind != srcFieldKind {
+					continue
+				}
+			}
+			// 往下
+		} else {
+			// src 是无效，不处理
+			if !srcFieldValue.IsValid() {
+				continue
+			}
+			// 数据类型不同
+			if dstFieldKind != srcFieldKind {
+				continue
+			}
+			// 往下
+		}
+		// 结构拷贝
+		if srcFieldKind == reflect.Struct {
+			structCopy(dstFieldValue, srcFieldValue)
+			continue
+		}
+		// 其他类型赋值
+		dstFieldValue.Set(srcFieldValue)
+	}
+}
+
+var (
 	// StructDiffFieldTagName 是 StructDiffField 结构解析的 tag 名称
 	StructDiffFieldTagName = "diff"
 )
@@ -357,7 +521,7 @@ func structDiffField(dst, src reflect.Value, m map[string]any) map[string]any {
 			continue
 		}
 		// src tag
-		name, omitempty, ignore := structDiffFieldTag(&sft)
+		name, omitempty, ignore := structParseTag(&sft, StructDiffFieldTagName)
 		// 忽略字段 / 零值
 		if ignore || (omitempty && sfv.IsZero()) {
 			continue
@@ -393,170 +557,3 @@ func structDiffField(dst, src reflect.Value, m map[string]any) map[string]any {
 	}
 	return m
 }
-
-// structDiffFieldTag 是 structDiffField 解析 tag 的封装
-func structDiffFieldTag(f *reflect.StructField) (name string, omitempty, ignore bool) {
-	name = f.Name
-	tag := f.Tag.Get(StructDiffFieldTagName)
-	for tag != "" {
-		var s string
-		i := strings.IndexByte(tag, ',')
-		if i < 0 {
-			s = tag
-			tag = ""
-		} else {
-			s = tag[:i]
-			tag = tag[i+1:]
-		}
-		switch s {
-		case "omitempty":
-			omitempty = true
-		case "-":
-			ignore = true
-		default:
-			if s != "" {
-				name = s
-			}
-		}
-	}
-	return
-}
-
-// // CopyStruct 拷贝 src 和 dst 中的相同名称和类型的字段，
-// // 如果 dst 的字段不是零值则不拷贝。
-// func CopyStruct(dst, src any) {
-// 	copyStruct(copyStructCheck(dst, src))
-// }
-
-// // copyStruct 封装 CopyStruct 代码
-// func copyStruct(dst, src reflect.Value) {
-// 	// 结构类型
-// 	srcType := src.Type()
-// 	for i := 0; i < srcType.NumField(); i++ {
-// 		srcField := src.Field(i)
-// 		// src 零值
-// 		if !srcField.IsValid() || srcField.IsZero() {
-// 			continue
-// 		}
-// 		srcTypeField := srcType.Field(i)
-// 		// dst 同名字段
-// 		dstField := dst.FieldByName(srcTypeField.Name)
-// 		// dst 不为零
-// 		if !dstField.IsValid() || !dstField.CanSet() || !dstField.IsZero() {
-// 			continue
-// 		}
-// 		dstFieldType := dstField.Type()
-// 		// 不同类型
-// 		if srcTypeField.Type != dstFieldType {
-// 			srcFieldKind := srcField.Kind()
-// 			// 看看是不是结构体
-// 			if srcFieldKind == reflect.Pointer {
-// 				srcField = srcField.Elem()
-// 				srcFieldKind = srcField.Kind()
-// 			}
-// 			dstFieldKind := dstField.Kind()
-// 			if dstFieldKind == reflect.Pointer {
-// 				dstField = dstField.Elem()
-// 				dstFieldKind = dstField.Kind()
-// 			}
-// 			// 都是结构体，进去赋值
-// 			if srcFieldKind == reflect.Struct && dstFieldKind == reflect.Struct {
-// 				copyStruct(dstField, srcField)
-// 			}
-// 			// 不是就算了
-// 			continue
-// 		}
-// 		// 相同类型，赋值
-// 		dstField.Set(srcField)
-// 	}
-// }
-
-// // CopyStructAll 拷贝 src 和 dst 中的相同名称和类型的字段
-// func CopyStructAll(dst, src any) {
-// 	copyStructAll(copyStructCheck(dst, src))
-// }
-
-// // copyStructAll 封装 CopyStructAll 代码
-// func copyStructAll(dst, src reflect.Value) {
-// 	// type
-// 	srcType := src.Type()
-// 	for i := 0; i < srcType.NumField(); i++ {
-// 		srcField := src.Field(i)
-// 		if !srcField.IsValid() {
-// 			continue
-// 		}
-// 		srcTypeField := srcType.Field(i)
-// 		dstField := dst.FieldByName(srcTypeField.Name)
-// 		if !dstField.IsValid() || !dstField.CanSet() {
-// 			continue
-// 		}
-// 		dstFieldType := dstField.Type()
-// 		// 不同类型
-// 		if srcTypeField.Type != dstFieldType {
-// 			srcFieldKind := srcField.Kind()
-// 			// 看看是不是结构体
-// 			if srcFieldKind == reflect.Pointer {
-// 				srcField = srcField.Elem()
-// 				srcFieldKind = srcField.Kind()
-// 			}
-// 			dstFieldKind := dstField.Kind()
-// 			if dstFieldKind == reflect.Pointer {
-// 				dstField = dstField.Elem()
-// 				dstFieldKind = dstField.Kind()
-// 			}
-// 			// 都是结构体，进去赋值
-// 			if srcFieldKind == reflect.Struct && dstFieldKind == reflect.Struct {
-// 				copyStructAll(dstField, srcField)
-// 			}
-// 			continue
-// 		}
-// 		// 相同类型，赋值
-// 		dstField.Set(srcField)
-// 	}
-// }
-
-// // CopyStructNotEmpty 拷贝 src 和 dst 中的相同名称和类型的字段
-// // src 为零值不拷贝，dst 不为零值，也拷贝哦
-// func CopyStructNotEmpty(dst, src any) {
-// 	copyStructNotEmpty(copyStructCheck(dst, src))
-// }
-
-// func copyStructNotEmpty(dst, src reflect.Value) {
-// 	// type
-// 	srcType := src.Type()
-// 	for i := 0; i < srcType.NumField(); i++ {
-// 		srcField := src.Field(i)
-// 		// src 零值
-// 		if !srcField.IsValid() || srcField.IsZero() {
-// 			continue
-// 		}
-// 		srcTypeField := srcType.Field(i)
-// 		dstField := dst.FieldByName(srcTypeField.Name)
-// 		if !dstField.IsValid() || !dstField.CanSet() {
-// 			continue
-// 		}
-// 		dstFieldType := dstField.Type()
-// 		// 不同类型
-// 		if srcTypeField.Type != dstFieldType {
-// 			srcFieldKind := srcField.Kind()
-// 			// 看看是不是结构体
-// 			if srcFieldKind == reflect.Pointer {
-// 				srcField = srcField.Elem()
-// 				srcFieldKind = srcField.Kind()
-// 			}
-// 			dstFieldKind := dstField.Kind()
-// 			if dstFieldKind == reflect.Pointer {
-// 				dstField = dstField.Elem()
-// 				dstFieldKind = dstField.Kind()
-// 			}
-// 			// 都是结构体，进去赋值
-// 			if srcFieldKind == reflect.Struct && dstFieldKind == reflect.Struct {
-// 				copyStructNotEmpty(dstField, srcField)
-// 			}
-// 			// 不是就算了
-// 			continue
-// 		}
-// 		// 相同类型，赋值
-// 		dstField.Set(srcField)
-// 	}
-// }
