@@ -44,17 +44,18 @@ func IsNilOrEmpty(v any) bool {
 // isNilOrEmpty 是 IsNilOrEmpty 的实现
 func isNilOrEmpty(v reflect.Value) bool {
 	// 无效
-	if !v.IsValid() || v.IsZero() {
+	if !v.IsValid() {
 		return true
 	}
 	k := v.Kind()
+	pk := k
 	// 指针
-	for k == reflect.Pointer {
+	if k == reflect.Pointer {
 		v = v.Elem()
 		k = v.Kind()
-		// 取的值有效，不管是不是零值
-		if v.IsValid() {
-			return false
+		// nil
+		if !v.IsValid() {
+			return true
 		}
 	}
 	// 类型
@@ -71,8 +72,11 @@ func isNilOrEmpty(v reflect.Value) bool {
 		}
 		return true
 	default:
-		// 其他
-		return !v.IsValid() || v.IsZero()
+		// 其他，指针不是 nil 就不是零
+		if pk == reflect.Pointer {
+			return false
+		}
+		return v.IsZero()
 	}
 }
 
