@@ -405,11 +405,11 @@ func SnowflakeIDFrom(id uint64) string {
 	for {
 		m = id % uint64(len(sid.tb))
 		b[i] = sid.tb[m]
-		i--
 		id = id / uint64(len(sid.tb))
 		if id == 0 {
 			break
 		}
+		i--
 	}
 	return string(b[i:])
 }
