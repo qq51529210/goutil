@@ -358,6 +358,10 @@ func StructCopy(dst, src any) {
 	if !sv.IsValid() {
 		panic("src is invalid")
 	}
+	sk := sv.Kind()
+	if sk == reflect.Pointer {
+		sv = sv.Elem()
+	}
 	//
 	structCopy(dv, sv)
 }
