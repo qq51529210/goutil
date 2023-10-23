@@ -139,21 +139,12 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 				if omitempty {
 					continue
 				}
-				// 嵌入字段
-				if ft.Anonymous {
-					// 结构
-					if fk != reflect.Struct {
-						m[ft.Name] = nil
-					}
-					// 嵌入的不是结构不处理
+				// 嵌入不处理 / 不可导出
+				if ft.Anonymous || !ft.IsExported() {
 					continue
-				} else {
-					// 不可导出
-					if !ft.IsExported() {
-						continue
-					}
-					m[ft.Name] = nil
 				}
+				// 不是嵌入
+				m[ft.Name] = nil
 				continue
 			}
 			fv = fv.Elem()
