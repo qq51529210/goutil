@@ -178,14 +178,13 @@ func (m *uuid) hexString(buf []byte, upper, hyphen bool) string {
 		}
 		m.hexWithoutHyphen(m.utb, buf)
 		return string(buf[16:48])
-	} else {
-		if hyphen {
-			m.hex(m.ltb, buf)
-			return string(buf[16:])
-		}
-		m.hexWithoutHyphen(m.ltb, buf)
-		return string(buf[16:48])
 	}
+	if hyphen {
+		m.hex(m.ltb, buf)
+		return string(buf[16:])
+	}
+	m.hexWithoutHyphen(m.ltb, buf)
+	return string(buf[16:48])
 }
 
 func (m *uuid) hex(table, buf []byte) {
@@ -271,28 +270,28 @@ func UUID1(upper, hyphen bool) string {
 	return _uuid.hexString(buf, upper, hyphen)
 }
 
-// UUID1 版本 2
+// UUID2 版本 2
 func UUID2(upper, hyphen bool) string {
 	buf := make([]byte, uuidBufLen)
 	_uuid.v2(buf)
 	return _uuid.hexString(buf, upper, hyphen)
 }
 
-// UUID1 版本 3
+// UUID3 版本 3
 func UUID3(namespace, name []byte, upper, hyphen bool) string {
 	buf := make([]byte, uuidBufLen)
 	_uuid.v3(namespace, name, buf)
 	return _uuid.hexString(buf, upper, hyphen)
 }
 
-// UUID1 版本 4
+// UUID4 版本 4
 func UUID4(upper, hyphen bool) string {
 	buf := make([]byte, uuidBufLen)
 	_uuid.v4(buf)
 	return _uuid.hexString(buf, upper, hyphen)
 }
 
-// UUID1 版本 5
+// UUID5 版本 5
 func UUID5(namespace, name []byte, upper, hyphen bool) string {
 	buf := make([]byte, uuidBufLen)
 	_uuid.v5(namespace, name, buf)
@@ -353,7 +352,7 @@ func (s *snowflake) init() {
 	}
 }
 
-// SetSnowflakeGroupID 设置机器
+// SetSnowflakeMechineID 设置机器
 func SetSnowflakeMechineID(id uint16) {
 	sid.Lock()
 	sid.mid = uint64(id&sid.midm) << 12
