@@ -132,43 +132,56 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 		// 数据类型
 		fk := ft.Type.Kind()
 		if fk == reflect.Pointer {
-			fv = fv.Elem()
 			fk = ft.Type.Elem().Kind()
-			// 忽略 nil 值
-			if !fv.IsValid() {
-				if !omitempty && ft.IsExported() {
+			// nil 指针
+			if fv.IsNil() {
+				// 忽略
+				if omitempty {
+					continue
+				}
+				// 嵌入字段
+				if ft.Anonymous {
+					// 结构
+					if fk != reflect.Struct {
+						m[ft.Name] = nil
+					}
+					// 嵌入的不是结构不处理
+					continue
+				} else {
+					// 不可导出
+					if !ft.IsExported() {
+						continue
+					}
 					m[ft.Name] = nil
 				}
 				continue
 			}
-		}
-		// 忽略零值
-		if fv.IsZero() {
-			if !omitempty && ft.IsExported() {
-				m[ft.Name] = nil
-			}
-			continue
+			fv = fv.Elem()
 		} else {
-			// 嵌入字段
-			if ft.Anonymous {
-				// 嵌入的必须是结构
-				if fk == reflect.Struct {
-					m = structToMap(fv, m)
-				}
+			// 忽略零值
+			if fv.IsZero() && omitempty {
 				continue
-			} else {
-				// 不可导出
-				if !ft.IsExported() {
-					continue
-				}
 			}
 		}
-		// 其他
+		// 嵌入字段
+		if ft.Anonymous {
+			// 结构
+			if fk == reflect.Struct {
+				structToMap(fv, m)
+			}
+			// 嵌入的不是结构不处理
+			continue
+		}
+		// 不可导出
+		if !ft.IsExported() {
+			continue
+		}
 		// 结构
 		if fk == reflect.Struct {
 			m[name] = structToMap(fv, make(map[string]any))
 			continue
 		}
+		// 其他
 		m[name] = fv.Interface()
 	}
 	return m
