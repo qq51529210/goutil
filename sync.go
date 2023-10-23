@@ -233,6 +233,15 @@ func (p *Map[K, V]) Keys() (k []K) {
 	return
 }
 
+// Take 移除后返回
+func (p *Map[K, V]) Take(k K) V {
+	p.Lock()
+	v := p.D[k]
+	delete(p.D, k)
+	p.Unlock()
+	return v
+}
+
 // TakeAll 返回所有值，清除列表
 func (p *Map[K, V]) TakeAll() (v []V) {
 	p.Lock()
@@ -353,6 +362,19 @@ func (p *MapSlice[K, V]) Keys() (k []K) {
 	}
 	p.RUnlock()
 	return
+}
+
+// Take 移除后返回
+func (p *MapSlice[K, V]) Take(k K) V {
+	p.Lock()
+	n := len(p.D)
+	v := p.D[k]
+	delete(p.D, k)
+	if n != len(p.D) {
+		p.ResetSlice()
+	}
+	p.Unlock()
+	return v
 }
 
 // TakeAll 返回所有值，清除列表
