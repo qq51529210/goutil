@@ -108,6 +108,46 @@ func (g *gormLog) Trace(ctx context.Context, begin time.Time, fc func() (sql str
 var (
 	// InitGORMQueryTag 是 InitGORMQuery 解析 tag 的名称
 	InitGORMQueryTag = "gq"
+	// InitGORMQueryFunc 是 InitGORMQuery 处理函数
+	InitGORMQueryFunc = map[string]func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB{
+		"eq": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`=?", field), value)
+		},
+		"neq": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`!=?", field), value)
+		},
+		"like": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%v%%", value))
+		},
+		"gt": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`<?", field), value)
+		},
+		"gte": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`<=?", field), value)
+		},
+		"lt": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`>?", field), value)
+		},
+		"lte": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`>=?", field), value)
+		},
+		"null": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+			ok := false
+			if kind >= reflect.Int && kind <= reflect.Uint64 {
+				ok = value == 1
+			} else if kind == reflect.Bool {
+				ok = value.(bool)
+			} else if kind == reflect.String {
+				ok = value == "true"
+			} else {
+				return db
+			}
+			if ok {
+				return db.Where(fmt.Sprintf("`%s` IS NULL", field))
+			}
+			return db.Where(fmt.Sprintf("`%s` IS NOT NULL", field))
+		},
+	}
 )
 
 // InitGORMQuery 将 v 格式化到 where ，全部是 AND ，略过空值
@@ -135,126 +175,60 @@ func InitGORMQuery(db *gorm.DB, q any) *gorm.DB {
 		vk = v.Kind()
 	}
 	if vk != reflect.Struct {
-		panic("init gorm query must be struct or struct ptr")
+		panic("q must be struct")
 	}
 	return initGORMQuery(db, v)
 }
 
+// initGORMQuery 是 InitGORMQuery 的实现
 func initGORMQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 	vt := v.Type()
 	for i := 0; i < vt.NumField(); i++ {
-		fv := v.Field(i)
-		if !fv.IsValid() {
-			continue
-		}
-		fvk := fv.Kind()
-		if fvk == reflect.Pointer {
-			// 空指针
-			if fv.IsNil() {
-				continue
-			}
-			fv = fv.Elem()
-			fvk = fv.Kind()
-		}
-		// 结构
-		if fvk == reflect.Struct {
-			initGORMQuery(db, fv)
-			continue
-		}
-		if fvk == reflect.String {
-			// 空值
-			if fv.IsZero() {
-				continue
-			}
-		}
+		// 类型
 		ft := vt.Field(i)
-		tn := ft.Tag.Get(InitGORMQueryTag)
-		p := strings.TrimPrefix(tn, "eq=")
-		if p != tn {
-			db = db.Where(fmt.Sprintf("`%s` = ?", p), fv.Interface())
+		// 没有 tag 不处理
+		tag := ft.Tag.Get(InitGORMQueryTag)
+		if tag == "" {
 			continue
 		}
-		if tn == "eq" {
-			db = db.Where(fmt.Sprintf("`%s` = ?", ft.Name), fv.Interface())
-			continue
+		// eq=F
+		var name string
+		j := strings.Index(tag, "=")
+		if j < 0 {
+			name = ft.Name
+		} else {
+			name = tag[j+1:]
+			tag = tag[:j]
 		}
-		p = strings.TrimPrefix(tn, "neq=")
-		if p != tn {
-			db = db.Where(fmt.Sprintf("`%s` != ?", p), fv.Interface())
-			continue
+		// 值
+		fv := v.Field(i)
+		// 数据类型
+		fk := fv.Kind()
+		if fk == reflect.Pointer {
+			fv = fv.Elem()
+			// 无效值
+			if !fv.IsValid() {
+				continue
+			}
+			fk = fv.Kind()
 		}
-		if tn == "neq" {
-			db = db.Where(fmt.Sprintf("`%s` != ?", ft.Name), fv.Interface())
-			continue
-		}
-		p = strings.TrimPrefix(tn, "like=")
-		if p != tn {
-			db = db.Where(fmt.Sprintf("`%s` LIKE ?", p), fmt.Sprintf("%%%v%%", fv.Interface()))
-			continue
-		}
-		if tn == "like" {
-			db = db.Where(fmt.Sprintf("`%s` LIKE ?", ft.Name), fmt.Sprintf("%%%v%%", fv.Interface()))
-			continue
-		}
-		p = strings.TrimPrefix(tn, "gt=")
-		if p != tn {
-			db = db.Where(fmt.Sprintf("`%s` < ?", p), fv.Interface())
-			continue
-		}
-		if tn == "gt" {
-			db = db.Where(fmt.Sprintf("`%s` < ?", ft.Name), fv.Interface())
-			continue
-		}
-		p = strings.TrimPrefix(tn, "gte=")
-		if p != tn {
-			db = db.Where(fmt.Sprintf("`%s` <= ?", p), fv.Interface())
-			continue
-		}
-		if tn == "gte" {
-			db = db.Where(fmt.Sprintf("`%s` <= ?", ft.Name), fv.Interface())
-			continue
-		}
-		p = strings.TrimPrefix(tn, "lt=")
-		if p != tn {
-			db = db.Where(fmt.Sprintf("`%s` > ?", p), fv.Interface())
-			continue
-		}
-		if tn == "lt" {
-			db = db.Where(fmt.Sprintf("`%s` > ?", ft.Name), fv.Interface())
-			continue
-		}
-		p = strings.TrimPrefix(tn, "lte=")
-		if p != tn {
-			db = db.Where(fmt.Sprintf("`%s` >= ?", p), fv.Interface())
-			continue
-		}
-		if tn == "lte" {
-			db = db.Where(fmt.Sprintf("`%s` >= ?", ft.Name), fv.Interface())
-			continue
-		}
-		p = strings.TrimPrefix(tn, "null=")
-		if p != tn {
-			a, ok := fv.Interface().(int8)
-			if ok {
-				if a == 0 {
-					db = db.Where(fmt.Sprintf("`%s` IS NULL", p))
-				} else {
-					db = db.Where(fmt.Sprintf("`%s` IS NOT NULL", p))
-				}
+		// 嵌入不是结构不处理
+		if ft.Anonymous {
+			if fk == reflect.Struct {
+				initGORMQuery(db, fv)
 			}
 			continue
 		}
-		if tn == "null" {
-			a, ok := fv.Interface().(int8)
-			if ok {
-				if a == 0 {
-					db = db.Where(fmt.Sprintf("`%s` IS NULL", ft.Name))
-				} else {
-					db = db.Where(fmt.Sprintf("`%s` IS NOT NULL", ft.Name))
-				}
-			}
+		// 不可导出
+		if !ft.IsExported() {
 			continue
 		}
+		// 处理
+		fun := InitGORMQueryFunc[tag]
+		if fun == nil {
+			continue
+		}
+		db = fun(db, name, fv.Interface(), fk)
 	}
 	//
 	return db
