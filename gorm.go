@@ -110,6 +110,9 @@ var (
 	InitGORMQueryTag = "gq"
 	// InitGORMQueryFunc 是 InitGORMQuery 处理函数
 	InitGORMQueryFunc = map[string]func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB{
+		"in": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s` IN ?", field), value)
+		},
 		"eq": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
 			return db.Where(fmt.Sprintf("`%s`=?", field), value)
 		},
