@@ -120,7 +120,13 @@ var (
 			return db.Where(fmt.Sprintf("`%s`!=?", field), value)
 		},
 		"like": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%v%%", value))
+			if kind == reflect.String {
+				s := value.(string)
+				if s != "" {
+					return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%s%%", s))
+				}
+			}
+			return db
 		},
 		"gt": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
 			return db.Where(fmt.Sprintf("`%s`<?", field), value)
