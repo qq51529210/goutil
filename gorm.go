@@ -109,45 +109,50 @@ var (
 	// InitGORMQueryTag 是 InitGORMQuery 解析 tag 的名称
 	InitGORMQueryTag = "gq"
 	// InitGORMQueryFunc 是 InitGORMQuery 处理函数
-	InitGORMQueryFunc = map[string]func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB{
-		"in": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s` IN ?", field), value)
+	InitGORMQueryFunc = map[string]func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB{
+		"in": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+			if kind == reflect.Slice || kind == reflect.Array {
+				if !value.IsZero() {
+					return db.Where(fmt.Sprintf("`%s` IN ?", field), value.Interface())
+				}
+			}
+			return db
 		},
-		"eq": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`=?", field), value)
+		"eq": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`=?", field), value.Interface())
 		},
-		"neq": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`!=?", field), value)
+		"neq": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`!=?", field), value.Interface())
 		},
-		"like": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+		"like": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 			if kind == reflect.String {
-				s := value.(string)
+				s := value.String()
 				if s != "" {
 					return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%s%%", s))
 				}
 			}
 			return db
 		},
-		"gt": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`<?", field), value)
+		"gt": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`<?", field), value.Interface())
 		},
-		"gte": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`<=?", field), value)
+		"gte": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`<=?", field), value.Interface())
 		},
-		"lt": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`>?", field), value)
+		"lt": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`>?", field), value.Interface())
 		},
-		"lte": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`>=?", field), value)
+		"lte": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+			return db.Where(fmt.Sprintf("`%s`>=?", field), value.Interface())
 		},
-		"null": func(db *gorm.DB, field string, value any, kind reflect.Kind) *gorm.DB {
+		"null": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 			ok := false
 			if kind >= reflect.Int && kind <= reflect.Uint64 {
-				ok = value == 1
+				ok = value.Interface() == 1
 			} else if kind == reflect.Bool {
-				ok = value.(bool)
+				ok = value.Interface().(bool)
 			} else if kind == reflect.String {
-				ok = value == "true"
+				ok = value.String() == "true"
 			} else {
 				return db
 			}
@@ -237,7 +242,7 @@ func initGORMQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 		if fun == nil {
 			continue
 		}
-		db = fun(db, name, fv.Interface(), fk)
+		db = fun(db, name, fv, fk)
 	}
 	//
 	return db
