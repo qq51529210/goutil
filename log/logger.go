@@ -156,9 +156,9 @@ func (lg *Logger) printfTrace(depth, level int, trace, format string, args ...an
 }
 
 // Recover 如果 recover 不为 nil，输出堆栈
-func (lg *Logger) Recover(recover any) {
+func (lg *Logger) Recover(recover any) bool {
 	if recover == nil {
-		return
+		return false
 	}
 	// get statck info l.line
 	b := logPool.Get().(*Log)
@@ -226,6 +226,8 @@ func (lg *Logger) Recover(recover any) {
 	// 回收
 	logPool.Put(b)
 	logPool.Put(l)
+	//
+	return true
 }
 
 func hasPanicGO(line []byte) bool {

@@ -48,7 +48,7 @@ var (
 	ErrorDepthTrace  func(depth int, traceID string, args ...any)
 	ErrorfDepthTrace func(depth int, traceID, format string, args ...any)
 	// Recover
-	Recover func(recover any)
+	Recover func(recover any) bool
 )
 
 const (
@@ -65,45 +65,46 @@ func init() {
 
 // SetLogger 设置默认的 Logger 和所有的包函数
 func SetLogger(lg *Logger) {
-	DefaultLogger = lg
 	// Debug
-	Debug = DefaultLogger.Debug
-	Debugf = DefaultLogger.Debugf
-	DebugDepth = DefaultLogger.DebugDepth
-	DebugfDepth = DefaultLogger.DebugfDepth
-	DebugTrace = DefaultLogger.DebugTrace
-	DebugfTrace = DefaultLogger.DebugfTrace
-	DebugDepthTrace = DefaultLogger.DebugDepthTrace
-	DebugfDepthTrace = DefaultLogger.DebugfDepthTrace
+	Debug = lg.Debug
+	Debugf = lg.Debugf
+	DebugDepth = lg.DebugDepth
+	DebugfDepth = lg.DebugfDepth
+	DebugTrace = lg.DebugTrace
+	DebugfTrace = lg.DebugfTrace
+	DebugDepthTrace = lg.DebugDepthTrace
+	DebugfDepthTrace = lg.DebugfDepthTrace
 	// Info
-	Info = DefaultLogger.Info
-	Infof = DefaultLogger.Infof
-	InfoDepth = DefaultLogger.InfoDepth
-	InfofDepth = DefaultLogger.InfofDepth
-	InfoTrace = DefaultLogger.InfoTrace
-	InfofTrace = DefaultLogger.InfofTrace
-	InfoDepthTrace = DefaultLogger.InfoDepthTrace
-	InfofDepthTrace = DefaultLogger.InfofDepthTrace
+	Info = lg.Info
+	Infof = lg.Infof
+	InfoDepth = lg.InfoDepth
+	InfofDepth = lg.InfofDepth
+	InfoTrace = lg.InfoTrace
+	InfofTrace = lg.InfofTrace
+	InfoDepthTrace = lg.InfoDepthTrace
+	InfofDepthTrace = lg.InfofDepthTrace
 	// Warn
-	Warn = DefaultLogger.Warn
-	Warnf = DefaultLogger.Warnf
-	WarnDepth = DefaultLogger.WarnDepth
-	WarnfDepth = DefaultLogger.WarnfDepth
-	WarnTrace = DefaultLogger.WarnTrace
-	WarnfTrace = DefaultLogger.WarnfTrace
-	WarnDepthTrace = DefaultLogger.WarnDepthTrace
-	WarnfDepthTrace = DefaultLogger.WarnfDepthTrace
+	Warn = lg.Warn
+	Warnf = lg.Warnf
+	WarnDepth = lg.WarnDepth
+	WarnfDepth = lg.WarnfDepth
+	WarnTrace = lg.WarnTrace
+	WarnfTrace = lg.WarnfTrace
+	WarnDepthTrace = lg.WarnDepthTrace
+	WarnfDepthTrace = lg.WarnfDepthTrace
 	// Error
-	Error = DefaultLogger.Error
-	Errorf = DefaultLogger.Errorf
-	ErrorDepth = DefaultLogger.ErrorDepth
-	ErrorfDepth = DefaultLogger.ErrorfDepth
-	ErrorTrace = DefaultLogger.ErrorTrace
-	ErrorfTrace = DefaultLogger.ErrorfTrace
-	ErrorDepthTrace = DefaultLogger.ErrorDepthTrace
-	ErrorfDepthTrace = DefaultLogger.ErrorfDepthTrace
+	Error = lg.Error
+	Errorf = lg.Errorf
+	ErrorDepth = lg.ErrorDepth
+	ErrorfDepth = lg.ErrorfDepth
+	ErrorTrace = lg.ErrorTrace
+	ErrorfTrace = lg.ErrorfTrace
+	ErrorDepthTrace = lg.ErrorDepthTrace
+	ErrorfDepthTrace = lg.ErrorfDepthTrace
 	// Recover
-	Recover = DefaultLogger.Recover
+	Recover = lg.Recover
+	//
+	DefaultLogger = lg
 }
 
 // Header 返回日志头格式化函数
