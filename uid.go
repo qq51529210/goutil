@@ -256,46 +256,176 @@ func SetUUIDNode(node string) {
 	copy(_uuid.node[:], []byte(node))
 }
 
-// UUID 自己实现的，没有版本号的，不标准的
-func UUID(upper, hyphen bool) string {
+// UUID 返回小写带连字符的
+// 自己实现的，没有版本号的，不标准的
+func UUID() string {
 	buf := make([]byte, uuidBufLen)
 	_uuid.new(buf)
-	return _uuid.hexString(buf, upper, hyphen)
+	return _uuid.hexString(buf, false, true)
 }
 
-// UUID1 版本 1
-func UUID1(upper, hyphen bool) string {
+// UUIDNoHyphen 返回小写不带连字符的
+// 自己实现的，没有版本号的，不标准的
+func UUIDNoHyphen() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.new(buf)
+	return _uuid.hexString(buf, false, false)
+}
+
+// UUIDUpper 返回小写带连字符的
+// 自己实现的，没有版本号的，不标准的
+func UUIDUpper() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.new(buf)
+	return _uuid.hexString(buf, true, true)
+}
+
+// UUIDUpperNoHyphen 返回小写不带连字符的
+// 自己实现的，没有版本号的，不标准的
+func UUIDUpperNoHyphen() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.new(buf)
+	return _uuid.hexString(buf, true, false)
+}
+
+// UUID1 版本 1 ，返回小写带连字符的
+func UUID1() string {
 	buf := make([]byte, uuidBufLen)
 	_uuid.v1(buf)
-	return _uuid.hexString(buf, upper, hyphen)
+	return _uuid.hexString(buf, false, true)
 }
 
-// UUID2 版本 2
-func UUID2(upper, hyphen bool) string {
+// UUID1NoHyphen 版本 1 ，返回小写不带连字符的
+func UUID1NoHyphen() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v1(buf)
+	return _uuid.hexString(buf, false, false)
+}
+
+// UUID1Upper 版本 1 ，返回大写带连字符的
+func UUID1Upper() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v1(buf)
+	return _uuid.hexString(buf, true, true)
+}
+
+// UUID1UpperNoHyphen 版本 1 ，返回大写不带连字符的
+func UUID1UpperNoHyphen() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v1(buf)
+	return _uuid.hexString(buf, true, false)
+}
+
+// UUID2 版本 2 ，返回小写带连字符的
+func UUID2() string {
 	buf := make([]byte, uuidBufLen)
 	_uuid.v2(buf)
-	return _uuid.hexString(buf, upper, hyphen)
+	return _uuid.hexString(buf, false, true)
 }
 
-// UUID3 版本 3
-func UUID3(namespace, name []byte, upper, hyphen bool) string {
+// UUID2NoHyphen 版本 2 ，返回小写不带连字符的
+func UUID2NoHyphen() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v2(buf)
+	return _uuid.hexString(buf, false, false)
+}
+
+// UUID2Upper 版本 2 ，返回大写带连字符的
+func UUID2Upper() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v2(buf)
+	return _uuid.hexString(buf, true, true)
+}
+
+// UUID2UpperNoHyphen 版本 2 ，返回大写不带连字符的
+func UUID2UpperNoHyphen() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v2(buf)
+	return _uuid.hexString(buf, true, false)
+}
+
+// UUID3 版本 3 ，返回小写带连字符的
+func UUID3(namespace, name []byte) string {
 	buf := make([]byte, uuidBufLen)
 	_uuid.v3(namespace, name, buf)
-	return _uuid.hexString(buf, upper, hyphen)
+	return _uuid.hexString(buf, false, true)
 }
 
-// UUID4 版本 4
-func UUID4(upper, hyphen bool) string {
+// UUID3NoHyphen 版本 3 ，返回小写不带连字符的
+func UUID3NoHyphen(namespace, name []byte) string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v3(buf, namespace, name)
+	return _uuid.hexString(buf, false, false)
+}
+
+// UUID3Upper 版本 3 ，返回大写带连字符的
+func UUID3Upper(namespace, name []byte) string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v3(buf, namespace, name)
+	return _uuid.hexString(buf, true, true)
+}
+
+// UUID3UpperNoHyphen 版本 3 ，返回大写不带连字符的
+func UUID3UpperNoHyphen(namespace, name []byte) string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v3(buf, namespace, name)
+	return _uuid.hexString(buf, true, false)
+}
+
+// UUID4 版本 4 ，返回小写带连字符的
+func UUID4() string {
 	buf := make([]byte, uuidBufLen)
 	_uuid.v4(buf)
-	return _uuid.hexString(buf, upper, hyphen)
+	return _uuid.hexString(buf, false, true)
 }
 
-// UUID5 版本 5
-func UUID5(namespace, name []byte, upper, hyphen bool) string {
+// UUID4NoHyphen 版本 4 ，返回小写不带连字符的
+func UUID4NoHyphen() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v4(buf)
+	return _uuid.hexString(buf, false, false)
+}
+
+// UUID4Upper 版本 4 ，返回大写带连字符的
+func UUID4Upper() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v4(buf)
+	return _uuid.hexString(buf, true, true)
+}
+
+// UUID4UpperNoHyphen 版本 4 ，返回大写不带连字符的
+func UUID4UpperNoHyphen() string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v4(buf)
+	return _uuid.hexString(buf, true, false)
+}
+
+// UUID5 版本 5 ，返回小写带连字符的
+func UUID5(namespace, name []byte) string {
 	buf := make([]byte, uuidBufLen)
 	_uuid.v5(namespace, name, buf)
-	return _uuid.hexString(buf, upper, hyphen)
+	return _uuid.hexString(buf, false, true)
+}
+
+// UUID5NoHyphen 版本 5 ，返回小写不带连字符的
+func UUID5NoHyphen(namespace, name []byte) string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v5(buf, namespace, name)
+	return _uuid.hexString(buf, false, false)
+}
+
+// UUID5Upper 版本 5 ，返回大写带连字符的
+func UUID5Upper(namespace, name []byte) string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v5(buf, namespace, name)
+	return _uuid.hexString(buf, true, true)
+}
+
+// UUID5UpperNoHyphen 版本 5 ，返回大写不带连字符的
+func UUID5UpperNoHyphen(namespace, name []byte) string {
+	buf := make([]byte, uuidBufLen)
+	_uuid.v5(buf, namespace, name)
+	return _uuid.hexString(buf, true, false)
 }
 
 // UUIDFrom 从两个 64 位的整数生成
