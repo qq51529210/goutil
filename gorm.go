@@ -189,20 +189,6 @@ func initGORMQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 	for i := 0; i < vt.NumField(); i++ {
 		// 类型
 		ft := vt.Field(i)
-		// 没有 tag 不处理
-		tag := ft.Tag.Get(InitGORMQueryTag)
-		if tag == "" {
-			continue
-		}
-		// eq=F
-		var name string
-		j := strings.Index(tag, "=")
-		if j < 0 {
-			name = ft.Name
-		} else {
-			name = tag[j+1:]
-			tag = tag[:j]
-		}
 		// 值
 		fv := v.Field(i)
 		// 数据类型
@@ -218,13 +204,27 @@ func initGORMQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 		// 嵌入不是结构不处理
 		if ft.Anonymous {
 			if fk == reflect.Struct {
-				initGORMQuery(db, fv)
+				db = initGORMQuery(db, fv)
 			}
 			continue
 		}
 		// 不可导出
 		if !ft.IsExported() {
 			continue
+		}
+		// 没有 tag 不处理
+		tag := ft.Tag.Get(InitGORMQueryTag)
+		if tag == "" {
+			continue
+		}
+		// eq=F
+		var name string
+		j := strings.Index(tag, "=")
+		if j < 0 {
+			name = ft.Name
+		} else {
+			name = tag[j+1:]
+			tag = tag[:j]
 		}
 		// 处理
 		fun := InitGORMQueryFunc[tag]
