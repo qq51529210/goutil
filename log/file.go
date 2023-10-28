@@ -11,82 +11,64 @@ import (
 )
 
 const (
-	// 默认的日志文件最大字节
-	defaultMaxFileSize = 1024 * 1024 * 10
 	// 最小保存的天数
 	minKeepDay = 24 * time.Hour
-	// 最小同步间隔
-	minSyncDur = 100 * time.Millisecond
-	// 目录格式
-	dirNameFormat = "20060102"
-	// 文件格式
-	fileNameFormat = "20060102150405.000000"
 )
 
 var (
 	errFileClosed = errors.New("file has been closed")
 )
 
-// FileConfig 是 NewFile 的参数。
+// FileConfig 是 NewFile 的参数
 type FileConfig struct {
 	// 日志保存的根目录
 	RootDir string `json:"rootDir" yaml:"rootDir" validate:"required"`
-	// 每一份日志文件的最大字节，使用 1.5/K/M/G/T 这样的字符表示
-	MaxFileSize string `json:"maxFileSize" yaml:"maxFileSize"`
-	// 保存的最大天数，最小是1天
+	// 目录格式，默认是 20060102
+	DirNameFormat string `json:"dirNameFormat" yaml:"dirNameFormat" validate:"omitempty,date"`
+	// 文件格式，默认是 150405.000000
+	FileNameFormat string `json:"fileNameFormat" yaml:"fileNameFormat" validate:"omitempty,time"`
+	// 每一份日志文件的最大字节
+	FileMaxSize int64 `json:"fileMaxSize" yaml:"fileMaxSize" validate:"required,min=1"`
+	// 保存的最大天数，最小是 1 天
 	MaxKeepDay int `json:"maxKeepDay" yaml:"maxKeepDay" validate:"required,min=1"`
-	// 同步到磁盘的时间间隔，单位秒，最小是 1
-	// 但是如果文件大小达到 MaxFileSize ，那么立即同步
-	SyncInterval int `json:"syncInterval" yaml:"syncInterval" validate:"required,min=1"`
-	// 是否输出到控制台，out/err
+	// 内存输出到磁盘的间隔，最小是 1 毫秒，设置太小没有意义
+	// 但是如果文件大小达到 FileMaxSize ，那么立即输出
+	FlushInterval time.Duration `json:"flushInterval" yaml:"flushInterval" validate:"required,min=1000000"`
+	// 检查过期文件的间隔，最小是 1 秒
+	CheckExpireInterval time.Duration `json:"checkExpireInterval" yaml:"checkExpireInterval" validate:"required,min=1000000000"`
+	// 输出到文件的同时，是否输出到控制台，out/err
 	Std string `json:"std" yaml:"std" validate:"omitempty,oneof=out err"`
 }
 
-// NewFile 返回一个 File 实例。
+// NewFile 返回一个 File 实例
 func NewFile(conf *FileConfig) (*File, error) {
-	// 解析文件大小
-	size, err := ParseSize(conf.MaxFileSize)
-	if err != nil {
-		return nil, err
-	}
-	if size < 1 {
-		size = defaultMaxFileSize
-	}
-	// 文件保存的时长
-	keepDuraion := time.Duration(conf.MaxKeepDay) * minKeepDay
-	if keepDuraion < minKeepDay {
-		keepDuraion = minKeepDay
-	}
-	// 同步时长
-	syncDur := time.Duration(conf.SyncInterval) * time.Second
-	if syncDur < minSyncDur {
-		syncDur = minSyncDur
-	}
 	// 实例
 	f := new(File)
 	f.rootDir = conf.RootDir
-	f.maxFileSize = int(size)
+	f.maxFileSize = conf.FileMaxSize
 	f.exit = make(chan struct{})
-	f.maxKeepDuraion = keepDuraion
+	f.maxKeepDuraion = time.Duration(conf.MaxKeepDay) * minKeepDay
 	switch conf.Std {
 	case "err":
 		f.std = os.Stderr
 	case "out":
 		f.std = os.Stdout
 	}
-	// 先打开文件准备
-	f.openLast()
-	// 启动同步协程
+	// 输出协程
 	f.wait.Add(1)
-	go f.syncLoop(syncDur)
+	go f.syncRoutine(conf.FlushInterval)
+	// 检查过期协程
+	f.wait.Add(1)
+	go f.checkExpireRoutine(conf.CheckExpireInterval)
+	//
 	return f, nil
 }
 
-// File 实现了 io.Writer 接口，可以作为 Logger 的输出。
-// File 首先会将 log 保存在内存中，后台启动一个同步协程，每隔一段时间将数据同步到磁盘。
-// 如果内存的数据到了最大，会立即同步。
-// 在同步的同时，File 还会自动删除磁盘上时间超过指定天数的文件。
-// 目录结构是，root/date/time.ms
+// File 实现了 io.Writer 接口，可以作为 Logger 的输出
+// 首先将 log 缓存在内存中，每隔一段时间，
+// 或者内存的数据到了指定的字节，才将数据输出到磁盘，提高性能
+// 日志目录结构是，root/date/time.ms
+// 还会自动删除磁盘上时间超过指定天数的文件
 type File struct {
 	lock sync.Mutex
 	wait sync.WaitGroup
@@ -103,14 +85,18 @@ type File struct {
 	// 最大的保存天数
 	maxKeepDuraion time.Duration
 	// 当前磁盘文件的字节
-	curFileSize int
+	curFileSize int64
 	// 磁盘文件的最大字节
-	maxFileSize int
+	maxFileSize int64
 	// 控制台输出
 	std io.Writer
+	// 目录格式
+	dirNameFormat string
+	// 文件格式
+	fileNameFormat string
 }
 
-// Write 是 io.Writer 接口。
+// Write 是 io.Writer 接口
 func (f *File) Write(b []byte) (int, error) {
 	f.lock.Lock()
 	// 关闭了
@@ -118,82 +104,126 @@ func (f *File) Write(b []byte) (int, error) {
 		f.lock.Unlock()
 		return 0, errFileClosed
 	}
-	// 添加到内存
+	// 内存
 	f.data = append(f.data, b...)
-	f.curFileSize += len(b)
-	// 如果内存数据达到最大了，换新文件输出
+	f.curFileSize += int64(len(b))
+	// 内存数据达到最大了
 	if f.curFileSize >= f.maxFileSize {
 		f.curFileSize = 0
-		f.flush()
-		f.close()
-		f.open()
+		// 保存
+		f.flushFile()
+		f.closeFile()
+		// 新文件
+		f.openFile()
 	}
 	f.lock.Unlock()
+	// 输出控制台
 	if f.std != nil {
 		f.std.Write(b)
 	}
+	//
 	return len(b), nil
 }
 
-// syncLoop 运行在一个协程中。
-func (f *File) syncLoop(syncDur time.Duration) {
-	syncTimer := time.NewTicker(syncDur)
+// checkExpireRoutine 检查过期文件
+func (f *File) checkExpireRoutine(dur time.Duration) {
+	// 计时器
+	timer := time.NewTicker(dur)
 	defer func() {
-		syncTimer.Stop()
-		f.lock.Lock()
-		f.flush()
-		f.close()
-		f.lock.Unlock()
+		// 异常
+		recover()
+		// 计时器
+		timer.Stop()
+		// 结束
 		f.wait.Done()
 	}()
-	checkTime := time.Now()
-	// 程序退出
-	quit := make(chan os.Signal, 1)
-	// 先检查一次过期
-	f.check(&checkTime)
 	for !f.closed {
 		select {
-		case now := <-syncTimer.C:
+		case now := <-timer.C:
 			// 检查过期
-			f.check(&checkTime)
-			checkTime = now
-			// 同步时间
-			f.lock.Lock()
-			f.flush()
-			f.lock.Unlock()
+			f.checkFile(&now)
 			// 计时器
-			syncTimer.Reset(syncDur)
+			timer.Reset(dur)
 		case <-f.exit:
 			// 退出信号
-			return
-		case <-quit:
 			return
 		}
 	}
 }
 
-// Close 实现 io.Closer 接口，同步内存到磁盘，等待协程退出。
-func (f *File) Close() error {
+// syncRoutine 输出磁盘
+func (f *File) syncRoutine(dur time.Duration) {
+	// 程序退出
+	osQuit := make(chan os.Signal, 1)
+	// 计时器
+	timer := time.NewTicker(dur)
+	defer func() {
+		// 异常
+		recover()
+		// 计时器
+		timer.Stop()
+		// 程序信号
+		close(osQuit)
+		// 剩余的数据
+		f.lock.Lock()
+		f.flushFile()
+		f.closeFile()
+		f.lock.Unlock()
+		// 结束
+		f.wait.Done()
+	}()
+	// 先打开文件准备
+	f.openLastFile()
+	for !f.closed {
+		select {
+		case <-timer.C:
+			// 保存
+			f.lock.Lock()
+			f.flushFile()
+			f.lock.Unlock()
+			// 计时器
+			timer.Reset(dur)
+		case <-f.exit:
+			// 退出信号
+			return
+		case <-osQuit:
+			// 系统信号，关闭
+			f.close()
+			return
+		}
+	}
+}
+
+// close 设置标记，然后通知
+func (f *File) close() error {
 	f.lock.Lock()
+	// 已经关闭
 	if f.closed {
 		f.lock.Unlock()
 		return errFileClosed
 	}
 	f.closed = true
 	f.lock.Unlock()
-	// 结束协程通知。
+	// 结束协程通知
 	close(f.exit)
-	// 等待退出。
-	f.wait.Wait()
-	// 同步数据，并关闭文件。
-	f.flush()
-	f.close()
-	// 返回
+	//
 	return nil
 }
 
-// check 检查过期文件。
-func (f *File) check(now *time.Time) {
+// Close 实现 io.Closer 接口，同步内存到磁盘，等待协程退出
+func (f *File) Close() error {
+	err := f.close()
+	if err != nil {
+		return err
+	}
+	// 等待退出
+	f.wait.Wait()
+	//
+	return nil
+}
+
+// checkFile 检查过期文件
+func (f *File) checkFile(now *time.Time) {
 	// 读取根目录下的所有文件
 	dirEntries, err := os.ReadDir(f.rootDir)
 	if nil != err {
@@ -220,8 +250,8 @@ func (f *File) check(now *time.Time) {
 	}
 }
 
-// flush 将内存的数据保存到硬盘，如果写入失败，数据会丢弃。
-func (f *File) flush() {
+// flush 将内存的数据保存到硬盘，如果写入失败，数据会丢弃
+func (f *File) flushFile() {
 	if len(f.data) > 0 {
 		_, err := f.file.Write(f.data)
 		if err != nil {
@@ -232,36 +262,36 @@ func (f *File) flush() {
 }
 
 // open 打开一个新的文件
-func (f *File) open() {
+func (f *File) openFile() {
 	now := time.Now()
 	// 创建目录，root/date
-	dateDir := filepath.Join(f.rootDir, now.Format(dirNameFormat))
+	dateDir := filepath.Join(f.rootDir, now.Format(f.dirNameFormat))
 	err := os.MkdirAll(dateDir, os.ModePerm)
 	if nil != err {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	// 创建日志文件，root/date/time.ms
-	timeFile := filepath.Join(dateDir, now.Format(fileNameFormat))
+	timeFile := filepath.Join(dateDir, now.Format(f.fileNameFormat))
 	f.file, err = os.OpenFile(timeFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 	if nil != err {
 		fmt.Fprintln(os.Stderr, err)
 	}
 }
 
-// close 关闭当前文件
-func (f *File) close() {
+// closeFile 关闭当前文件
+func (f *File) closeFile() {
 	if nil != f.file {
 		f.file.Close()
 		f.file = nil
 	}
 }
 
-// openLast 打开上一个最新的文件
-func (f *File) openLast() {
+// openLastFile 打开上一个最新的文件
+func (f *File) openLastFile() {
 	now := time.Now()
 	// 创建目录，root/date
-	dateDir := filepath.Join(f.rootDir, now.Format(dirNameFormat))
+	dateDir := filepath.Join(f.rootDir, now.Format(f.dirNameFormat))
 	err := os.MkdirAll(dateDir, os.ModePerm)
 	if nil != err {
 		fmt.Fprintln(os.Stderr, err)
@@ -274,7 +304,7 @@ func (f *File) openLast() {
 		return
 	}
 	// 没有文件
-	fileName := now.Format(fileNameFormat)
+	fileName := now.Format(f.fileNameFormat)
 	if len(dirEntries) > 0 {
 		// 循环检查
 		dirEntry := dirEntries[0]
@@ -298,7 +328,7 @@ func (f *File) openLast() {
 				}
 			}
 			// 最新的大小
-			if lastFI.Size() < int64(f.maxFileSize) {
+			if lastFI.Size() < f.maxFileSize {
 				fileName = lastFI.Name()
 			}
 		}
@@ -313,5 +343,5 @@ func (f *File) openLast() {
 	if nil != err {
 		fmt.Fprintln(os.Stderr, err)
 	}
-	f.curFileSize = int(fi.Size())
+	f.curFileSize = fi.Size()
 }
