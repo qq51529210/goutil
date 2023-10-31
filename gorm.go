@@ -268,7 +268,12 @@ type GORMPageQuery struct {
 	Total *int8 `json:"total,omitempty" form:"total" binding:"omitempty,oneof=0 1"`
 }
 
-// HasTotal 是否需要返回总数
+// HasCount 是否有分页
+func (m *GORMPageQuery) HasCount() bool {
+	return m.Count != nil && *m.Count > 0
+}
+
+// HasTotal 是否有总数
 func (m *GORMPageQuery) HasTotal() bool {
 	return m.Total != nil && *m.Total == 1
 }
