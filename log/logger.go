@@ -35,9 +35,10 @@ func NewLogger(writer io.Writer, header FormatHeader, name string) *Logger {
 	lg.Writer = writer
 	lg.Header = header
 	// 多加一个空格
-	if name != "" {
-		lg.Name = fmt.Sprintf("[%s] ", name)
+	if name == "" {
+		name = "default"
 	}
+	lg.Name = fmt.Sprintf("[%s] ", name)
 	return lg
 }
 
