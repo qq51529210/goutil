@@ -7,7 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
-	"util/log"
+
+	"github.com/qq51529210/goutil/log"
 
 	"github.com/go-sql-driver/mysql"
 

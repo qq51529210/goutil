@@ -8,7 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"util/log"
+
+	"github.com/qq51529210/goutil/log"
 
 	"gopkg.in/yaml.v3"
 )
