@@ -179,32 +179,33 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 }
 
 // StructFieldValue 给字段赋值，v 必须是结构指针
+// 结构函数的 receiver 不能是指针 (m S)
 func StructFieldValue(v any) {
-	vv := reflect.ValueOf(v)
-	if vv.Kind() != reflect.Pointer {
+	structValue := reflect.ValueOf(v)
+	if structValue.Kind() != reflect.Pointer {
 		panic("v must be pointer")
 	}
-	vv = vv.Elem()
-	if vv.Kind() != reflect.Struct {
+	structValue = structValue.Elem()
+	if structValue.Kind() != reflect.Struct {
 		panic("v must be struct pointer")
 	}
 	//
-	st := vv.Type()
-	for i := 0; i < st.NumField(); i++ {
-		ft := st.Field(i)
+	structType := structValue.Type()
+	for i := 0; i < structType.NumField(); i++ {
+		ft := structType.Field(i)
 		tag := ft.Tag.Get("value")
 		if tag != "" {
-			structFieldtDefaultValue(vv.Field(i), tag)
+			structFieldtDefaultValue(structValue.Field(i), tag)
 			continue
 		}
 		tag = ft.Tag.Get("field")
 		if tag != "" {
-			structFieldDefaultField(vv, vv.Field(i), tag)
+			structFieldDefaultField(structValue, structValue.Field(i), tag)
 			continue
 		}
 		tag = ft.Tag.Get("func")
 		if tag != "" {
-			structFieldDefaultFunc(vv, vv.Field(i), tag)
+			structFieldDefaultFunc(structValue.MethodByName(tag), structValue.Field(i), tag)
 			continue
 		}
 	}
@@ -212,6 +213,10 @@ func StructFieldValue(v any) {
 
 // structFieldtDefaultValue 设置字段的为指定的值
 func structFieldtDefaultValue(fieldValue reflect.Value, defaultValue string) {
+	// 无效/不为空
+	if fieldValue.IsValid() || !fieldValue.IsZero() {
+		return
+	}
 	kind := fieldValue.Kind()
 	// 指针
 	if kind == reflect.Pointer {
@@ -262,6 +267,10 @@ func structFieldtDefaultValue(fieldValue reflect.Value, defaultValue string) {
 
 // structFieldDefaultField 设置字段的为指定的字段的值
 func structFieldDefaultField(structValue, fieldValue reflect.Value, fieldName string) {
+	// 无效/不为空
+	if fieldValue.IsValid() || !fieldValue.IsZero() {
+		return
+	}
 	// 找到标记的字段
 	srcFieldValue := structValue.FieldByName(fieldName)
 	// 无效就算了
@@ -297,16 +306,20 @@ func structFieldDefaultField(structValue, fieldValue reflect.Value, fieldName st
 }
 
 // structFieldDefaultFunc 设置字段的为指定的字段的值
-func structFieldDefaultFunc(structValue, fieldValue reflect.Value, funcName string) {
-	kind := fieldValue.Kind()
+func structFieldDefaultFunc(structFunc, fieldValue reflect.Value, funcName string) {
+	// 无效/不为空
+	if fieldValue.IsValid() || !fieldValue.IsZero() {
+		return
+	}
 	// nil 指针
+	kind := fieldValue.Kind()
 	if kind == reflect.Pointer {
 		if fieldValue.IsNil() {
 			fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
 		}
 		fieldValue = fieldValue.Elem()
 	}
-	fieldValue.Set(structValue.MethodByName(funcName))
+	fieldValue.Set(structFunc.Call(nil)[0])
 }
 
 var (

@@ -17,7 +17,16 @@ type LineReader struct {
 	scaner *bufio.Scanner
 }
 
-// ReadLine读取一行数据
+// NewLineReader 返回新的 LineReader
+func NewLineReader(reader io.Reader) *LineReader {
+	r := new(LineReader)
+	scanner := bufio.NewScanner(reader)
+	scanner.Split(bufio.ScanLines)
+	r.scaner = scanner
+	return r
+}
+
+// ReadLine 读取一行数据
 func (r *LineReader) ReadLine() (string, error) {
 	var line strings.Builder
 	for r.scaner.Scan() {
@@ -34,22 +43,22 @@ func (r *LineReader) ReadLine() (string, error) {
 	return line.String(), nil
 }
 
-// NewLineReader 返回新的 LineReader
-func NewLineReader(reader io.Reader) *LineReader {
-	r := new(LineReader)
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(bufio.ScanLines)
-	r.scaner = scanner
-	return r
-}
-
 // CRLFReader 用于读取 crlf 的每一行数据
 type CRLFReader struct {
 	// 数据源
 	scaner *bufio.Scanner
 }
 
-// ReadLine读取一行数据
+// NewCRLFReader 返回新的 CRLFReader
+func NewCRLFReader(reader io.Reader) *CRLFReader {
+	r := new(CRLFReader)
+	scanner := bufio.NewScanner(reader)
+	scanner.Split(r.scanLines)
+	r.scaner = scanner
+	return r
+}
+
+// ReadLine 读取一行数据
 func (r *CRLFReader) ReadLine() (string, error) {
 	var line strings.Builder
 	for r.scaner.Scan() {
@@ -64,15 +73,6 @@ func (r *CRLFReader) ReadLine() (string, error) {
 		return "", err
 	}
 	return line.String(), nil
-}
-
-// NewCRLFReader 返回新的 CRLFReader
-func NewCRLFReader(reader io.Reader) *CRLFReader {
-	r := new(CRLFReader)
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(r.scanLines)
-	r.scaner = scanner
-	return r
 }
 
 // scanLines 是 bufio.Scanner 的 Split 函数
