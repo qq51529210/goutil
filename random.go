@@ -39,10 +39,10 @@ type random struct {
 	r *rand.Rand
 }
 
-func (r *random) rand(n, i int) string {
+func (r *random) rand(n, bi int) string {
 	b := make([]byte, n)
 	for i := 0; i < n; i++ {
-		b[i] = _random.b[i][_random.r.Intn(len(_random.b[i]))]
+		b[i] = r.b[bi][r.r.Intn(len(r.b[bi]))]
 	}
 	return string(b)
 }
