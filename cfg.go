@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/qq51529210/goutil/log"
+	"goutil/log"
 
 	"gopkg.in/yaml.v3"
 )

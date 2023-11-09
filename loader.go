@@ -3,7 +3,7 @@ package util
 import (
 	"time"
 
-	"github.com/qq51529210/goutil/log"
+	"goutil/log"
 )
 
 // DataLoader 后台加载数据，一直到成功

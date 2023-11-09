@@ -1,3 +1,3 @@
-module github.com/qq51529210/goutil/log
+module log
 
 go 1.20

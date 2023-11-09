@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qq51529210/goutil/log"
+	"goutil/log"
 
 	"github.com/go-sql-driver/mysql"
 
