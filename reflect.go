@@ -179,33 +179,46 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 }
 
 // StructFieldValue 给字段赋值，v 必须是结构指针
-// 结构函数的 receiver 不能是指针 (m S)
+// 如果字段为零值，或者 nil 指针，则赋值
+//
+//	type S1 struct {
+//	   A *string `value:"123"` -> A 为 nil 赋值 123
+//	   B string `field:"A"` -> B 为 零值，将 A 的值给它
+//	   C string `func:"Default"` -> C 为 零值，调用结构体方法赋值，接收者不能是指针
+//	}
+//
+//	func (s S1)Default()string {...}
 func StructFieldValue(v any) {
-	structValue := reflect.ValueOf(v)
-	if structValue.Kind() != reflect.Pointer {
+	sv := reflect.ValueOf(v)
+	if sv.Kind() != reflect.Pointer {
 		panic("v must be pointer")
 	}
-	structValue = structValue.Elem()
-	if structValue.Kind() != reflect.Struct {
+	sv = sv.Elem()
+	if sv.Kind() != reflect.Struct {
 		panic("v must be struct pointer")
 	}
 	//
-	structType := structValue.Type()
-	for i := 0; i < structType.NumField(); i++ {
-		ft := structType.Field(i)
+	st := sv.Type()
+	for i := 0; i < st.NumField(); i++ {
+		fv := sv.Field(i)
+		// 无效/不为空
+		if !fv.IsValid() || !fv.IsZero() {
+			continue
+		}
+		ft := st.Field(i)
 		tag := ft.Tag.Get("value")
 		if tag != "" {
-			structFieldtDefaultValue(structValue.Field(i), tag)
+			structFieldtDefaultValue(fv, tag)
 			continue
 		}
 		tag = ft.Tag.Get("field")
 		if tag != "" {
-			structFieldDefaultField(structValue, structValue.Field(i), tag)
+			structFieldDefaultField(sv, fv, tag)
 			continue
 		}
 		tag = ft.Tag.Get("func")
 		if tag != "" {
-			structFieldDefaultFunc(structValue.MethodByName(tag), structValue.Field(i), tag)
+			structFieldDefaultFunc(sv.MethodByName(tag), fv, tag)
 			continue
 		}
 	}
@@ -213,10 +226,6 @@ func StructFieldValue(v any) {
 
 // structFieldtDefaultValue 设置字段的为指定的值
 func structFieldtDefaultValue(fieldValue reflect.Value, defaultValue string) {
-	// 无效/不为空
-	if fieldValue.IsValid() || !fieldValue.IsZero() {
-		return
-	}
 	kind := fieldValue.Kind()
 	// 指针
 	if kind == reflect.Pointer {
@@ -267,10 +276,6 @@ func structFieldtDefaultValue(fieldValue reflect.Value, defaultValue string) {
 
 // structFieldDefaultField 设置字段的为指定的字段的值
 func structFieldDefaultField(structValue, fieldValue reflect.Value, fieldName string) {
-	// 无效/不为空
-	if fieldValue.IsValid() || !fieldValue.IsZero() {
-		return
-	}
 	// 找到标记的字段
 	srcFieldValue := structValue.FieldByName(fieldName)
 	// 无效就算了
@@ -307,10 +312,6 @@ func structFieldDefaultField(structValue, fieldValue reflect.Value, fieldName st
 
 // structFieldDefaultFunc 设置字段的为指定的字段的值
 func structFieldDefaultFunc(structFunc, fieldValue reflect.Value, funcName string) {
-	// 无效/不为空
-	if fieldValue.IsValid() || !fieldValue.IsZero() {
-		return
-	}
 	// nil 指针
 	kind := fieldValue.Kind()
 	if kind == reflect.Pointer {
