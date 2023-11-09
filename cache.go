@@ -3,7 +3,6 @@ package util
 import (
 	"context"
 	"sync"
-	"util/log"
 )
 
 // cacheLoading 表示加载缓存
@@ -81,9 +80,6 @@ func (c *Cache[K, M]) Query(ctx context.Context, query func(c *Cache[K, M])) err
 
 // loadAllRoutine 在协程中加载数据
 func (c *Cache[K, M]) loadAllRoutine() {
-	defer func() {
-		log.Recover(recover())
-	}()
 	c.loadResult.data, c.loadResult.err = c.loadFunc()
 	close(c.loadResult.done)
 }
