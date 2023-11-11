@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"gbgw/util"
-	"gbgw/util/log"
-	"sync/atomic"
+	"goutil/log"
+	gosync "goutil/sync"
 	"time"
 )
 
@@ -16,10 +15,8 @@ type baseTx struct {
 	key string
 	// 用于判断超时清理
 	deadline time.Time
-	// 状态
-	ok int32
-	// 通知
-	c chan struct{}
+	// 信号
+	signal *gosync.Signal
 	// 错误
 	err error
 	// 用于保存发起请求时传入的数据
@@ -41,7 +38,7 @@ func (m *baseTx) Value(any) any {
 }
 
 func (m *baseTx) Done() <-chan struct{} {
-	return m.c
+	return m.signal.C
 }
 
 func (m *baseTx) TxKey() string {
@@ -55,9 +52,8 @@ func (m *baseTx) Time() time.Time {
 // Finish 异步通知，用于在处理响应的时候，通知发送请求的那个协程
 // 底层的超时通知是 context.DeadlineExceeded
 func (m *baseTx) Finish(err error) {
-	if atomic.CompareAndSwapInt32(&m.ok, 0, 1) {
+	if m.signal.Close() {
 		m.err = err
-		close(m.c)
 	}
 }
 
@@ -75,13 +71,13 @@ type activeTx struct {
 }
 
 // newActiveTx 添加并返回，用于主动发送请求
-func (s *Server) newActiveTx(c conn, m *message, d any, at *util.Map[string, *activeTx]) (*activeTx, error) {
+func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *activeTx]) (*activeTx, error) {
 	//
 	t := new(activeTx)
 	t.key = m.txKey()
 	t.time = time.Now()
 	t.deadline = t.time.Add(s.TxTimeout)
-	t.c = make(chan struct{})
+	t.signal = gosync.NewSignal()
 	t.data = d
 	t.conn = c
 	t.rto = s.RTO
@@ -91,7 +87,7 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *util.Map[string, *ac
 	at.Lock()
 	_, ok := at.D[t.key]
 	if ok {
-		close(t.c)
+		t.signal.Close()
 		return nil, errTransactionExists
 	}
 	at.Unlock()
@@ -102,7 +98,7 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *util.Map[string, *ac
 }
 
 // delActiveTx 移除
-func (s *Server) delActiveTx(k string, at *util.Map[string, *activeTx]) *activeTx {
+func (s *Server) delActiveTx(k string, at *gosync.Map[string, *activeTx]) *activeTx {
 	at.Lock()
 	t := at.D[k]
 	if t != nil {
@@ -114,7 +110,7 @@ func (s *Server) delActiveTx(k string, at *util.Map[string, *activeTx]) *activeT
 }
 
 // checkActiveTxTimeoutRoutine 检查主动事务的超时
-func (s *Server) checkActiveTxTimeoutRoutine(name string, at *util.Map[string, *activeTx]) {
+func (s *Server) checkActiveTxTimeoutRoutine(name string, at *gosync.Map[string, *activeTx]) {
 	logTrace := fmt.Sprintf("%s check active tx routine", name)
 	// 计时器
 	dur := s.TxTimeout / 2
@@ -172,7 +168,7 @@ type passiveTx struct {
 }
 
 // newPassiveTx 添加并返回，用于被动接收请求
-func (s *Server) newPassiveTx(m *message, pt *util.Map[string, *passiveTx]) *passiveTx {
+func (s *Server) newPassiveTx(m *message, pt *gosync.Map[string, *passiveTx]) *passiveTx {
 	k := m.txKey()
 	// 添加
 	pt.Lock()
@@ -182,7 +178,7 @@ func (s *Server) newPassiveTx(m *message, pt *util.Map[string, *passiveTx]) *pas
 		t.key = k
 		t.time = time.Now()
 		t.deadline = t.time.Add(s.TxTimeout)
-		t.c = make(chan struct{})
+		t.signal = gosync.NewSignal()
 		pt.D[k] = t
 		//
 		log.DebugfTrace(k, "new passive tx")
@@ -193,7 +189,7 @@ func (s *Server) newPassiveTx(m *message, pt *util.Map[string, *passiveTx]) *pas
 }
 
 // checkPassiveTxTimeoutRoutine 检查被动事务的超时
-func (s *Server) checkPassiveTxTimeoutRoutine(name string, pt *util.Map[string, *passiveTx]) {
+func (s *Server) checkPassiveTxTimeoutRoutine(name string, pt *gosync.Map[string, *passiveTx]) {
 	logTrace := fmt.Sprintf("%s check passive tx routine", name)
 	// 计时器
 	dur := s.TxTimeout / 2

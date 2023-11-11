@@ -1,19 +1,17 @@
 package sip
 
 import (
-	"gbgw/util"
-	"gbgw/util/log"
+	"goutil/log"
+	gosync "goutil/sync"
 	"net"
-	"sync"
 )
 
 // tcpServer 包装 tcp 相关的数据
 type tcpServer struct {
-	w  sync.WaitGroup
 	l  *net.TCPListener
-	c  util.Map[connKey, *tcpConn]
-	at util.Map[string, *activeTx]
-	pt util.Map[string, *passiveTx]
+	c  gosync.Map[connKey, *tcpConn]
+	at gosync.Map[string, *activeTx]
+	pt gosync.Map[string, *passiveTx]
 }
 
 // serveTCP 开始 tcp 服务

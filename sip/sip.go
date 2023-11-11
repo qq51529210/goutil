@@ -23,9 +23,13 @@ const (
 	BranchPrefix  = "z9hG4bK"
 	SIPVersion    = "SIP/2.0"
 	MaxMessageLen = 1024 * 10
-	SIP           = "sip"
 	TCP           = "SIP/2.0/TCP"
+	TCPS          = "SIPS/2.0/TCP"
 	UDP           = "SIP/2.0/UDP"
+	UDPS          = "SIPS/2.0/UDP"
+	CRLF          = "crlf"
+	SIP           = "sip"
+	SIPS          = "sips"
 )
 
 // 一些错误

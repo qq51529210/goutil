@@ -3,12 +3,52 @@ package sip
 import (
 	"bytes"
 	"fmt"
-	"gbgw/util"
-	"gbgw/util/log"
+	"goutil/log"
+	"goutil/uid"
 	"io"
 	"strconv"
 	"strings"
 )
+
+// URI 表示 <sip:name@domain>
+type URI struct {
+	Scheme string
+	Name   string
+	Domain string
+}
+
+// Reset 重置
+func (m *URI) Reset() {
+	m.Scheme = ""
+	m.Name = ""
+	m.Domain = ""
+}
+
+// Dec 解析
+func (m *URI) Dec(line string) bool {
+	line = TrimByte(line, '<', '>')
+	// 有这种格式的
+	if line != "*" {
+		// scheme:
+		m.Scheme, line = Split(line, CharColon)
+		if m.Scheme == "" {
+			return false
+		}
+		// name@domain
+		m.Name, m.Domain = Split(line, CharAt)
+		if m.Name == "" || m.Domain == "" {
+			return false
+		}
+	}
+	//
+	return true
+}
+
+// Enc 格式化
+func (m *URI) Enc(w Writer) (err error) {
+	_, err = fmt.Fprintf(w, "<%s:%s@%s>", m.Scheme, m.Name, m.Domain)
+	return
+}
 
 // Address 表示 name<uri>;tag
 type Address struct {
@@ -24,40 +64,34 @@ func (m *Address) Reset() {
 	m.URI.Reset()
 }
 
-// Enc 格式化到 writer 中
-func (m *Address) Enc(w Writer, name string) (err error) {
-	_, err = w.WriteString(name)
-	if err != nil {
-		return err
+// Enc 格式化
+func (m *Address) Enc(w Writer, prefix string) (err error) {
+	if _, err = w.WriteString(prefix); err != nil {
+		return
 	}
 	// name
 	if m.Name != "" {
-		_, err = w.WriteString(m.Name)
-		if err != nil {
-			return err
+		if _, err = w.WriteString(m.Name); err != nil {
+			return
 		}
 	}
 	// uri
 	err = m.URI.Enc(w)
 	if err != nil {
-		return err
+		return
 	}
 	// tag
 	if m.Tag != "" {
-		_, err = fmt.Fprintf(w, ";tag=%s", m.Tag)
-		if err != nil {
-			return err
+		if _, err = fmt.Fprintf(w, ";tag=%s", m.Tag); err != nil {
+			return
 		}
 	}
 	// crlf
-	_, err = w.WriteString("\r\n")
-	if err != nil {
-		return err
-	}
+	_, err = w.WriteString(CRLF)
 	return
 }
 
-// Dec 从 line 解析数据
+// Dec 解析
 func (m *Address) Dec(line string) bool {
 	prefix, suffix := Split(line, CharSemicolon)
 	if prefix == "" {
@@ -93,64 +127,24 @@ func (m *CSeq) Reset() {
 	m.Method = ""
 }
 
-// Dec 从 line 解析数据
+// Dec 解析
 func (m *CSeq) Dec(line string) bool {
-	prefix, suffix := Split(line, CharSpace)
-	if prefix == "" {
+	m.SN, m.Method = Split(line, CharSpace)
+	if m.SN == "" || m.Method == "" {
 		return false
 	}
-	m.SN = prefix
-	m.Method = suffix
 	return true
 }
 
-// Enc 格式化到 w 中
+// Enc 格式化
 func (m *CSeq) Enc(w Writer) (err error) {
 	_, err = fmt.Fprintf(w, "CSeq: %s %s\r\n", m.SN, m.Method)
-	return err
+	return
 }
 
-// URI 表示 sip:name@domain
-type URI struct {
-	Scheme string
-	Name   string
-	Domain string
-}
-
-// Reset 重置
-func (m *URI) Reset() {
-	m.Scheme = ""
-	m.Name = ""
-	m.Domain = ""
-}
-
-// Dec 从 line 解析
-func (m *URI) Dec(line string) bool {
-	line = TrimByte(line, '<', '>')
-	// 有这种格式的
-	if line != "*" {
-		// scheme:
-		m.Scheme, line = Split(line, CharColon)
-		if m.Scheme == "" {
-			return false
-		}
-		// name@domain
-		m.Name, m.Domain = Split(line, CharAt)
-	}
-	//
-	return true
-}
-
-// Enc 格式化到 w 中
-func (m *URI) Enc(w Writer) (err error) {
-	_, err = fmt.Fprintf(w, "<%s:%s@%s>", m.Scheme, m.Name, m.Domain)
-	return err
-}
-
-// Via 表示 version/proto address;rport=x;branch=x
+// Via 表示 proto address;rport=x;branch=x
 type Via struct {
 	// SIP/2.0/UDP
-	// SIP/2.0/TCP
 	Proto    string
 	Address  string
 	Branch   string
@@ -158,24 +152,21 @@ type Via struct {
 	Received string
 }
 
-// Dec 从 line 解析数据。
+// Dec 解析
 func (m *Via) Dec(line string) bool {
-	// version/proto
-	prefix, suffix := Split(line, CharSpace)
-	if prefix == "" {
-		return false
-	}
-	m.Proto = prefix
-	if m.Proto != TCP && m.Proto != UDP {
+	var prefix, suffix string
+	// proto
+	m.Proto, suffix = Split(line, CharSpace)
+	if m.Proto == "" {
 		return false
 	}
 	// address
-	m.Address, suffix = Split(line, CharSemicolon)
+	m.Address, suffix = Split(suffix, CharSemicolon)
 	if prefix == "" {
 		return false
 	}
 	for suffix != "" {
-		prefix, suffix = Split(line, CharSemicolon)
+		prefix, suffix = Split(suffix, CharSemicolon)
 		// branch
 		s := strings.TrimPrefix(prefix, "branch=")
 		if s != prefix {
@@ -200,43 +191,37 @@ func (m *Via) Dec(line string) bool {
 
 // Enc 格式化到 w
 func (m *Via) Enc(w Writer) (err error) {
-	// Version/Proto Address
-	_, err = fmt.Fprintf(w, "Via: %s %s", m.Proto, m.Address)
-	if err != nil {
-		return err
+	// proto address
+	if _, err = fmt.Fprintf(w, "Via: %s %s", m.Proto, m.Address); err != nil {
+		return
 	}
 	// rport
-	_, err = w.WriteString(";rport")
-	if err != nil {
-		return err
+	if _, err = w.WriteString(";rport"); err != nil {
+		return
 	}
 	if m.RProt != "" {
-		_, err = fmt.Fprintf(w, "=%s", m.RProt)
-		if err != nil {
-			return err
+		if _, err = fmt.Fprintf(w, "=%s", m.RProt); err != nil {
+			return
 		}
 	}
 	// received
-	_, err = w.WriteString(";received")
-	if err != nil {
-		return err
+	if _, err = w.WriteString(";received"); err != nil {
+		return
 	}
 	if m.Received != "" {
-		_, err = fmt.Fprintf(w, "=%s", m.Received)
-		if err != nil {
-			return err
+		if _, err = fmt.Fprintf(w, "=%s", m.Received); err != nil {
+			return
 		}
 	}
 	// branch
 	if m.Branch != "" {
-		_, err = fmt.Fprintf(w, ";branch=%s", m.Branch)
+		if _, err = fmt.Fprintf(w, ";branch=%s", m.Branch); err != nil {
+			return
+		}
 	}
 	// crlf
-	_, err = w.WriteString("\r\n")
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err = w.WriteString(CRLF)
+	return
 }
 
 // header 表示消息的一些必需的头字段
@@ -259,7 +244,7 @@ func (m *header) errorLine(line string) error {
 	return fmt.Errorf("error header %s", line)
 }
 
-// Dec 从 r 解析
+// Dec 解析
 func (m *header) Dec(r Reader, max int) (int, error) {
 	m.others = make(map[string]string)
 	var from, to, cseq, contentLength bool
@@ -360,82 +345,70 @@ func (m *header) Dec(r Reader, max int) (int, error) {
 	return max, nil
 }
 
-// Enc 格式化到 w 中
-func (m *header) Enc(w Writer) error {
-	var err error
+// Enc 格式化
+func (m *header) Enc(w Writer) (err error) {
 	// Via
 	for i := 0; i < len(m.Via); i++ {
-		err = m.Via[i].Enc(w)
-		if err != nil {
-			return err
+		if err = m.Via[i].Enc(w); err != nil {
+			return
 		}
 	}
 	// From
-	err = m.From.Enc(w, "From: ")
-	if err != nil {
-		return err
+	if err = m.From.Enc(w, "From: "); err != nil {
+		return
 	}
 	// To
-	err = m.To.Enc(w, "To: ")
-	if err != nil {
-		return err
+	if err = m.To.Enc(w, "To: "); err != nil {
+		return
 	}
 	// Call-ID
-	_, err = fmt.Fprintf(w, "Call-ID: %s\r\n", m.CallID)
-	if err != nil {
-		return err
+	if _, err = fmt.Fprintf(w, "Call-ID: %s\r\n", m.CallID); err != nil {
+		return
 	}
 	// CSeq
-	_, err = fmt.Fprintf(w, "CSeq: %s %s\r\n", m.CSeq.SN, m.CSeq.Method)
-	if err != nil {
-		return err
+	if _, err = fmt.Fprintf(w, "CSeq: %s %s\r\n", m.CSeq.SN, m.CSeq.Method); err != nil {
+		return
 	}
 	// Contact
 	if m.Contact.Scheme != "" && m.Contact.Name != "" && m.Contact.Domain != "" {
-		_, err = fmt.Fprintf(w, "Contact: <%s:%s@%s>\r\n", m.Contact.Scheme, m.Contact.Name, m.Contact.Domain)
-		if err != nil {
-			return err
+		if _, err = fmt.Fprintf(w, "Contact: <%s:%s@%s>\r\n", m.Contact.Scheme, m.Contact.Name, m.Contact.Domain); err != nil {
+			return
 		}
 	}
 	// Expires
 	if m.Expires != "" {
-		_, err = fmt.Fprintf(w, "Expires: %s\r\n", m.Expires)
-		if err != nil {
-			return err
+		if _, err = fmt.Fprintf(w, "Expires: %s\r\n", m.Expires); err != nil {
+			return
 		}
 	}
 	// Max-Forwards
 	if m.MaxForwards != "" {
-		_, err = fmt.Fprintf(w, "Max-Forwards: %s\r\n", m.MaxForwards)
-		if err != nil {
-			return err
+		if _, err = fmt.Fprintf(w, "Max-Forwards: %s\r\n", m.MaxForwards); err != nil {
+			return
 		}
 	}
 	// Content-Type
 	if m.ContentType != "" {
-		_, err = fmt.Fprintf(w, "Content-Type: %s\r\n", m.ContentType)
-		if err != nil {
-			return err
+		if _, err = fmt.Fprintf(w, "Content-Type: %s\r\n", m.ContentType); err != nil {
+			return
 		}
 	}
 	// Others
 	for k, v := range m.others {
-		_, err = fmt.Fprintf(w, "%s: %s\r\n", k, v)
-		if err != nil {
-			return err
+		if _, err = fmt.Fprintf(w, "%s: %s\r\n", k, v); err != nil {
+			return
 		}
 	}
 	// User-Agent
 	if m.UserAgent == "" {
 		m.UserAgent = "aite-gb28181"
 	}
-	_, err = fmt.Fprintf(w, "User-Agent: %s\r\n", m.UserAgent)
-	if err != nil {
-		return err
+	if _, err = fmt.Fprintf(w, "User-Agent: %s\r\n", m.UserAgent); err != nil {
+		return
 	}
 	// Content-Length
 	_, err = fmt.Fprintf(w, "Content-Length: %d\r\n", m.contentLength)
-	return err
+	return
 }
 
 // Reset 重置
@@ -455,19 +428,18 @@ func (m *header) Reset() {
 
 // Has 是否存在
 func (m *header) Has(key string) (ok bool) {
-	if m.others == nil {
-		return
+	if m.others != nil {
+		_, ok = m.others[key]
 	}
-	_, ok = m.others[key]
 	return
 }
 
 // Get 返回
 func (m *header) Get(key string) (value string) {
-	if m.others == nil {
-		return ""
+	if m.others != nil {
+		value = m.others[key]
 	}
-	return m.others[key]
+	return
 }
 
 // Set 设置
@@ -510,44 +482,39 @@ func (m *message) Dec(r Reader, max int) (err error) {
 	// start line
 	max, err = m.DecStartLine(r, max)
 	if err != nil {
-		return err
+		return
 	}
 	// header
-	max, err = m.Header.Dec(r, max)
+	_, err = m.Header.Dec(r, max)
 	if err != nil {
-		return err
+		return
 	}
 	// body
 	if m.Header.contentLength > 0 {
 		_, err = io.CopyN(&m.Body, r, m.Header.contentLength)
-		if err != nil {
-			return err
-		}
 	}
-	return nil
+	return
 }
 
 // Enc 格式化 header 和 body（如果 body 不为空）到 w 中
 // Content-Length 字段是根据 body 的大小自动添加的
-func (m *message) Enc(w Writer) error {
+func (m *message) Enc(w Writer) (err error) {
 	// start line
 	fmt.Fprintf(w, "%s %s %s\r\n", m.StartLine[0], m.StartLine[1], m.StartLine[2])
 	// header
 	m.Header.contentLength = int64(m.Body.Len())
-	err := m.Header.Enc(w)
-	if err != nil {
-		return err
+	if err = m.Header.Enc(w); err != nil {
+		return
 	}
 	// header 和 body 的空行
-	_, err = w.WriteString("\r\n")
-	if err != nil {
-		return err
+	if _, err = w.WriteString(CRLF); err != nil {
+		return
 	}
 	// body
 	if m.Header.contentLength > 0 {
 		_, err = w.Write(m.Body.Bytes())
 	}
-	return err
+	return
 }
 
 // DecStartLine 解析 start line ，返回剩余的 max
@@ -557,7 +524,7 @@ func (m *message) DecStartLine(reader Reader, max int) (int, error) {
 	if err != nil {
 		return max, err
 	}
-	max -= len(line)
+	max = max - len(line) - len(CRLF)
 	// 数据太大，返回错误
 	if max < 0 {
 		return max, fmt.Errorf("large bytes %d of start line", len(line))
@@ -620,16 +587,16 @@ func NewRequest() *Request {
 }
 
 func (m *Request) response(status, phrase string) {
-	if phrase == "" {
-		phrase = StatusPhrase(status)
-	}
 	// start line
 	m.StartLine[0] = SIPVersion
 	m.StartLine[1] = string(status)
 	m.StartLine[2] = phrase
+	if m.StartLine[2] == "" {
+		m.StartLine[2] = StatusPhrase(status)
+	}
 	// to tag
 	if m.Header.To.Tag == "" {
-		m.Header.To.Tag = util.SnowflakeIDString()
+		m.Header.To.Tag = uid.SnowflakeIDString()
 	}
 	if m.Header.Via[0].Received == "" {
 		m.Header.Via[0].Received = m.RemoteIP()

@@ -2,8 +2,8 @@ package sip
 
 import (
 	"context"
-	"gbgw/util"
-	"gbgw/util/log"
+	"goutil/log"
+	gosync "goutil/sync"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -83,7 +83,7 @@ func (s *Server) Close() error {
 }
 
 // handleMsg 处理消息
-func (s *Server) handleMsg(c conn, m *message, at *util.Map[string, *activeTx], pt *util.Map[string, *passiveTx]) error {
+func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx], pt *gosync.Map[string, *passiveTx]) error {
 	// 请求消息
 	if m.isReq {
 		// 日志
@@ -197,7 +197,7 @@ func (s *Server) Request(ctx context.Context, r *Request, a net.Addr, d any) err
 }
 
 // doRequest 封装 Request 的公共代码
-func (s *Server) doRequest(ctx context.Context, c conn, m *message, d any, at *util.Map[string, *activeTx]) error {
+func (s *Server) doRequest(ctx context.Context, c conn, m *message, d any, at *gosync.Map[string, *activeTx]) error {
 	// 事务
 	t, err := s.newActiveTx(c, m, d, at)
 	if err != nil {
@@ -212,7 +212,7 @@ func (s *Server) doRequest(ctx context.Context, c conn, m *message, d any, at *u
 		select {
 		case <-ctx.Done():
 			err = ctx.Err()
-		case <-t.c:
+		case <-t.signal.C:
 			err = t.err
 		}
 	}

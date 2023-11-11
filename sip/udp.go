@@ -1,10 +1,9 @@
 package sip
 
 import (
-	"bytes"
 	"fmt"
-	"gbgw/util"
-	"gbgw/util/log"
+	"goutil/log"
+	gosync "goutil/sync"
 	"io"
 	"net"
 	"runtime"
@@ -43,25 +42,11 @@ func (p *udpReadData) Read(buf []byte) (int, error) {
 	return n, nil
 }
 
-type udpWriteData struct {
-	// key
-	k string
-	// 数据
-	b bytes.Buffer
-	// 地址
-	a *net.UDPAddr
-	// 发送时间戳
-	t int64
-	// 过期时间戳
-	e int64
-}
-
 type udpServer struct {
 	w  sync.WaitGroup
 	c  *net.UDPConn
-	p  sync.Pool
-	at util.Map[string, *activeTx]
-	pt util.Map[string, *passiveTx]
+	at gosync.Map[string, *activeTx]
+	pt gosync.Map[string, *passiveTx]
 }
 
 // serveUDP 启动 udp 服务
@@ -77,15 +62,11 @@ func (s *Server) serveUDP() error {
 		return err
 	}
 	log.InfofTrace(logTraceUDP, "listen %s", s.Addr)
-	// 池
-	s.udp.p.New = func() any {
-		return new(udpWriteData)
-	}
+	//
 	s.udp.at.Init()
 	s.udp.pt.Init()
 	// 读取协程
-	// n := runtime.NumCPU()
-	n := 1
+	n := runtime.NumCPU()
 	s.w.Add(n)
 	for i := 0; i < n; i++ {
 		go s.readUDPRoutine(i)
