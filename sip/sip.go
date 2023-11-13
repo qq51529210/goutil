@@ -27,7 +27,7 @@ const (
 	TCPS          = "SIPS/2.0/TCP"
 	UDP           = "SIP/2.0/UDP"
 	UDPS          = "SIPS/2.0/UDP"
-	CRLF          = "crlf"
+	CRLF          = "\r\n"
 	SIP           = "sip"
 	SIPS          = "sips"
 )

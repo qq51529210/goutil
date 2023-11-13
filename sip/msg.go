@@ -162,7 +162,7 @@ func (m *Via) Dec(line string) bool {
 	}
 	// address
 	m.Address, suffix = Split(suffix, CharSemicolon)
-	if prefix == "" {
+	if m.Address == "" {
 		return false
 	}
 	for suffix != "" {
