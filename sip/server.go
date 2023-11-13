@@ -2,8 +2,10 @@ package sip
 
 import (
 	"context"
+	"fmt"
 	"goutil/log"
 	gosync "goutil/sync"
+	"goutil/uid"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -166,6 +168,46 @@ func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
 	})
 }
 
+// NewRequest 创建请求
+func (s *Server) NewRequest(proto, method, localName, remoteName, remoteAddr, maxForwards, contentType, contact string) *Request {
+	m := &Request{message: new(message)}
+	// start line
+	m.StartLine[0] = method
+	m.StartLine[1] = fmt.Sprintf("SIP:%s@%s", remoteName, remoteAddr)
+	m.StartLine[2] = SIPVersion
+	// via
+	m.Header.Via = append(m.Header.Via, &Via{
+		Proto:   proto,
+		Address: s.Addr,
+		Branch:  fmt.Sprintf("%s%d", BranchPrefix, uid.SnowflakeID()),
+	})
+	// From
+	m.Header.From.URI.Scheme = SIP
+	m.Header.From.URI.Name = localName
+	m.Header.From.URI.Domain = s.Addr
+	m.Header.From.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
+	// To
+	m.Header.To.URI.Scheme = SIP
+	m.Header.To.URI.Name = remoteName
+	m.Header.To.URI.Domain = remoteAddr
+	// m.Header.To.Tag = ""
+	// Call-ID
+	m.Header.CallID = fmt.Sprintf("%d", uid.SnowflakeID())
+	// CSeq
+	m.Header.CSeq.SN = GetSNString()
+	m.Header.CSeq.Method = method
+	// Max-Forwards
+	m.Header.MaxForwards = maxForwards
+	// Content-Type
+	m.Header.ContentType = contentType
+	// Contact
+	m.Header.Contact.Scheme = SIP
+	m.Header.Contact.Name = localName
+	m.Header.Contact.Domain = contact
+	//
+	return m
+}
+
 // Request 发送请求并等待响应
 func (s *Server) Request(ctx context.Context, r *Request, a net.Addr, d any) error {
 	// tcp
@@ -212,14 +254,17 @@ func (s *Server) doRequest(ctx context.Context, c conn, m *message, d any, at *g
 		select {
 		case <-ctx.Done():
 			err = ctx.Err()
+			// 移除
+			at.Del(t.key)
+			// 通知
+			t.Finish(err)
 		case <-t.signal.C:
 			err = t.err
+			// 要么是收到了响应的消息被移除
+			// 要么是检查超时被移除
+			// 所以这里不需要显示调用，提高性能
 		}
 	}
-	// 移除
-	at.Del(t.key)
-	// 无论如何都通知
-	t.Finish(err)
 	// 日志
 	log.DebugfTrace(t.TxKey(), "do request cost %v", time.Since(t.time))
 	//

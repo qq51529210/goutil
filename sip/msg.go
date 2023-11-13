@@ -400,11 +400,10 @@ func (m *header) Enc(w Writer) (err error) {
 		}
 	}
 	// User-Agent
-	if m.UserAgent == "" {
-		m.UserAgent = "aite-gb28181"
-	}
-	if _, err = fmt.Fprintf(w, "User-Agent: %s\r\n", m.UserAgent); err != nil {
-		return
+	if m.UserAgent != "" {
+		if _, err = fmt.Fprintf(w, "User-Agent: %s\r\n", m.UserAgent); err != nil {
+			return
+		}
 	}
 	// Content-Length
 	_, err = fmt.Fprintf(w, "Content-Length: %d\r\n", m.contentLength)
