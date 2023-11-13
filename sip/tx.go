@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"goutil/log"
 	gosync "goutil/sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -13,14 +14,16 @@ import (
 type baseTx struct {
 	// 池的 key
 	key string
-	// 用于判断超时清理
-	deadline time.Time
+	// 状态
+	ok int32
 	// 信号
-	signal *gosync.Signal
+	c chan struct{}
 	// 错误
 	err error
 	// 用于保存发起请求时传入的数据
 	data any
+	// 用于判断超时清理
+	deadline time.Time
 	// 创建时间
 	time time.Time
 }
@@ -38,7 +41,7 @@ func (m *baseTx) Value(any) any {
 }
 
 func (m *baseTx) Done() <-chan struct{} {
-	return m.signal.C
+	return m.c
 }
 
 func (m *baseTx) TxKey() string {
@@ -52,8 +55,9 @@ func (m *baseTx) Time() time.Time {
 // Finish 异步通知，用于在处理响应的时候，通知发送请求的那个协程
 // 底层的超时通知是 context.DeadlineExceeded
 func (m *baseTx) Finish(err error) {
-	if m.signal.Close() {
+	if atomic.CompareAndSwapInt32(&m.ok, 0, 1) {
 		m.err = err
+		close(m.c)
 	}
 }
 
@@ -77,7 +81,7 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *
 	t.key = m.txKey()
 	t.time = time.Now()
 	t.deadline = t.time.Add(s.TxTimeout)
-	t.signal = gosync.NewSignal()
+	t.c = make(chan struct{})
 	t.data = d
 	t.conn = c
 	t.rto = s.RTO
@@ -87,7 +91,7 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *
 	at.Lock()
 	_, ok := at.D[t.key]
 	if ok {
-		t.signal.Close()
+		close(t.c)
 		return nil, errTransactionExists
 	}
 	at.Unlock()
@@ -178,7 +182,7 @@ func (s *Server) newPassiveTx(m *message, pt *gosync.Map[string, *passiveTx]) *p
 		t.key = k
 		t.time = time.Now()
 		t.deadline = t.time.Add(s.TxTimeout)
-		t.signal = gosync.NewSignal()
+		t.c = make(chan struct{})
 		pt.D[k] = t
 		//
 		log.DebugfTrace(k, "new passive tx")

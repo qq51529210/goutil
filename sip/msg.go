@@ -632,3 +632,13 @@ type Response struct {
 	*message
 	*activeTx
 }
+
+// IsStatus 返回是否与 code 相等，因为 StartLine[1] 不好记忆
+func (m *Response) IsStatus(status string) bool {
+	return m.StartLine[1] == status
+}
+
+// Error 返回当前的 status 和 pharse
+func (m *Response) Error() *ResponseError {
+	return NewResponseError(m.StartLine[1], m.StartLine[2], "")
+}

@@ -258,7 +258,7 @@ func (s *Server) doRequest(ctx context.Context, c conn, m *message, d any, at *g
 			at.Del(t.key)
 			// 通知
 			t.Finish(err)
-		case <-t.signal.C:
+		case <-t.c:
 			err = t.err
 			// 要么是收到了响应的消息被移除
 			// 要么是检查超时被移除
