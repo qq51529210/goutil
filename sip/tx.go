@@ -20,8 +20,6 @@ type baseTx struct {
 	c chan struct{}
 	// 错误
 	err error
-	// 用于保存发起请求时传入的数据
-	data any
 	// 用于判断超时清理
 	deadline time.Time
 	// 创建时间
@@ -36,20 +34,12 @@ func (m *baseTx) Err() error {
 	return m.err
 }
 
-func (m *baseTx) Value(any) any {
-	return m.data
-}
-
 func (m *baseTx) Done() <-chan struct{} {
 	return m.c
 }
 
 func (m *baseTx) TxKey() string {
 	return m.key
-}
-
-func (m *baseTx) Time() time.Time {
-	return m.time
 }
 
 // Finish 异步通知，用于在处理响应的时候，通知发送请求的那个协程
@@ -64,6 +54,8 @@ func (m *baseTx) Finish(err error) {
 // activeTx 用于主动发起请求
 type activeTx struct {
 	baseTx
+	// 用于保存发起请求时传入的数据
+	data any
 	// 使用的连接
 	conn conn
 	// 用于 udp 消息重发间隔，每发送一次叠加一倍，但是有最大值
@@ -74,6 +66,10 @@ type activeTx struct {
 	writeData bytes.Buffer
 }
 
+func (m *activeTx) Value(any) any {
+	return m.data
+}
+
 // newActiveTx 添加并返回，用于主动发送请求
 func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *activeTx]) (*activeTx, error) {
 	//
@@ -81,7 +77,6 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *
 	t.key = m.txKey()
 	t.time = time.Now()
 	t.deadline = t.time.Add(s.TxTimeout)
-	t.c = make(chan struct{})
 	t.data = d
 	t.conn = c
 	t.rto = s.RTO
@@ -91,9 +86,11 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *
 	at.Lock()
 	_, ok := at.D[t.key]
 	if ok {
-		close(t.c)
+		// 已存在
 		return nil, errTransactionExists
 	}
+	t.c = make(chan struct{})
+	at.D[t.key] = t
 	at.Unlock()
 	//
 	log.Debugf("%s new active tx", t.key)
@@ -171,6 +168,10 @@ type passiveTx struct {
 	done bool
 }
 
+func (m *passiveTx) Value(any) any {
+	return nil
+}
+
 // newPassiveTx 添加并返回，用于被动接收请求
 func (s *Server) newPassiveTx(m *message, pt *gosync.Map[string, *passiveTx]) *passiveTx {
 	k := m.txKey()
@@ -231,7 +232,11 @@ func (s *Server) checkPassiveTxTimeoutRoutine(name string, pt *gosync.Map[string
 				// 通知
 				t.Finish(context.DeadlineExceeded)
 				//
-				log.DebugfTrace(t.key, "passive tx timeout cost %v", time.Since(t.time))
+				if t.done {
+					log.DebugfTrace(t.key, "passive tx done cost %v", time.Since(t.time))
+				} else {
+					log.DebugfTrace(t.key, "passive tx timeout cost %v", time.Since(t.time))
+				}
 			}
 		}
 		// 重置计时器
