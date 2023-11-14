@@ -1,4 +1,4 @@
-package goutil
+package zz
 
 // Int32ToZigZag 压缩 32 位整数
 func Int32ToZigZag(n int32) int32 {

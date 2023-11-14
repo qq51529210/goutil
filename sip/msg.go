@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"goutil/log"
+	gostrings "goutil/strings"
 	"goutil/uid"
 	"io"
 	"strconv"
@@ -26,16 +27,16 @@ func (m *URI) Reset() {
 
 // Dec 解析
 func (m *URI) Dec(line string) bool {
-	line = TrimByte(line, '<', '>')
+	line = gostrings.TrimByte(line, '<', '>')
 	// 有这种格式的
 	if line != "*" {
 		// scheme:
-		m.Scheme, line = Split(line, CharColon)
+		m.Scheme, line = gostrings.Split(line, gostrings.CharColon)
 		if m.Scheme == "" {
 			return false
 		}
 		// name@domain
-		m.Name, m.Domain = Split(line, CharAt)
+		m.Name, m.Domain = gostrings.Split(line, gostrings.CharAt)
 		if m.Name == "" || m.Domain == "" {
 			return false
 		}
@@ -93,18 +94,18 @@ func (m *Address) Enc(w Writer, prefix string) (err error) {
 
 // Dec 解析
 func (m *Address) Dec(line string) bool {
-	prefix, suffix := Split(line, CharSemicolon)
+	prefix, suffix := gostrings.Split(line, gostrings.CharSemicolon)
 	if prefix == "" {
 		return false
 	}
 	// name
-	m.Name, prefix = Split(prefix, '<')
+	m.Name, prefix = gostrings.Split(prefix, '<')
 	// uri
 	if !m.URI.Dec(prefix) {
 		return false
 	}
 	for suffix != "" {
-		prefix, suffix = Split(suffix, CharSemicolon)
+		prefix, suffix = gostrings.Split(suffix, gostrings.CharSemicolon)
 		// tag
 		s := strings.TrimPrefix(prefix, "tag=")
 		if s != prefix {
@@ -129,7 +130,7 @@ func (m *CSeq) Reset() {
 
 // Dec 解析
 func (m *CSeq) Dec(line string) bool {
-	m.SN, m.Method = Split(line, CharSpace)
+	m.SN, m.Method = gostrings.Split(line, gostrings.CharSpace)
 	if m.SN == "" || m.Method == "" {
 		return false
 	}
@@ -156,17 +157,17 @@ type Via struct {
 func (m *Via) Dec(line string) bool {
 	var prefix, suffix string
 	// proto
-	m.Proto, suffix = Split(line, CharSpace)
+	m.Proto, suffix = gostrings.Split(line, gostrings.CharSpace)
 	if m.Proto == "" {
 		return false
 	}
 	// address
-	m.Address, suffix = Split(suffix, CharSemicolon)
+	m.Address, suffix = gostrings.Split(suffix, gostrings.CharSemicolon)
 	if m.Address == "" {
 		return false
 	}
 	for suffix != "" {
-		prefix, suffix = Split(suffix, CharSemicolon)
+		prefix, suffix = gostrings.Split(suffix, gostrings.CharSemicolon)
 		// branch
 		s := strings.TrimPrefix(prefix, "branch=")
 		if s != prefix {
@@ -263,7 +264,7 @@ func (m *header) Dec(r Reader, max int) (int, error) {
 		if max < 0 {
 			return max, errLargeMessage
 		}
-		key, value := Split(line, CharColon)
+		key, value := gostrings.Split(line, gostrings.CharColon)
 		key = strings.TrimSpace(key)
 		value = strings.TrimSpace(value)
 		uKey := strings.ToUpper(key)

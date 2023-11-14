@@ -1,4 +1,4 @@
-package goutil
+package rand
 
 import (
 	"math/rand"
@@ -47,32 +47,32 @@ func (r *random) rand(n, bi int) string {
 	return string(b)
 }
 
-// RandomNumber 返回 n 长度的随机数字
-func RandomNumber(n int) string {
+// Number 返回 n 长度的随机数字
+func Number(n int) string {
 	return _random.rand(n, 0)
 }
 
-// RandomLower 返回 n 长度的随机小写字母
-func RandomLower(n int) string {
+// Lower 返回 n 长度的随机小写字母
+func Lower(n int) string {
 	return _random.rand(n, 1)
 }
 
-// RandomUpper 返回 n 长度的随机大写字母
-func RandomUpper(n int) string {
+// Upper 返回 n 长度的随机大写字母
+func Upper(n int) string {
 	return _random.rand(n, 2)
 }
 
-// RandomString 返回 n 长度的随机字母混合数字
-func RandomString(n int) string {
+// String 返回 n 长度的随机字母混合数字
+func String(n int) string {
 	return _random.rand(n, 3)
 }
 
-// RandomInt 返回随机的整数
-func RandomInt() int {
+// Int 返回随机的整数
+func Int() int {
 	return _random.r.Int()
 }
 
-// RandomIntn 返回随机的整数
-func RandomIntn(n int) int {
+// Intn 返回随机的整数
+func Intn(n int) int {
 	return _random.r.Intn(n)
 }
