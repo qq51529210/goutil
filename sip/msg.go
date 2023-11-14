@@ -205,11 +205,8 @@ func (m *Via) Enc(w Writer) (err error) {
 		}
 	}
 	// received
-	if _, err = w.WriteString(";received"); err != nil {
-		return
-	}
 	if m.Received != "" {
-		if _, err = fmt.Fprintf(w, "=%s", m.Received); err != nil {
+		if _, err = fmt.Fprintf(w, ";received=%s", m.Received); err != nil {
 			return
 		}
 	}
@@ -595,7 +592,7 @@ func (m *Request) response(status, phrase string) {
 	}
 	// to tag
 	if m.Header.To.Tag == "" {
-		m.Header.To.Tag = uid.SnowflakeIDString()
+		m.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
 	}
 	if m.Header.Via[0].Received == "" {
 		m.Header.Via[0].Received = m.RemoteIP()
