@@ -2,10 +2,8 @@ package sip
 
 import (
 	"context"
-	"fmt"
 	"goutil/log"
 	gosync "goutil/sync"
-	"goutil/uid"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -91,7 +89,7 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 	// 请求消息
 	if m.isReq {
 		// 日志
-		log.DebugfTrace(SIP, "read request from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
+		log.DebugfTrace(m.txKey(), "read request from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
 		// 事务，返回一定不为 nil
 		t := s.newPassiveTx(m, pt)
 		if atomic.CompareAndSwapInt32(&t.handing, 0, 1) {
@@ -111,7 +109,7 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 		return nil
 	}
 	// 日志
-	log.DebugfTrace(SIP, "read response from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
+	log.DebugfTrace(m.txKey(), "read response from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
 	// 响应消息
 	if m.StartLine[1][0] == '1' {
 		// 1xx 消息没什么卵用
@@ -168,48 +166,6 @@ func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
 		activeTx: t,
 		message:  m,
 	})
-}
-
-// NewRequest 创建请求
-func (s *Server) NewRequest(proto, method, localName, remoteName, remoteAddr, maxForwards, contentType, contact string) *Request {
-	m := &Request{message: new(message)}
-	// start line
-	m.StartLine[0] = method
-	m.StartLine[1] = fmt.Sprintf("SIP:%s@%s", remoteName, remoteAddr)
-	m.StartLine[2] = SIPVersion
-	// via
-	m.Header.Via = append(m.Header.Via, &Via{
-		Proto:   proto,
-		Address: s.Addr,
-		Branch:  fmt.Sprintf("%s%d", BranchPrefix, uid.SnowflakeID()),
-	})
-	// From
-	m.Header.From.URI.Scheme = SIP
-	m.Header.From.URI.Name = localName
-	m.Header.From.URI.Domain = s.Addr
-	m.Header.From.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
-	// To
-	m.Header.To.URI.Scheme = SIP
-	m.Header.To.URI.Name = remoteName
-	m.Header.To.URI.Domain = remoteAddr
-	// m.Header.To.Tag = ""
-	// Call-ID
-	m.Header.CallID = fmt.Sprintf("%d", uid.SnowflakeID())
-	// CSeq
-	m.Header.CSeq.SN = GetSNString()
-	m.Header.CSeq.Method = method
-	// Max-Forwards
-	m.Header.MaxForwards = maxForwards
-	// Content-Type
-	m.Header.ContentType = contentType
-	// Contact
-	m.Header.Contact.Scheme = SIP
-	m.Header.Contact.Name = localName
-	m.Header.Contact.Domain = contact
-	// UserAgent
-	m.Header.UserAgent = s.UserAgent
-	//
-	return m
 }
 
 // Request 发送请求并等待响应
