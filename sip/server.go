@@ -79,9 +79,9 @@ type Server struct {
 	Handler
 	// 监听地址
 	Addr string
-	// udp 超时重发时间
-	RTO time.Duration
-	// udp 最大超时重发时间
+	// udp 超时重发起始间隔
+	MinRTO time.Duration
+	// udp 超时重发最大间隔
 	MaxRTO time.Duration
 	// 事务超时时间
 	TxTimeout time.Duration
@@ -221,7 +221,7 @@ func (s *Server) readUDPRoutine(i int) {
 func (s *Server) checkWriteUDPRoutine() {
 	logTrace := fmt.Sprintf("%s check rto routine", logTraceUDP)
 	// 计时器
-	timer := time.NewTimer(s.RTO)
+	timer := time.NewTimer(s.MinRTO)
 	defer func() {
 		// 异常
 		log.Recover(recover())
@@ -262,7 +262,7 @@ func (s *Server) checkWriteUDPRoutine() {
 		// 等待并发结束
 		s.udp.w.Wait()
 		// 重置计时器
-		timer.Reset(s.RTO)
+		timer.Reset(s.MinRTO)
 	}
 }
 

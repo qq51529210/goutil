@@ -79,7 +79,7 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *
 	t.deadline = t.time.Add(s.TxTimeout)
 	t.data = d
 	t.conn = c
-	t.rto = s.RTO
+	t.rto = s.MinRTO
 	t.writeTime = t.time
 	m.Enc(&t.writeData)
 	// 添加
