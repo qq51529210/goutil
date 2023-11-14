@@ -40,6 +40,8 @@ type Server struct {
 	TxTimeout time.Duration
 	// 最大的消息字节数，防止内存爆掉哦
 	MaxMessageLen int
+	// 用户代理
+	UserAgent string
 	// 用于同步等待协程退出
 	w sync.WaitGroup
 	// 状态
@@ -204,6 +206,8 @@ func (s *Server) NewRequest(proto, method, localName, remoteName, remoteAddr, ma
 	m.Header.Contact.Scheme = SIP
 	m.Header.Contact.Name = localName
 	m.Header.Contact.Domain = contact
+	// UserAgent
+	m.Header.UserAgent = s.UserAgent
 	//
 	return m
 }

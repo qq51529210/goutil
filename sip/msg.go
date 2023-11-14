@@ -600,6 +600,8 @@ func (m *Request) response(status, phrase string) {
 	if m.Header.Via[0].RProt == "" {
 		m.Header.Via[0].RProt = m.RemotePort()
 	}
+	//
+	m.Header.UserAgent = m.Server.UserAgent
 	// 格式化
 	m.writeData.Reset()
 	m.Enc(&m.writeData)
