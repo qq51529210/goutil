@@ -99,3 +99,87 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 	}
 	return m
 }
+
+// StructFromMap 使用 m 填充 v ，v 必须是结构体指针
+//
+//	type S1 struct {
+//	   A string -> A=map["A"] 默认使用字段名称
+//	   B string `map:"b"` -> B=map["b"] 有 tag 则使用 tag
+//	   D *string -> D=map["D"]  指针不为 nil 不算零值
+//	   E string `map:"-"` -> 忽略
+//	}
+func StructFromMap(v any, m map[string]any) {
+	vv := reflect.ValueOf(v)
+	if vv.Kind() == reflect.Pointer {
+		vv = vv.Elem()
+		if vv.Kind() == reflect.Struct {
+			structFromMap(vv, m)
+			return
+		}
+	}
+	panic("v must be struct pointer")
+}
+
+var (
+	structFromMapType = reflect.TypeOf(make(map[string]any))
+)
+
+// structFromMap 封装 StructFromMap 的代码
+func structFromMap(v reflect.Value, m map[string]any) {
+	// 类型
+	st := v.Type()
+	// 所有字段
+	for i := 0; i < st.NumField(); i++ {
+		// 类型
+		ft := st.Field(i)
+		// tag
+		name, _, ignore := parseTag(&ft, StructToMapTagName)
+		// 忽略
+		if ignore {
+			continue
+		}
+		// 值
+		fv := v.Field(i)
+		// 数据类型是否一致
+		fk := ft.Type.Kind()
+		if fk == reflect.Pointer {
+			// 空指针
+			if fv.IsNil() {
+				fv.Set(reflect.New(ft.Type.Elem()))
+			}
+			fv = fv.Elem()
+			fk = fv.Kind()
+		}
+		// 嵌入
+		if ft.Anonymous {
+			// 必须是结构
+			if fk == reflect.Struct {
+				structFromMap(fv, m)
+			}
+			continue
+		}
+		// map 值
+		mv, ok := m[name]
+		if !ok {
+			continue
+		}
+		mvv := reflect.ValueOf(mv)
+		mvk := mvv.Kind()
+		if mvk == reflect.Pointer {
+			mvv = mvv.Elem()
+			mvk = mvv.Kind()
+		}
+		// 结构对应 map
+		if fk == reflect.Struct {
+			if mvv.Type() == structFromMapType {
+				structFromMap(fv, mv.(map[string]any))
+			}
+			continue
+		}
+		// 数据类型是否一致
+		if fk != mvk {
+			continue
+		}
+		fv.Set(mvv)
+	}
+}
