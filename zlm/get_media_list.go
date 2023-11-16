@@ -47,9 +47,9 @@ type MediaListData struct {
 }
 
 // ParseTrack 区分出音/视频轨道
-func (m *MediaListData) ParseTrack() (vs []*MediaInfoVideoTrack, as []*MediaInfoAudioTrack) {
+func ParseTrack(tracks []map[string]any) (vs []*MediaInfoVideoTrack, as []*MediaInfoAudioTrack) {
 	// 这里假定，返回的数据格式没有错误
-	for _, track := range m.Tracks {
+	for _, track := range tracks {
 		switch int64(track["codec_type"].(float64)) {
 		case 0:
 			t := new(MediaInfoVideoTrack)
