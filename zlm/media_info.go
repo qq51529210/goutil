@@ -18,7 +18,7 @@ type MediaInfo struct {
 	// 原始的综合轨道信息
 	Tracks []map[string]any `json:"-"`
 	// 服务
-	Ser *Server `json:"-"`
+	Server string `json:"-"`
 	// 是否正在录制 hls
 	IsRecordingHLS bool `json:"-"`
 	// 是否正在录制 mp4
