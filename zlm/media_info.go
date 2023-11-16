@@ -1,9 +1,5 @@
 package zlm
 
-import (
-	"fmt"
-)
-
 // MediaInfoKey 媒体流标识
 type MediaInfoKey struct {
 	// 流的唯一标识
@@ -134,118 +130,118 @@ type PlayInfo struct {
 	WssFMP4 string `json:"wssFMP4,omitempty"`
 }
 
-// init 主要初始化 url
-func (m *PlayInfo) init(ser *Server, public bool, token string) {
-	// url
-	var ip string
-	if public {
-		ip = ser.PublicIP
-	} else {
-		ip = ser.PrivateIP
-	}
-	// RTMP
-	if ser.RTMPPort != "" {
-		if token != "" {
-			m.RTMP = fmt.Sprintf("rtmp://%s:%s/%s/%s?token=%s", ip, ser.RTMPPort, m.App, m.Stream, token)
-		} else {
-			m.RTMP = fmt.Sprintf("rtmp://%s:%s/%s/%s", ip, ser.RTMPPort, m.App, m.Stream)
-		}
-	}
-	if ser.RTMPSSLPort != "" {
-		if token != "" {
-			m.RTMPs = fmt.Sprintf("rtmps://%s:%s/%s/%s?token=%s", ip, ser.RTMPSSLPort, m.App, m.Stream, token)
-		} else {
-			m.RTMPs = fmt.Sprintf("rtmps://%s:%s/%s/%s", ip, ser.RTMPSSLPort, m.App, m.Stream)
-		}
-	}
-	if ser.HTTPPort != "" {
-		if token != "" {
-			m.Flv = fmt.Sprintf("http://%s:%s/%s/%s.live.flv?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
-			m.WsFlv = fmt.Sprintf("ws://%s:%s/%s/%s.live.flv?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
-		} else {
-			m.Flv = fmt.Sprintf("http://%s:%s/%s/%s.live.flv", ip, ser.HTTPPort, m.App, m.Stream)
-			m.WsFlv = fmt.Sprintf("ws://%s:%s/%s/%s.live.flv", ip, ser.HTTPPort, m.App, m.Stream)
-		}
-	}
-	if ser.HTTPSSLPort != "" {
-		if token != "" {
-			m.Flvs = fmt.Sprintf("https://%s:%s/%s/%s.live.flv?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
-			m.WssFlv = fmt.Sprintf("wss://%s:%s/%s/%s.live.flv?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
-		} else {
-			m.Flvs = fmt.Sprintf("https://%s:%s/%s/%s.live.flv", ip, ser.HTTPSSLPort, m.App, m.Stream)
-			m.WssFlv = fmt.Sprintf("wss://%s:%s/%s/%s.live.flv", ip, ser.HTTPSSLPort, m.App, m.Stream)
-		}
-	}
-	// RTSP
-	if ser.RTSPPort != "" {
-		if token != "" {
-			m.RTSP = fmt.Sprintf("rtsp://%s:%s/%s/%s?token=%s", ip, ser.RTSPPort, m.App, m.Stream, token)
-		} else {
-			m.RTSP = fmt.Sprintf("rtsp://%s:%s/%s/%s", ip, ser.RTSPPort, m.App, m.Stream)
-		}
-	}
-	if ser.RTSPSSLPort != "" {
-		if token != "" {
-			m.RTSPs = fmt.Sprintf("rtsps://%s:%s/%s/%s?token=%s", ip, ser.RTSPSSLPort, m.App, m.Stream, token)
-		} else {
-			m.RTSPs = fmt.Sprintf("rtsps://%s:%s/%s/%s", ip, ser.RTSPSSLPort, m.App, m.Stream)
-		}
-	}
-	// HLS
-	if ser.HTTPPort != "" {
-		if token != "" {
-			m.HLS = fmt.Sprintf("http://%s:%s/%s/%s/hls.m3u8?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
-			m.WsHLS = fmt.Sprintf("ws://%s:%s/%s/%s/hls.m3u8?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
-		} else {
-			m.HLS = fmt.Sprintf("http://%s:%s/%s/%s/hls.m3u8", ip, ser.HTTPPort, m.App, m.Stream)
-			m.WsHLS = fmt.Sprintf("ws://%s:%s/%s/%s/hls.m3u8", ip, ser.HTTPPort, m.App, m.Stream)
-		}
-	}
-	if ser.HTTPSSLPort != "" {
-		if token != "" {
-			m.HLSs = fmt.Sprintf("https://%s:%s/%s/%s/hls.m3u8?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
-			m.WssHLS = fmt.Sprintf("wss://%s:%s/%s/%s/hls.m3u8?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
-		} else {
-			m.HLSs = fmt.Sprintf("https://%s:%s/%s/%s/hls.m3u8", ip, ser.HTTPSSLPort, m.App, m.Stream)
-			m.WssHLS = fmt.Sprintf("wss://%s:%s/%s/%s/hls.m3u8", ip, ser.HTTPSSLPort, m.App, m.Stream)
-		}
-	}
-	// TS
-	if ser.HTTPPort != "" {
-		if token != "" {
-			m.TS = fmt.Sprintf("http://%s:%s/%s/%s.live.ts?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
-			m.WsTS = fmt.Sprintf("ws://%s:%s/%s/%s.live.ts?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
-		} else {
-			m.TS = fmt.Sprintf("http://%s:%s/%s/%s.live.ts", ip, ser.HTTPPort, m.App, m.Stream)
-			m.WsTS = fmt.Sprintf("ws://%s:%s/%s/%s.live.ts", ip, ser.HTTPPort, m.App, m.Stream)
-		}
-	}
-	if ser.HTTPSSLPort != "" {
-		if token != "" {
-			m.TSs = fmt.Sprintf("https://%s:%s/%s/%s.live.ts?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
-			m.WssTS = fmt.Sprintf("wss://%s:%s/%s/%s.live.ts?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
-		} else {
-			m.TSs = fmt.Sprintf("https://%s:%s/%s/%s.live.ts", ip, ser.HTTPSSLPort, m.App, m.Stream)
-			m.WssTS = fmt.Sprintf("wss://%s:%s/%s/%s.live.ts", ip, ser.HTTPSSLPort, m.App, m.Stream)
-		}
-	}
-	// MP4
-	if ser.HTTPPort != "" {
-		if token != "" {
-			m.FMP4 = fmt.Sprintf("http://%s:%s/%s/%s.live.mp4?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
-			m.WsFMP4 = fmt.Sprintf("ws://%s:%s/%s/%s.live.mp4?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
-		} else {
-			m.FMP4 = fmt.Sprintf("http://%s:%s/%s/%s.live.mp4", ip, ser.HTTPPort, m.App, m.Stream)
-			m.WsFMP4 = fmt.Sprintf("ws://%s:%s/%s/%s.live.mp4", ip, ser.HTTPPort, m.App, m.Stream)
-		}
-	}
-	if ser.HTTPSSLPort != "" {
-		if token != "" {
-			m.FMP4s = fmt.Sprintf("https://%s:%s/%s/%s.live.mp4?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
-			m.WssFMP4 = fmt.Sprintf("wss://%s:%s/%s/%s.live.mp4?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
-		} else {
-			m.FMP4s = fmt.Sprintf("https://%s:%s/%s/%s.live.mp4", ip, ser.HTTPSSLPort, m.App, m.Stream)
-			m.WssFMP4 = fmt.Sprintf("wss://%s:%s/%s/%s.live.mp4", ip, ser.HTTPSSLPort, m.App, m.Stream)
-		}
-	}
-}
+// // init 主要初始化 url
+// func (m *PlayInfo) init(ser *Server, public bool, token string) {
+// 	// url
+// 	var ip string
+// 	if public {
+// 		ip = ser.PublicIP
+// 	} else {
+// 		ip = ser.PrivateIP
+// 	}
+// 	// RTMP
+// 	if ser.RTMPPort != "" {
+// 		if token != "" {
+// 			m.RTMP = fmt.Sprintf("rtmp://%s:%s/%s/%s?token=%s", ip, ser.RTMPPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.RTMP = fmt.Sprintf("rtmp://%s:%s/%s/%s", ip, ser.RTMPPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	if ser.RTMPSSLPort != "" {
+// 		if token != "" {
+// 			m.RTMPs = fmt.Sprintf("rtmps://%s:%s/%s/%s?token=%s", ip, ser.RTMPSSLPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.RTMPs = fmt.Sprintf("rtmps://%s:%s/%s/%s", ip, ser.RTMPSSLPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	if ser.HTTPPort != "" {
+// 		if token != "" {
+// 			m.Flv = fmt.Sprintf("http://%s:%s/%s/%s.live.flv?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
+// 			m.WsFlv = fmt.Sprintf("ws://%s:%s/%s/%s.live.flv?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.Flv = fmt.Sprintf("http://%s:%s/%s/%s.live.flv", ip, ser.HTTPPort, m.App, m.Stream)
+// 			m.WsFlv = fmt.Sprintf("ws://%s:%s/%s/%s.live.flv", ip, ser.HTTPPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	if ser.HTTPSSLPort != "" {
+// 		if token != "" {
+// 			m.Flvs = fmt.Sprintf("https://%s:%s/%s/%s.live.flv?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
+// 			m.WssFlv = fmt.Sprintf("wss://%s:%s/%s/%s.live.flv?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.Flvs = fmt.Sprintf("https://%s:%s/%s/%s.live.flv", ip, ser.HTTPSSLPort, m.App, m.Stream)
+// 			m.WssFlv = fmt.Sprintf("wss://%s:%s/%s/%s.live.flv", ip, ser.HTTPSSLPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	// RTSP
+// 	if ser.RTSPPort != "" {
+// 		if token != "" {
+// 			m.RTSP = fmt.Sprintf("rtsp://%s:%s/%s/%s?token=%s", ip, ser.RTSPPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.RTSP = fmt.Sprintf("rtsp://%s:%s/%s/%s", ip, ser.RTSPPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	if ser.RTSPSSLPort != "" {
+// 		if token != "" {
+// 			m.RTSPs = fmt.Sprintf("rtsps://%s:%s/%s/%s?token=%s", ip, ser.RTSPSSLPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.RTSPs = fmt.Sprintf("rtsps://%s:%s/%s/%s", ip, ser.RTSPSSLPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	// HLS
+// 	if ser.HTTPPort != "" {
+// 		if token != "" {
+// 			m.HLS = fmt.Sprintf("http://%s:%s/%s/%s/hls.m3u8?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
+// 			m.WsHLS = fmt.Sprintf("ws://%s:%s/%s/%s/hls.m3u8?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.HLS = fmt.Sprintf("http://%s:%s/%s/%s/hls.m3u8", ip, ser.HTTPPort, m.App, m.Stream)
+// 			m.WsHLS = fmt.Sprintf("ws://%s:%s/%s/%s/hls.m3u8", ip, ser.HTTPPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	if ser.HTTPSSLPort != "" {
+// 		if token != "" {
+// 			m.HLSs = fmt.Sprintf("https://%s:%s/%s/%s/hls.m3u8?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
+// 			m.WssHLS = fmt.Sprintf("wss://%s:%s/%s/%s/hls.m3u8?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.HLSs = fmt.Sprintf("https://%s:%s/%s/%s/hls.m3u8", ip, ser.HTTPSSLPort, m.App, m.Stream)
+// 			m.WssHLS = fmt.Sprintf("wss://%s:%s/%s/%s/hls.m3u8", ip, ser.HTTPSSLPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	// TS
+// 	if ser.HTTPPort != "" {
+// 		if token != "" {
+// 			m.TS = fmt.Sprintf("http://%s:%s/%s/%s.live.ts?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
+// 			m.WsTS = fmt.Sprintf("ws://%s:%s/%s/%s.live.ts?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.TS = fmt.Sprintf("http://%s:%s/%s/%s.live.ts", ip, ser.HTTPPort, m.App, m.Stream)
+// 			m.WsTS = fmt.Sprintf("ws://%s:%s/%s/%s.live.ts", ip, ser.HTTPPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	if ser.HTTPSSLPort != "" {
+// 		if token != "" {
+// 			m.TSs = fmt.Sprintf("https://%s:%s/%s/%s.live.ts?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
+// 			m.WssTS = fmt.Sprintf("wss://%s:%s/%s/%s.live.ts?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.TSs = fmt.Sprintf("https://%s:%s/%s/%s.live.ts", ip, ser.HTTPSSLPort, m.App, m.Stream)
+// 			m.WssTS = fmt.Sprintf("wss://%s:%s/%s/%s.live.ts", ip, ser.HTTPSSLPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	// MP4
+// 	if ser.HTTPPort != "" {
+// 		if token != "" {
+// 			m.FMP4 = fmt.Sprintf("http://%s:%s/%s/%s.live.mp4?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
+// 			m.WsFMP4 = fmt.Sprintf("ws://%s:%s/%s/%s.live.mp4?token=%s", ip, ser.HTTPPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.FMP4 = fmt.Sprintf("http://%s:%s/%s/%s.live.mp4", ip, ser.HTTPPort, m.App, m.Stream)
+// 			m.WsFMP4 = fmt.Sprintf("ws://%s:%s/%s/%s.live.mp4", ip, ser.HTTPPort, m.App, m.Stream)
+// 		}
+// 	}
+// 	if ser.HTTPSSLPort != "" {
+// 		if token != "" {
+// 			m.FMP4s = fmt.Sprintf("https://%s:%s/%s/%s.live.mp4?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
+// 			m.WssFMP4 = fmt.Sprintf("wss://%s:%s/%s/%s.live.mp4?token=%s", ip, ser.HTTPSSLPort, m.App, m.Stream, token)
+// 		} else {
+// 			m.FMP4s = fmt.Sprintf("https://%s:%s/%s/%s.live.mp4", ip, ser.HTTPSSLPort, m.App, m.Stream)
+// 			m.WssFMP4 = fmt.Sprintf("wss://%s:%s/%s/%s.live.mp4", ip, ser.HTTPSSLPort, m.App, m.Stream)
+// 		}
+// 	}
+// }
