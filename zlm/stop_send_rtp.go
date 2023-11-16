@@ -26,7 +26,7 @@ const (
 )
 
 // StopSendRTP 调用 /index/api/stopSendRtp
-// 停止 GB28181 ps-rtp 推流。
+// 停止 GB28181 rtp 推流。
 func (s *Server) StopSendRTP(ctx context.Context, req *StopSendRTPReq) error {
 	var res stopSendRTPRes
 	err := httpCallRes(ctx, s, apiStopSendRTP, req, &res)

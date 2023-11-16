@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	gh "goutil/http"
-	"goutil/log"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 // 参数常量
@@ -30,21 +28,9 @@ const (
 	// VHost 默认的 vhost
 	VHost = "__defaultVhost__"
 	// 查询参数的名称
-	queryVHost     = "vhost"
-	querySecret    = "secret"
-	queryToken     = "token"
-	queryServerID  = "sid"
-	queryServerKey = "skey"
-	// 日志模块
-	logTraceAPICall  = "zlm api call"
-	logTraceCallback = "zlm callback"
+	queryVHost  = "vhost"
+	querySecret = "secret"
 )
-
-// Init 初始化
-func Init() error {
-	//
-	return nil
-}
 
 // httpCallRes 封装请求
 func httpCallRes[ReqQuery, ResData any](ctx context.Context, ser *Server, path string, query *ReqQuery, res *ResData) error {
@@ -67,12 +53,6 @@ func httpCall[Query any](ctx context.Context, secret, apiBaseURL, path string, q
 	if query != nil {
 		q = gh.Query(query, q)
 	}
-	apiURL := fmt.Sprintf("%s/index/api/%s?%s", apiBaseURL, path, q.Encode())
 	// 请求
-	old := time.Now()
-	err := gh.Request[any](ctx, http.DefaultClient, http.MethodGet, apiURL, nil, nil, onRes)
-	// 日志
-	log.DebugfTrace(logTraceAPICall, "%s cost %v", apiURL, time.Since(old))
-	//
-	return err
+	return gh.Request[any](ctx, http.DefaultClient, http.MethodGet, fmt.Sprintf("%s/index/api/%s?%s", apiBaseURL, path, q.Encode()), nil, nil, onRes)
 }
