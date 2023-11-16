@@ -14,7 +14,6 @@ const (
 // 定义一些错误以便全局使用，看名称猜意思
 var (
 	ErrServerNotAvailable = errors.New("server not available")
-	ErrStreamDisabled     = errors.New("stream disabled")
 	ErrMediaNotFound      = errors.New("media not found")
 	ErrToken              = errors.New("error token")
 )
