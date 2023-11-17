@@ -54,6 +54,14 @@ func NewFile(conf *FileConfig) (*File, error) {
 	case "out":
 		f.std = os.Stdout
 	}
+	f.dirNameFormat = conf.DirNameFormat
+	f.fileNameFormat = conf.FileNameFormat
+	if f.dirNameFormat == "" {
+		f.dirNameFormat = "20060102"
+	}
+	if f.fileNameFormat == "" {
+		f.fileNameFormat = "20060102150405.999999"
+	}
 	// 输出协程
 	f.wait.Add(1)
 	go f.syncRoutine(conf.FlushInterval)
