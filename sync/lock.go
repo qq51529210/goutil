@@ -18,7 +18,7 @@ type Locker struct {
 	// 抢锁
 	LockFunc func() (bool, error)
 	// 时间到了，是否启动协程回调 HandleFunc
-	TimeupFunc func(time.Time) bool
+	TimeupFunc func(d time.Duration) bool
 	// 启用/禁用，协程还是在跑，只是不会回调 HandleFunc
 	EnableFunc func() bool
 	// 在协程中回调
@@ -52,7 +52,7 @@ func (l *Locker) routine() {
 				l.locked = ok
 			}
 			// 抢到
-			if l.locked && l.TimeupFunc(now) && atomic.CompareAndSwapInt32(&l.handing, 0, 1) {
+			if l.locked && l.TimeupFunc(now.Sub(l.time)) && atomic.CompareAndSwapInt32(&l.handing, 0, 1) {
 				l.time = now
 				go l.handleRoutine()
 			}
