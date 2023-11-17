@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-// ITERATOR
-
 // Iterator 封装循环查询代码
 type Iterator[M, Q any] struct {
 	// 日志
