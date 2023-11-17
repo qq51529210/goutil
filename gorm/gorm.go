@@ -56,7 +56,7 @@ func Page[M any](db *gorm.DB, page *PageQuery, res *PageResult[M]) (err error) {
 		if page.Offset != nil {
 			db = db.Offset(*page.Offset)
 		}
-		if page.Count != nil {
+		if page.HasCount() {
 			db = db.Limit(*page.Count)
 		}
 		// 排序
