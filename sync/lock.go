@@ -10,17 +10,13 @@ import (
 type Locker struct {
 	// 日志
 	Trace string
-	// 锁名
-	Key string
-	// 锁值
-	Value string
 	// 是否抢到
 	locked bool
 	// 并发控制
 	time    time.Time
 	handing int32
 	// 抢锁
-	LockFunc func(key, value string) (bool, error)
+	LockFunc func() (bool, error)
 	// 时间到了，是否启动协程回调 HandleFunc
 	TimeupFunc func(time.Time) bool
 	// 启用/禁用，协程还是在跑，只是不会回调 HandleFunc
@@ -49,7 +45,7 @@ func (l *Locker) routine() {
 		now := <-timer.C
 		if l.EnableFunc() {
 			// 抢锁
-			ok, err := l.LockFunc(l.Key, l.Value)
+			ok, err := l.LockFunc()
 			if err != nil {
 				log.ErrorTrace(l.Trace, err)
 			} else {
