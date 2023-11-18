@@ -149,3 +149,15 @@ func (s *Server) Serve() error {
 	}
 	return s.S.ListenAndServe()
 }
+
+// Result 表示返回的结果
+type Result[T any] struct {
+	// 状态码
+	Code int `json:"code,omitempty"`
+	// 错误短语
+	Error string `json:"error,omitempty"`
+	// 错误详细
+	Detail string `json:"detail,omitempty"`
+	// 没有错误时候的数据
+	Data T `json:"data,omitempty"`
+}

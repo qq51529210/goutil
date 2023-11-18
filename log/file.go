@@ -23,10 +23,10 @@ var (
 type FileConfig struct {
 	// 日志保存的根目录
 	RootDir string `json:"rootDir" yaml:"rootDir" validate:"required"`
-	// 目录格式，默认是 20060102
-	DirNameFormat string `json:"dirNameFormat" yaml:"dirNameFormat" validate:"omitempty,date"`
-	// 文件格式，默认是 150405.000000
-	FileNameFormat string `json:"fileNameFormat" yaml:"fileNameFormat" validate:"omitempty,time"`
+	// 日期目录名称格式，默认是 20060102
+	DirNameFormat string `json:"dirNameFormat" yaml:"dirNameFormat"`
+	// 文件名称格式，默认是 150405.000000
+	FileNameFormat string `json:"fileNameFormat" yaml:"fileNameFormat"`
 	// 每一份日志文件的最大字节
 	FileMaxSize int64 `json:"fileMaxSize" yaml:"fileMaxSize" validate:"required,min=1"`
 	// 保存的最大天数，最小是 1 天
@@ -53,6 +53,14 @@ func NewFile(conf *FileConfig) (*File, error) {
 		f.std = os.Stderr
 	case "out":
 		f.std = os.Stdout
+	}
+	f.dirNameFormat = conf.DirNameFormat
+	f.fileNameFormat = conf.FileNameFormat
+	if f.dirNameFormat == "" {
+		f.dirNameFormat = "20060102"
+	}
+	if f.fileNameFormat == "" {
+		f.fileNameFormat = "20060102150405.999999"
 	}
 	// 输出协程
 	f.wait.Add(1)
