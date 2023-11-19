@@ -2,22 +2,18 @@ package media
 
 import (
 	"context"
-	"wsdl/soap"
-	"wsdl/ver10/schema"
+	"goutil/onvif/wsdl/ver10/schema"
+	"goutil/soap"
 )
 
 type getProfilesReq struct {
-	soap.Envelope
-	// Header soap.Header[any]
-	Body soap.Body[struct {
+	soap.Envelope[any, struct {
 		XMLName string `xml:"tt:GetProfiles"`
 	}]
 }
 
 type getProfilesRes struct {
-	soap.Envelope
-	Header soap.Header[any]
-	Body   soap.Body[getProfilesResponse]
+	soap.Envelope[any, getProfilesResponse]
 }
 
 type getProfilesResponse struct {

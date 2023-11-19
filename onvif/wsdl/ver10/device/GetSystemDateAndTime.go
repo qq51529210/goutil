@@ -2,22 +2,18 @@ package device
 
 import (
 	"context"
-	"wsdl/soap"
-	"wsdl/ver10/schema"
+	"goutil/onvif/wsdl/ver10/schema"
+	"goutil/soap"
 )
 
 type getSystemDateAndTimeReq struct {
-	soap.Envelope
-	// Header soap.Header[any]
-	Body soap.Body[struct {
+	soap.Envelope[any, struct {
 		XMLName string `xml:"tt:GetSystemDateAndTime"`
 	}]
 }
 
 type getSystemDateAndTimeRes struct {
-	soap.Envelope
-	// Header soap.Header[any]
-	Body soap.Body[getSystemDateAndTimeResponse]
+	soap.Envelope[any, getSystemDateAndTimeResponse]
 }
 
 type getSystemDateAndTimeResponse struct {

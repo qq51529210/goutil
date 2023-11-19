@@ -2,7 +2,7 @@ package media
 
 import (
 	"encoding/xml"
-	"wsdl/soap"
+	"goutil/soap"
 )
 
 const (

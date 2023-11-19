@@ -2,21 +2,17 @@ package device
 
 import (
 	"context"
-	"wsdl/soap"
+	"goutil/soap"
 )
 
 type getDeviceInformationReq struct {
-	soap.Envelope
-	// Header soap.Header[any]
-	Body soap.Body[struct {
+	soap.Envelope[any, struct {
 		XMLName string `xml:"tds:GetDeviceInformation"`
 	}]
 }
 
 type getDeviceInformationRes struct {
-	soap.Envelope
-	// Header soap.Header[any]
-	Body soap.Body[DeviceInformation]
+	soap.Envelope[any, DeviceInformation]
 }
 
 // DeviceInformation -> GetDeviceInformationResponse
