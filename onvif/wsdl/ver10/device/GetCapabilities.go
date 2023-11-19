@@ -2,8 +2,8 @@ package device
 
 import (
 	"context"
-	"wsdl/soap"
-	"wsdl/ver10/schema"
+	"goutil/soap"
+	"goutil/wsdl/ver10/schema"
 )
 
 // CapabilityCategory 能力

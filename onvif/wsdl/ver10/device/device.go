@@ -2,7 +2,7 @@ package device
 
 import (
 	"encoding/xml"
-	"wsdl/soap"
+	"goutil/soap"
 )
 
 const (
