@@ -26,11 +26,11 @@ type Body[Data any] struct {
 }
 
 // Envelope 表示整个 xml 消息
-type Envelope[H Header[any], B Body[any]] struct {
+type Envelope[H, B any] struct {
 	XMLName xml.Name    `xml:"soap:Envelope"`
 	Attr    []*xml.Attr `xml:",attr"`
-	Header  *H
-	Body    *B
+	Header  *Header[H]
+	Body    *Body[B]
 }
 
 // Fault 表示 Envelope.Body 中的错误

@@ -7,7 +7,7 @@ import (
 )
 
 func Test_XML(t *testing.T) {
-	var m Envelope[Header[any], Body[any]]
+	var m Envelope[any, any]
 	m.Attr = append(m.Attr, NewNamespaceAttr())
 	m.Header = new(Header[any])
 	m.Body = new(Body[any])

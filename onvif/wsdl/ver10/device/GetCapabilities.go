@@ -21,18 +21,14 @@ const (
 )
 
 type getCapabilitiesReq struct {
-	soap.Envelope
-	Header soap.Header[soap.Security]
-	Body   soap.Body[struct {
+	soap.Envelope[soap.Security, struct {
 		XMLName  string               `xml:"tds:GetCapabilities"`
 		Category []CapabilityCategory `xml:"tt:Category"`
 	}]
 }
 
 type getCapabilitiesRes struct {
-	soap.Envelope
-	Header soap.Header[any]
-	Body   soap.Body[getCapabilitiesResponse]
+	soap.Envelope[any, getCapabilitiesResponse]
 }
 
 type getCapabilitiesResponse struct {
