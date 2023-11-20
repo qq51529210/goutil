@@ -64,6 +64,8 @@ type activeTx struct {
 	writeTime time.Time
 	// 用于发送数据，用于 udp 消息重发
 	writeData bytes.Buffer
+	// 停止发送，一般是遇到 1xx 类响应
+	stopRT bool
 }
 
 func (m *activeTx) Value(any) any {

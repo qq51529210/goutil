@@ -276,6 +276,9 @@ func (s *Server) writeUDPRoutine(ts []*activeTx, now time.Time) {
 	}()
 	// 循环检查，然后发送，超时移除
 	for _, t := range ts {
+		if t.stopRT {
+			continue
+		}
 		// 超时
 		if now.Sub(t.writeTime) >= t.rto {
 			err := t.conn.write(t.writeData.Bytes())
@@ -466,6 +469,7 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 	t := s.delActiveTx(m.txKey(), at)
 	if t != nil {
 		if m.StartLine[1][0] == '1' {
+			t.stopRT = true
 			// 1xx 消息没什么卵用
 			return nil
 		}
