@@ -462,14 +462,13 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 	}
 	// 日志
 	log.DebugfTrace(m.txKey(), "read response from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
-	// 响应消息
-	if m.StartLine[1][0] == '1' {
-		// 1xx 消息没什么卵用
-		return nil
-	}
-	// 事务，不一定有
+	// 响应消息，事务，不一定有
 	t := s.delActiveTx(m.txKey(), at)
 	if t != nil {
+		if m.StartLine[1][0] == '1' {
+			// 1xx 消息没什么卵用
+			return nil
+		}
 		// 在协程中处理
 		s.w.Add(1)
 		go s.handleResponseRoutine(t, m)
