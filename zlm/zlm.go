@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	gh "goutil/http"
+	"goutil/log"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // 参数常量
@@ -54,5 +56,12 @@ func httpCall[Query any](ctx context.Context, secret, apiBaseURL, path string, q
 		q = gh.Query(query, q)
 	}
 	// 请求
-	return gh.Request[any](ctx, http.DefaultClient, http.MethodGet, fmt.Sprintf("%s/index/api/%s?%s", apiBaseURL, path, q.Encode()), nil, nil, onRes)
+	old := time.Now()
+	url := fmt.Sprintf("%s/index/api/%s?%s", apiBaseURL, path, q.Encode())
+	err := gh.Request[any](ctx, http.DefaultClient, http.MethodGet, url, nil, nil, onRes)
+	if err != nil {
+		return err
+	}
+	log.DebugfTrace("zlm api", "[%v] %s", time.Since(old), url)
+	return nil
 }
