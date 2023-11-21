@@ -25,6 +25,11 @@ type Locker struct {
 	HandleFunc func()
 }
 
+// IsLocked 是否获得锁
+func (l *Locker) IsLocked() bool {
+	return l.locked
+}
+
 // Run 开始
 func (l *Locker) Run() {
 	go l.routine()
