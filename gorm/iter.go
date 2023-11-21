@@ -15,7 +15,7 @@ type Iterator[M, Q any] struct {
 	// 查询函数
 	QueryFunc func(context.Context, Q, *PageResult[M]) error
 	// 是否继续
-	InterruptFunc func() bool
+	GoOnFunc func() bool
 	// 处理函数
 	HandleFunc func(Q, []M, time.Duration) (retry bool, goon bool)
 }
@@ -25,7 +25,7 @@ func (it *Iterator[M, Q]) Do(page, retry int, dataTO time.Duration) bool {
 	// 失败重试
 	errCount := -1
 	// 数据
-	for !it.InterruptFunc() {
+	for it.GoOnFunc() {
 		// 查询
 		var res PageResult[M]
 		ctx, cancel := context.WithTimeout(context.Background(), dataTO)
@@ -48,7 +48,7 @@ func (it *Iterator[M, Q]) Do(page, retry int, dataTO time.Duration) bool {
 			return true
 		}
 		// 处理
-		for it.InterruptFunc() {
+		for it.GoOnFunc() {
 			_retry, goon := it.HandleFunc(it.Query, res.Data, dataTO)
 			if !goon {
 				// 不继续
