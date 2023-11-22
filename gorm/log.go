@@ -39,8 +39,8 @@ func (g *Log) Trace(ctx context.Context, begin time.Time, fc func() (sql string,
 	if err != nil {
 		if err != gorm.ErrRecordNotFound {
 			log.ErrorfTrace(g.traceID, "[%v] %s %v", time.Since(begin), sql, err)
+			return
 		}
-		return
 	}
 	log.DebugfTrace(g.traceID, "[%v] %s", time.Since(begin), sql)
 }
