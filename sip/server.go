@@ -89,6 +89,8 @@ type Server struct {
 	MaxMessageLen int
 	// 用户代理
 	UserAgent string
+	// 日志
+	Logger *log.Logger
 	// 用于同步等待协程退出
 	w sync.WaitGroup
 	// 状态
@@ -114,7 +116,9 @@ func (s *Server) Serve() error {
 		return err
 	}
 	// 日志
-	log.InfoTrace(SIP, "ok")
+	if s.Logger != nil {
+		s.Logger.InfoTrace(SIP, "ok")
+	}
 	//
 	return nil
 }
@@ -128,7 +132,9 @@ func (s *Server) Close() error {
 		// 等待所有协程退出
 		s.w.Wait()
 		// 日志
-		log.InfoTrace(SIP, "closed")
+		if s.Logger != nil {
+			s.Logger.InfoTrace(SIP, "closed")
+		}
 	}
 	return nil
 }
@@ -145,7 +151,9 @@ func (s *Server) serveUDP() error {
 	if err != nil {
 		return err
 	}
-	log.InfofTrace(logTraceUDP, "listen %s", s.Addr)
+	if s.Logger != nil {
+		s.Logger.InfofTrace(logTraceUDP, "listen %s", s.Addr)
+	}
 	//
 	s.udp.at.Init()
 	s.udp.pt.Init()
@@ -171,14 +179,19 @@ func (s *Server) readUDPRoutine(i int) {
 	// 清理
 	defer func() {
 		// 异常
-		log.Recover(recover())
-		// 日志
-		log.InfoTrace(logTrace, "stop")
+		r := recover()
+		if s.Logger != nil {
+			s.Logger.Recover(r)
+			// 日志
+			s.Logger.InfoTrace(logTrace, "stop")
+		}
 		// 结束
 		s.w.Done()
 	}()
 	// 日志
-	log.InfoTrace(logTrace, "start")
+	if s.Logger != nil {
+		s.Logger.InfoTrace(logTrace, "start")
+	}
 	// 开始
 	var err error
 	r := newReader(nil, s.MaxMessageLen)
@@ -188,7 +201,9 @@ func (s *Server) readUDPRoutine(i int) {
 		// 读取 udp 数据
 		d.n, d.a, err = s.udp.c.ReadFromUDP(d.b)
 		if err != nil {
-			log.ErrorfTrace(logTrace, "read %v", err)
+			if s.Logger != nil {
+				s.Logger.ErrorfTrace(logTraceUDP, "read %v", err)
+			}
 			continue
 		}
 		d.i = 0
@@ -202,15 +217,18 @@ func (s *Server) readUDPRoutine(i int) {
 			err = m.Dec(r, s.MaxMessageLen)
 			if err != nil {
 				if err != io.EOF {
-					log.ErrorfTrace(logTrace, "dec message %v", err)
-					break
+					if s.Logger != nil {
+						s.Logger.ErrorfTrace(logTraceUDP, "dec message %v", err)
+					}
 				}
 				break
 			}
 			// 处理
 			err = s.handleMsg(c, m, &s.udp.at, &s.udp.pt)
 			if err != nil {
-				log.ErrorfTrace(logTrace, "handle message %v", err)
+				if s.Logger != nil {
+					s.Logger.ErrorfTrace(logTrace, "handle message %v", err)
+				}
 				break
 			}
 		}
@@ -224,16 +242,21 @@ func (s *Server) checkWriteUDPRoutine() {
 	timer := time.NewTimer(s.MinRTO)
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		r := recover()
+		if s.Logger != nil {
+			s.Logger.Recover(r)
+			// 日志
+			s.Logger.InfoTrace(logTrace, "stop")
+		}
 		// 计时器
 		timer.Stop()
-		// 日志
-		log.InfoTrace(logTrace, "stop")
 		// 结束
 		s.w.Done()
 	}()
 	// 日志
-	log.InfoTrace(logTrace, "start")
+	if s.Logger != nil {
+		s.Logger.InfoTrace(logTrace, "start")
+	}
 	// 开始
 	var ts []*activeTx
 	at := &s.udp.at
@@ -270,7 +293,10 @@ func (s *Server) checkWriteUDPRoutine() {
 func (s *Server) writeUDPRoutine(ts []*activeTx, now time.Time) {
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		r := recover()
+		if s.Logger != nil {
+			s.Logger.Recover(r)
+		}
 		// 结束
 		s.udp.w.Done()
 	}()
@@ -283,19 +309,19 @@ func (s *Server) writeUDPRoutine(ts []*activeTx, now time.Time) {
 		if now.Sub(t.writeTime) >= t.rto {
 			err := t.conn.write(t.writeData.Bytes())
 			if err != nil {
-				log.ErrorTrace(logTraceUDP, err)
-			} else {
-				// 保存发送时间
-				t.writeTime = now
-				// rto 倍增
-				if t.rto < s.MaxRTO {
-					t.rto *= 2
-					if t.rto > s.MaxRTO {
-						t.rto = s.MaxRTO
-					}
+				if s.Logger != nil {
+					s.Logger.ErrorTrace(logTraceUDP, err)
 				}
-				//
-				log.DebugfTrace(t.key, "retransmission rto %v", t.rto)
+				continue
+			}
+			// 保存发送时间
+			t.writeTime = now
+			// rto 倍增
+			if t.rto < s.MaxRTO {
+				t.rto *= 2
+				if t.rto > s.MaxRTO {
+					t.rto = s.MaxRTO
+				}
 			}
 		}
 	}
@@ -304,7 +330,9 @@ func (s *Server) writeUDPRoutine(ts []*activeTx, now time.Time) {
 // closeUDP 关闭 udp 端口
 func (s *Server) closeUDP() {
 	if s.udp.c != nil {
-		log.InfoTrace(logTraceUDP, "close")
+		if s.Logger != nil {
+			s.Logger.InfoTrace(logTraceUDP, "close")
+		}
 		s.udp.c.Close()
 		s.udp.c = nil
 		//
@@ -319,7 +347,9 @@ func (s *Server) closeUDP() {
 
 // serveTCP 开始 tcp 服务
 func (s *Server) serveTCP() error {
-	log.InfofTrace(logTraceTCP, "listen %s", s.Addr)
+	if s.Logger != nil {
+		s.Logger.InfofTrace(logTraceTCP, "listen %s", s.Addr)
+	}
 	// 初始化
 	a, err := net.ResolveTCPAddr("tcp", s.Addr)
 	if err != nil {
@@ -346,7 +376,10 @@ func (s *Server) serveTCP() error {
 func (s *Server) listenTCPRoutine() {
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		r := recover()
+		if s.Logger != nil {
+			s.Logger.Recover(r)
+		}
 		// 结束
 		s.w.Done()
 	}()
@@ -354,7 +387,9 @@ func (s *Server) listenTCPRoutine() {
 		// 监听
 		conn, err := s.tcp.l.AcceptTCP()
 		if err != nil {
-			log.ErrorfTrace(logTraceTCP, "accept %v", err)
+			if s.Logger != nil {
+				s.Logger.ErrorfTrace(logTraceTCP, "accept %v", err)
+			}
 			continue
 		}
 		// 处理
@@ -400,7 +435,10 @@ func (s *Server) dialTCPConn(a *net.TCPAddr) (*tcpConn, error) {
 func (s *Server) handleTCPConnRoutine(c *tcpConn) {
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		r := recover()
+		if s.Logger != nil {
+			s.Logger.Recover(r)
+		}
 		// 移除
 		s.delTCPConn(c)
 		// 结束
@@ -413,14 +451,18 @@ func (s *Server) handleTCPConnRoutine(c *tcpConn) {
 		m := new(message)
 		err := m.Dec(r, s.MaxMessageLen)
 		if err != nil {
-			log.WarnfTrace(logTraceTCP, "read message %v", err)
+			if s.Logger != nil {
+				s.Logger.WarnfTrace(logTraceTCP, "read message %v", err)
+			}
 			return
 		}
 		// 处理
 		err = s.handleMsg(c, m, &s.tcp.at, &s.tcp.pt)
 		if err != nil {
-			log.ErrorfTrace(logTraceTCP, "handle %v", err)
-			continue
+			if s.Logger != nil {
+				s.Logger.ErrorfTrace(logTraceTCP, "handle %v", err)
+			}
+			return
 		}
 	}
 }
@@ -428,7 +470,9 @@ func (s *Server) handleTCPConnRoutine(c *tcpConn) {
 // closeTCP 停止监听，关闭所有的连接
 func (s *Server) closeTCP() {
 	if s.tcp.l != nil {
-		log.InfoTrace(logTraceTCP, "close")
+		if s.Logger != nil {
+			s.Logger.InfoTrace(logTraceTCP, "close")
+		}
 		s.tcp.l.Close()
 		s.tcp.l = nil
 		//
@@ -444,7 +488,9 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 	// 请求消息
 	if m.isReq {
 		// 日志
-		log.DebugfTrace(m.txKey(), "read request from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
+		if s.Logger != nil {
+			s.Logger.DebugfTrace(m.txKey(), "read request from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
+		}
 		// 事务，返回一定不为 nil
 		t := s.newPassiveTx(m, pt)
 		if atomic.CompareAndSwapInt32(&t.handing, 0, 1) {
@@ -464,7 +510,9 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 		return nil
 	}
 	// 日志
-	log.DebugfTrace(m.txKey(), "read response from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
+	if s.Logger != nil {
+		s.Logger.DebugfTrace(m.txKey(), "read response from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
+	}
 	// 响应消息
 	if m.StartLine[1][0] == '1' {
 		t := at.Get(m.txKey())
@@ -489,9 +537,12 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 func (s *Server) handleRequestRoutine(c conn, t *passiveTx, m *message) {
 	defer func() {
 		// 异常
-		log.Recover(recover())
-		// 日志
-		log.DebugfTrace(t.TxKey(), "handle request cost %v", time.Since(t.time))
+		r := recover()
+		if s.Logger != nil {
+			s.Logger.Recover(r)
+			// 日志
+			s.Logger.DebugfTrace(t.TxKey(), "handle request cost %v", time.Since(t.time))
+		}
 		// 结束
 		s.w.Done()
 	}()
@@ -512,11 +563,14 @@ func (s *Server) handleRequestRoutine(c conn, t *passiveTx, m *message) {
 func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		r := recover()
+		if s.Logger != nil {
+			s.Logger.Recover(r)
+			// 日志
+			s.Logger.DebugfTrace(t.TxKey(), "handle response cost %v", time.Since(t.time))
+		}
 		// 无论回调有没有通知，这里都通知一下
 		t.Finish(nil)
-		// 日志
-		log.DebugfTrace(t.TxKey(), "handle response cost %v", time.Since(t.time))
 		// 结束
 		s.w.Done()
 	}()
@@ -565,7 +619,9 @@ func (s *Server) doRequest(ctx context.Context, c conn, m *message, d any, at *g
 		return err
 	}
 	// 日志
-	log.DebugfTrace(t.TxKey(), "write request to %s %s\n%s", c.Network(), c.RemoteAddrString(), t.writeData.String())
+	if s.Logger != nil {
+		s.Logger.DebugfTrace(t.TxKey(), "write request to %s %s\n%s", c.Network(), c.RemoteAddrString(), t.writeData.String())
+	}
 	// 立即发送
 	err = c.write(t.writeData.Bytes())
 	if err == nil {
@@ -585,7 +641,9 @@ func (s *Server) doRequest(ctx context.Context, c conn, m *message, d any, at *g
 		}
 	}
 	// 日志
-	log.DebugfTrace(t.TxKey(), "do request cost %v", time.Since(t.time))
+	if s.Logger != nil {
+		s.Logger.DebugfTrace(t.TxKey(), "do request cost %v", time.Since(t.time))
+	}
 	//
 	return err
 }

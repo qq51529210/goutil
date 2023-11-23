@@ -24,6 +24,8 @@ const (
 var (
 	// ProxyRemoteAddrHeader 代理服务透传的客户端地址头名称
 	ProxyRemoteAddrHeader = "X-Remote-Addr"
+	// Logger 日志
+	Logger *log.Logger
 )
 
 // Log 日志中间件
@@ -35,12 +37,20 @@ func Log(ctx *gin.Context) {
 	// 清理
 	defer func() {
 		// 异常
-		if log.Recover(recover()) {
+		r := recover()
+		if r != nil {
+			if Logger != nil {
+				Logger.Recover(r)
+			}
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 		}
 	}()
 	// 执行
 	ctx.Next()
+	// 日志
+	if Logger == nil {
+		return
+	}
 	// 花费时间
 	cost := time.Since(old)
 	// 如果有代理，代理必须使用这个字段来透传客户端 ip
@@ -65,5 +75,5 @@ func Log(ctx *gin.Context) {
 	if errData != nil {
 		fmt.Fprintf(&str, "\nhandle error: %v", errData)
 	}
-	log.DebugTrace(traceID, str.String())
+	Logger.DebugTrace(traceID, str.String())
 }

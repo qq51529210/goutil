@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"goutil/log"
 	gosync "goutil/sync"
 	"sync/atomic"
 	"time"
@@ -95,8 +94,6 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *
 	at.D[t.key] = t
 	at.Unlock()
 	//
-	log.Debugf("%s new active tx", t.key)
-	//
 	return t, nil
 }
 
@@ -120,16 +117,21 @@ func (s *Server) checkActiveTxTimeoutRoutine(name string, at *gosync.Map[string,
 	timer := time.NewTimer(dur)
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		r := recover()
+		if s.Logger != nil {
+			s.Logger.Recover(r)
+			// 日志
+			s.Logger.InfoTrace(logTrace, "stop")
+		}
 		// 计时器
 		timer.Stop()
-		// 日志
-		log.InfoTrace(logTrace, "stop")
 		// 结束
 		s.w.Done()
 	}()
 	// 日志
-	log.InfoTrace(logTrace, "start")
+	if s.Logger != nil {
+		s.Logger.InfoTrace(logTrace, "start")
+	}
 	// 开始
 	var ts []*activeTx
 	for s.isOK() {
@@ -150,8 +152,6 @@ func (s *Server) checkActiveTxTimeoutRoutine(name string, at *gosync.Map[string,
 				at.Del(t.key)
 				// 通知
 				t.Finish(context.DeadlineExceeded)
-				//
-				log.DebugfTrace(t.key, "active tx timeout cost %v", time.Since(t.time))
 			}
 		}
 		// 重置计时器
@@ -187,8 +187,6 @@ func (s *Server) newPassiveTx(m *message, pt *gosync.Map[string, *passiveTx]) *p
 		t.deadline = t.time.Add(s.TxTimeout)
 		t.c = make(chan struct{})
 		pt.D[k] = t
-		//
-		log.DebugfTrace(k, "new passive tx")
 	}
 	pt.Unlock()
 	//
@@ -203,16 +201,21 @@ func (s *Server) checkPassiveTxTimeoutRoutine(name string, pt *gosync.Map[string
 	timer := time.NewTimer(dur)
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		r := recover()
+		if s.Logger != nil {
+			s.Logger.Recover(r)
+			// 日志
+			s.Logger.InfoTrace(logTrace, "stop")
+		}
 		// 计时器
 		timer.Stop()
-		// 日志
-		log.InfoTrace(logTrace, "stop")
 		// 结束
 		s.w.Done()
 	}()
 	// 日志
-	log.InfoTrace(logTrace, "start")
+	if s.Logger != nil {
+		s.Logger.InfoTrace(logTrace, "start")
+	}
 	// 开始
 	var ts []*passiveTx
 	for s.isOK() {
@@ -233,12 +236,6 @@ func (s *Server) checkPassiveTxTimeoutRoutine(name string, pt *gosync.Map[string
 				pt.Del(t.key)
 				// 通知
 				t.Finish(context.DeadlineExceeded)
-				//
-				if t.done {
-					log.DebugfTrace(t.key, "passive tx done cost %v", time.Since(t.time))
-				} else {
-					log.DebugfTrace(t.key, "passive tx timeout cost %v", time.Since(t.time))
-				}
 			}
 		}
 		// 重置计时器
