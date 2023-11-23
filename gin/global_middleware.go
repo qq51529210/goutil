@@ -26,9 +26,9 @@ var (
 	ProxyRemoteAddrHeader = "X-Remote-Addr"
 )
 
-// 全局第一个中间件
-func global(ctx *gin.Context) {
-	now := time.Now()
+// Log 日志中间件
+func Log(ctx *gin.Context) {
+	old := time.Now()
 	// 追踪 id
 	traceID := uid.SnowflakeIDString()
 	ctx.Set(CtxKeyTraceID, traceID)
@@ -41,13 +41,8 @@ func global(ctx *gin.Context) {
 	}()
 	// 执行
 	ctx.Next()
-	// 日志
-	globalLog(ctx, traceID, &now)
-}
-
-func globalLog(ctx *gin.Context, traceID string, old *time.Time) {
 	// 花费时间
-	cost := time.Since(*old)
+	cost := time.Since(old)
 	// 如果有代理，代理必须使用这个字段来透传客户端 ip
 	remoteAddr := ctx.Request.RemoteAddr
 	if addr := ctx.GetHeader(ProxyRemoteAddrHeader); addr != "" {
