@@ -110,7 +110,7 @@ func (c *LogCfg) Init(name string) error {
 	if err != nil {
 		return err
 	}
-	logger := log.NewLogger(file, log.Header(c.HeaderFormat), name)
+	logger := log.NewLogger(file, log.Header(c.HeaderFormat), name, "")
 	logger.DisableLevels(c.DisableLevel)
 	log.SetLogger(logger)
 	//

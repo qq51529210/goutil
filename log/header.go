@@ -36,7 +36,6 @@ type FormatHeader func(log *Log, depth int)
 // DefaultHeader 输出 2006-01-02 15:04:05.000000000
 func DefaultHeader(log *Log, depth int) {
 	FormatTime(log)
-	// log.b = append(log.b, headerEnd...)
 }
 
 // FileNameHeader 输出 2006-01-02 15:04:05.000000000 [fileName:fileLine]
@@ -60,7 +59,6 @@ func FileNameHeader(log *Log, depth int) {
 	log.b = append(log.b, path...)
 	log.b = append(log.b, ':')
 	log.Int(line)
-	// log.b = append(log.b, headerEnd...)
 }
 
 // FilePathHeader 输出 2006-01-02 15:04:05.000000 [filePath:fileLine]
@@ -77,5 +75,4 @@ func FilePathHeader(log *Log, depth int) {
 	log.b = append(log.b, path...)
 	log.b = append(log.b, ':')
 	log.Int(line)
-	// log.b = append(log.b, headerEnd...)
 }

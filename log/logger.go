@@ -16,8 +16,6 @@ type Logger struct {
 	io.Writer
 	// 头格式
 	Header FormatHeader
-	// 名称
-	Name string
 	// 是否禁止 debug
 	DisableDebug bool
 	// 是否禁止 info
@@ -26,20 +24,46 @@ type Logger struct {
 	DisableWarn bool
 	// 是否禁止 error
 	DisableError bool
+	// 名称
+	name string
+	// 模块
+	module string
 }
 
 // NewLogger 返回默认的 Logger
 // 格式 "[name] [level] Header [tracID] text"
-func NewLogger(writer io.Writer, header FormatHeader, name string) *Logger {
+func NewLogger(writer io.Writer, header FormatHeader, name, module string) *Logger {
 	lg := new(Logger)
 	lg.Writer = writer
 	lg.Header = header
 	// 多加一个空格
-	if name == "" {
-		name = "default"
+	if name != "" {
+		lg.name = fmt.Sprintf("[%s] ", name)
 	}
-	lg.Name = fmt.Sprintf("[%s] ", name)
+	if name != "" {
+		lg.module = fmt.Sprintf("[%s] ", module)
+	}
 	return lg
+}
+
+// DisableLevelBelow 禁用 level 以下的级别，[debug,info,warn,error]
+func (lg *Logger) DisableLevelBelow(level string) {
+	switch level {
+	case "debug":
+		lg.DisableDebug = true
+	case "info":
+		lg.DisableDebug = true
+		lg.DisableInfo = true
+	case "warn":
+		lg.DisableDebug = true
+		lg.DisableInfo = true
+		lg.DisableWarn = true
+	case "error":
+		lg.DisableDebug = true
+		lg.DisableInfo = true
+		lg.DisableWarn = true
+		lg.DisableError = true
+	}
 }
 
 // DisableLevels 禁用级别，[debug,info,warn,error]
@@ -62,8 +86,12 @@ func (lg *Logger) print(depth, level int, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 名称
-	if lg.Name != "" {
-		l.b = append(l.b, lg.Name...)
+	if lg.name != "" {
+		l.b = append(l.b, lg.name...)
+	}
+	// 模块
+	if lg.module != "" {
+		l.b = append(l.b, lg.module...)
 	}
 	// 级别
 	l.b = append(l.b, levels[level]...)
@@ -84,8 +112,8 @@ func (lg *Logger) printf(depth, level int, format string, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 名称
-	if lg.Name != "" {
-		l.b = append(l.b, lg.Name...)
+	if lg.name != "" {
+		l.b = append(l.b, lg.name...)
 	}
 	// 级别
 	l.b = append(l.b, levels[level]...)
@@ -106,8 +134,8 @@ func (lg *Logger) printTrace(depth, level int, trace string, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 名称
-	if lg.Name != "" {
-		l.b = append(l.b, lg.Name...)
+	if lg.name != "" {
+		l.b = append(l.b, lg.name...)
 	}
 	// 级别
 	l.b = append(l.b, levels[level]...)
@@ -133,8 +161,8 @@ func (lg *Logger) printfTrace(depth, level int, trace, format string, args ...an
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 名称
-	if lg.Name != "" {
-		l.b = append(l.b, lg.Name...)
+	if lg.name != "" {
+		l.b = append(l.b, lg.name...)
 	}
 	// 级别
 	l.b = append(l.b, levels[level]...)
@@ -176,8 +204,8 @@ func (lg *Logger) Recover(recover any) bool {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 名称
-	if lg.Name != "" {
-		l.b = append(l.b, lg.Name...)
+	if lg.name != "" {
+		l.b = append(l.b, lg.name...)
 	}
 	// 级别
 	l.b = append(l.b, levels[panicLevel]...)
