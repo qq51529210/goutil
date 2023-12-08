@@ -40,7 +40,7 @@ func NewLogger(writer io.Writer, header FormatHeader, name, module string) *Logg
 	if name != "" {
 		lg.name = fmt.Sprintf("[%s] ", name)
 	}
-	if name != "" {
+	if module != "" {
 		lg.module = fmt.Sprintf("[%s] ", module)
 	}
 	return lg
@@ -85,6 +85,8 @@ func (lg *Logger) DisableLevels(levels []string) {
 func (lg *Logger) print(depth, level int, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
+	// 级别
+	l.b = append(l.b, levels[level]...)
 	// 名称
 	if lg.name != "" {
 		l.b = append(l.b, lg.name...)
@@ -93,8 +95,6 @@ func (lg *Logger) print(depth, level int, args ...any) {
 	if lg.module != "" {
 		l.b = append(l.b, lg.module...)
 	}
-	// 级别
-	l.b = append(l.b, levels[level]...)
 	// 头
 	lg.Header(l, depth)
 	l.b = append(l.b, ' ')
@@ -111,12 +111,16 @@ func (lg *Logger) print(depth, level int, args ...any) {
 func (lg *Logger) printf(depth, level int, format string, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
+	// 级别
+	l.b = append(l.b, levels[level]...)
 	// 名称
 	if lg.name != "" {
 		l.b = append(l.b, lg.name...)
 	}
-	// 级别
-	l.b = append(l.b, levels[level]...)
+	// 模块
+	if lg.module != "" {
+		l.b = append(l.b, lg.module...)
+	}
 	// 头
 	lg.Header(l, depth)
 	l.b = append(l.b, ' ')
