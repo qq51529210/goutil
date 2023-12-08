@@ -118,7 +118,7 @@ func initQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 		// 嵌入不是结构不处理
 		if ft.Anonymous {
 			if fk == reflect.Struct {
-				db = InitQuery(db, fv)
+				db = initQuery(db, fv)
 			}
 			continue
 		}
