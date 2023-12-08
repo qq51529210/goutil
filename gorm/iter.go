@@ -9,7 +9,8 @@ import (
 // Iterator 封装循环查询代码
 type Iterator[M, Q any] struct {
 	// 日志
-	Trace string
+	Trace  string
+	Logger *log.Logger
 	// 条件
 	Query Q
 	// 查询函数
@@ -17,11 +18,11 @@ type Iterator[M, Q any] struct {
 	// 是否继续
 	GoOnFunc func() bool
 	// 处理函数
-	HandleFunc func(Q, []M, time.Duration) (retry bool, goon bool)
+	HandleFunc func(Q, []M) (retry bool, goon bool)
 }
 
 // Do 查询数据库然后回调，返回 true 表示全部遍历完成
-func (it *Iterator[M, Q]) Do(page, retry int, dataTO time.Duration) bool {
+func (it *Iterator[M, Q]) Do(retry int, dataTO time.Duration) bool {
 	// 失败重试
 	errCount := -1
 	// 数据
@@ -32,7 +33,7 @@ func (it *Iterator[M, Q]) Do(page, retry int, dataTO time.Duration) bool {
 		err := it.QueryFunc(ctx, it.Query, &res)
 		cancel()
 		if err != nil {
-			log.ErrorfTrace(it.Trace, "get db list %v", err)
+			it.Logger.ErrorTrace(it.Trace, err)
 			// 重试
 			errCount++
 			// 重试达标
@@ -49,7 +50,7 @@ func (it *Iterator[M, Q]) Do(page, retry int, dataTO time.Duration) bool {
 		}
 		// 处理
 		for it.GoOnFunc() {
-			_retry, goon := it.HandleFunc(it.Query, res.Data, dataTO)
+			_retry, goon := it.HandleFunc(it.Query, res.Data)
 			if !goon {
 				// 不继续
 				return true
@@ -64,10 +65,6 @@ func (it *Iterator[M, Q]) Do(page, retry int, dataTO time.Duration) bool {
 			if errCount >= retry {
 				return false
 			}
-		}
-		// 不分页/到底了
-		if page < 1 || len(res.Data) < page {
-			return true
 		}
 	}
 	return false

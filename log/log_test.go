@@ -6,9 +6,9 @@ import (
 )
 
 func TestPrint(t *testing.T) {
-	print(NewLogger(os.Stderr, DefaultHeader, "default", "a"))
-	print(NewLogger(os.Stderr, FileNameHeader, "filename", "b"))
-	print(NewLogger(os.Stderr, FilePathHeader, "filepath", "c"))
+	print(NewLogger(os.Stderr, DefaultHeader, "default", "a", nil))
+	print(NewLogger(os.Stderr, FileNameHeader, "filename", "b", nil))
+	print(NewLogger(os.Stderr, FilePathHeader, "filepath", "c", nil))
 }
 
 func print(lg *Logger) {
