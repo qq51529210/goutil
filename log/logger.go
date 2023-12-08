@@ -82,9 +82,7 @@ func (lg *Logger) DisableLevels(levels []string) {
 	}
 }
 
-func (lg *Logger) print(depth, level int, args ...any) {
-	l := logPool.Get().(*Log)
-	l.b = l.b[:0]
+func (lg *Logger) printPrefix(l *Log, level int) {
 	// 级别
 	l.b = append(l.b, levels[level]...)
 	// 名称
@@ -95,6 +93,13 @@ func (lg *Logger) print(depth, level int, args ...any) {
 	if lg.module != "" {
 		l.b = append(l.b, lg.module...)
 	}
+}
+
+func (lg *Logger) print(depth, level int, args ...any) {
+	l := logPool.Get().(*Log)
+	l.b = l.b[:0]
+	//
+	lg.printPrefix(l, level)
 	// 头
 	lg.Header(l, depth)
 	l.b = append(l.b, ' ')
@@ -111,16 +116,8 @@ func (lg *Logger) print(depth, level int, args ...any) {
 func (lg *Logger) printf(depth, level int, format string, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
-	// 级别
-	l.b = append(l.b, levels[level]...)
-	// 名称
-	if lg.name != "" {
-		l.b = append(l.b, lg.name...)
-	}
-	// 模块
-	if lg.module != "" {
-		l.b = append(l.b, lg.module...)
-	}
+	//
+	lg.printPrefix(l, level)
 	// 头
 	lg.Header(l, depth)
 	l.b = append(l.b, ' ')
@@ -137,19 +134,15 @@ func (lg *Logger) printf(depth, level int, format string, args ...any) {
 func (lg *Logger) printTrace(depth, level int, trace string, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
-	// 名称
-	if lg.name != "" {
-		l.b = append(l.b, lg.name...)
-	}
-	// 级别
-	l.b = append(l.b, levels[level]...)
+	//
+	lg.printPrefix(l, level)
 	// 头
 	lg.Header(l, depth)
 	l.b = append(l.b, ' ')
 	// 追踪
-	l.b = append(l.b, '[')
+	l.b = append(l.b, '<')
 	l.b = append(l.b, trace...)
-	l.b = append(l.b, ']')
+	l.b = append(l.b, '>')
 	l.b = append(l.b, ' ')
 	// 日志
 	fmt.Fprint(l, args...)
@@ -164,19 +157,15 @@ func (lg *Logger) printTrace(depth, level int, trace string, args ...any) {
 func (lg *Logger) printfTrace(depth, level int, trace, format string, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
-	// 名称
-	if lg.name != "" {
-		l.b = append(l.b, lg.name...)
-	}
-	// 级别
-	l.b = append(l.b, levels[level]...)
+	//
+	lg.printPrefix(l, level)
 	// 头
 	lg.Header(l, depth)
 	l.b = append(l.b, ' ')
 	// 追踪
-	l.b = append(l.b, '[')
+	l.b = append(l.b, '<')
 	l.b = append(l.b, trace...)
-	l.b = append(l.b, ']')
+	l.b = append(l.b, '>')
 	l.b = append(l.b, ' ')
 	// 日志
 	fmt.Fprintf(l, format, args...)

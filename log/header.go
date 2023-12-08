@@ -13,6 +13,7 @@ func FormatTime(log *Log) {
 	year, month, day := t.Date()
 	hour, minute, second := t.Clock()
 	// Date
+	log.b = append(log.b, '[')
 	log.IntLeftAlign(year, 4)
 	log.b = append(log.b, '-')
 	log.IntRightAlign(int(month), 2)
@@ -28,6 +29,7 @@ func FormatTime(log *Log) {
 	// Nanosecond
 	log.b = append(log.b, '.')
 	log.IntLeftAlign(t.Nanosecond(), 9)
+	log.b = append(log.b, ']')
 }
 
 // FormatHeader 用于格式化日志头
@@ -56,8 +58,9 @@ func FileNameHeader(log *Log, depth int) {
 			}
 		}
 	}
+	log.b = append(log.b, '[')
 	log.b = append(log.b, path...)
-	log.b = append(log.b, ':')
+	log.b = append(log.b, ']')
 	log.Int(line)
 }
 
@@ -72,7 +75,8 @@ func FilePathHeader(log *Log, depth int) {
 		path = "???"
 		line = -1
 	}
+	log.b = append(log.b, '[')
 	log.b = append(log.b, path...)
-	log.b = append(log.b, ':')
+	log.b = append(log.b, ']')
 	log.Int(line)
 }
