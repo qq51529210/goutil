@@ -42,8 +42,9 @@ func (g *Log) Error(ctx context.Context, str string, args ...interface{}) {
 // Trace 实现接口
 func (g *Log) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	sql, _ := fc()
+	g.lg.Debugf("[%v] %s", time.Since(begin), sql)
+	//
 	if err != nil {
-		g.lg.Debugf("[%v] %s", time.Since(begin), sql)
 		if err != gorm.ErrRecordNotFound {
 			g.lg.Error(err)
 			return
