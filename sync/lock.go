@@ -9,7 +9,8 @@ import (
 // Locker 用于控制在部署多个服务时，确保只有一个服务在执行定时任务
 type Locker struct {
 	// 日志
-	Trace string
+	Trace  string
+	Logger *log.Logger
 	// 是否抢到
 	locked bool
 	// 并发控制
@@ -39,12 +40,12 @@ func (l *Locker) Run() {
 func (l *Locker) routine() {
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		l.Logger.Recover(recover())
 		// 日志
-		log.InfoTrace(l.Trace, "stop")
+		l.Logger.InfoTrace(l.Trace, "stop")
 	}()
 	// 执行
-	log.InfoTrace(l.Trace, "start")
+	l.Logger.InfoTrace(l.Trace, "start")
 	timer := time.NewTimer(0)
 	for {
 		now := <-timer.C
@@ -52,7 +53,7 @@ func (l *Locker) routine() {
 			// 抢锁
 			ok, err := l.LockFunc()
 			if err != nil {
-				log.ErrorTrace(l.Trace, err)
+				l.Logger.ErrorTrace(l.Trace, err)
 			} else {
 				l.locked = ok
 			}
@@ -72,9 +73,9 @@ func (l *Locker) handleRoutine() {
 	old := time.Now()
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		l.Logger.Recover(recover())
 		// 日志
-		log.DebugfTrace(l.Trace, "handle cost %v", time.Since(old))
+		l.Logger.DebugfTrace(l.Trace, "handle cost %v", time.Since(old))
 		// 标记
 		atomic.StoreInt32(&l.handing, 0)
 	}()

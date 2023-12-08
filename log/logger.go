@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	loggerDepth = 3
+	loggerDepth = 4
 )
 
 // Logger 默认实现，修改字段注意并发
