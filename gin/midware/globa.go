@@ -12,57 +12,59 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	// CtxKeySubmitData 用于 log 保存提交的 body 的数据
-	CtxKeySubmitData = "SumbitData"
-	// CtxKeyError 用于 log 保存处理中发生的错误
-	CtxKeyError = "Error"
-	// CtxKeyTraceID 用于 log 追踪 id
-	CtxKeyTraceID = "TraceID"
+var (
+	DefaultLog = new(Log)
 )
 
-var (
-	// ProxyRemoteAddrHeader 代理服务透传的客户端地址头名称
-	ProxyRemoteAddrHeader = "X-Remote-Addr"
-	// Logger 日志
-	Logger *log.Logger
-)
+func init() {
+	DefaultLog.CtxKeySubmitData = "SubmitData"
+	DefaultLog.CtxKeyError = "Error"
+	DefaultLog.CtxKeyTraceID = "TraceID"
+	DefaultLog.HeaderNameRemoteAddr = "X-Remote-Addr"
+	DefaultLog.Logger = log.DefaultLogger
+}
 
 // Log 日志中间件
-func Log(ctx *gin.Context) {
-	old := time.Now()
-	// 追踪 id
-	traceID := uid.SnowflakeIDString()
-	ctx.Set(CtxKeyTraceID, traceID)
+type Log struct {
+	// CtxKeySubmitData 用于 log 保存提交的 body 的数据
+	CtxKeySubmitData string
+	// CtxKeyError 用于 log 保存处理中发生的错误
+	CtxKeyError string
+	// CtxKeyTraceID 用于 log 追踪 id
+	CtxKeyTraceID string
+	// HeaderNameRemoteAddr 代理服务透传的客户端地址头名称
+	HeaderNameRemoteAddr string
+	// Logger 日志
+	Logger *log.Logger
+}
+
+// 实现接口
+func (h *Log) ServeHTTP(ctx *gin.Context) {
 	// 清理
 	defer func() {
 		// 异常
-		r := recover()
-		if r != nil {
-			if Logger != nil {
-				Logger.Recover(r)
-			}
+		if h.Logger.Recover(recover()) {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 		}
 	}()
+	// 追踪 id
+	traceID := uid.SnowflakeIDString()
+	ctx.Set(h.CtxKeyTraceID, traceID)
+	old := time.Now()
 	// 执行
 	ctx.Next()
-	// 日志
-	if Logger == nil {
-		return
-	}
 	// 花费时间
 	cost := time.Since(old)
 	// 如果有代理，代理必须使用这个字段来透传客户端 ip
 	remoteAddr := ctx.Request.RemoteAddr
-	if addr := ctx.GetHeader(ProxyRemoteAddrHeader); addr != "" {
+	if addr := ctx.GetHeader(h.HeaderNameRemoteAddr); addr != "" {
 		remoteAddr = addr
 	}
 	// 日志
 	var str strings.Builder
 	fmt.Fprintf(&str, "%s %s %s cost %v", remoteAddr, ctx.Request.Method, ctx.Request.URL.Path, cost)
 	// 提交的数据
-	submitData := ctx.Value(CtxKeySubmitData)
+	submitData := ctx.Value(h.CtxKeySubmitData)
 	if submitData != nil {
 		d, err := json.Marshal(submitData)
 		if err == nil {
@@ -71,9 +73,9 @@ func Log(ctx *gin.Context) {
 		}
 	}
 	// 如果有错误
-	errData := ctx.Value(CtxKeyError)
+	errData := ctx.Value(h.CtxKeyError)
 	if errData != nil {
 		fmt.Fprintf(&str, "\nhandle error: %v", errData)
 	}
-	Logger.DebugTrace(traceID, str.String())
+	h.Logger.DebugTrace(traceID, str.String())
 }
