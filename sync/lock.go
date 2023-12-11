@@ -75,7 +75,7 @@ func (l *Locker) handleRoutine() {
 		// 异常
 		l.Logger.Recover(recover())
 		// 日志
-		l.Logger.DebugfTrace(l.Trace, "handle cost %v", time.Since(old))
+		l.Logger.DebugfTrace(l.Trace, "[%v] done", time.Since(old))
 		// 标记
 		atomic.StoreInt32(&l.handing, 0)
 	}()

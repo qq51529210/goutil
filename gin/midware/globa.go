@@ -62,7 +62,7 @@ func (h *Log) ServeHTTP(ctx *gin.Context) {
 	}
 	// 日志
 	var str strings.Builder
-	fmt.Fprintf(&str, "%s %s %s cost %v", remoteAddr, ctx.Request.Method, ctx.Request.URL.Path, cost)
+	fmt.Fprintf(&str, "[%v] %s %s %s", cost, remoteAddr, ctx.Request.Method, ctx.Request.URL.Path)
 	// 提交的数据
 	submitData := ctx.Value(h.CtxKeySubmitData)
 	if submitData != nil {

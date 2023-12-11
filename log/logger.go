@@ -90,6 +90,9 @@ func (lg *Logger) DisableLevels(levels []string) {
 func (lg *Logger) printPrefix(l *Log, depth, level int) {
 	// 级别
 	l.b = append(l.b, levels[level]...)
+	// 头
+	lg.Header(l, depth)
+	l.b = append(l.b, ' ')
 	// 名称
 	if lg.name != "" {
 		l.b = append(l.b, lg.name...)
@@ -98,9 +101,6 @@ func (lg *Logger) printPrefix(l *Log, depth, level int) {
 	if lg.module != "" {
 		l.b = append(l.b, lg.module...)
 	}
-	// 头
-	lg.Header(l, depth)
-	l.b = append(l.b, ' ')
 }
 
 func (lg *Logger) print(depth, level int, args ...any) {
