@@ -33,18 +33,40 @@ func FormatTime(log *Log) {
 }
 
 // FormatHeader 用于格式化日志头
-type FormatHeader func(log *Log, depth int)
+type FormatHeader func(log *Log, name, module string, level, depth int)
 
 // DefaultHeader 输出 2006-01-02 15:04:05.000000000
-func DefaultHeader(log *Log, depth int) {
+func DefaultHeader(log *Log, name, module string, level, depth int) {
+	// 级别
+	log.b = append(log.b, levels[level]...)
+	// 时间
 	FormatTime(log)
+	log.b = append(log.b, ' ')
+	// 名称
+	if name != "" {
+		log.b = append(log.b, name...)
+	}
+	// 模块
+	if module != "" {
+		log.b = append(log.b, module...)
+	}
 }
 
 // FileNameHeader 输出 2006-01-02 15:04:05.000000000 [fileName:fileLine]
-func FileNameHeader(log *Log, depth int) {
-	// 2006-01-02 15:04:05.000000000
+func FileNameHeader(log *Log, name, module string, level, depth int) {
+	// 级别
+	log.b = append(log.b, levels[level]...)
+	// 时间
 	FormatTime(log)
 	log.b = append(log.b, ' ')
+	// 名称
+	if name != "" {
+		log.b = append(log.b, name...)
+	}
+	// 模块
+	if module != "" {
+		log.b = append(log.b, module...)
+	}
 	// [fileName:fileLine]
 	_, path, line, ok := runtime.Caller(depth)
 	if !ok {
@@ -66,10 +88,20 @@ func FileNameHeader(log *Log, depth int) {
 }
 
 // FilePathHeader 输出 2006-01-02 15:04:05.000000 [filePath:fileLine]
-func FilePathHeader(log *Log, depth int) {
-	// 2006-01-02 15:04:05.000000000
+func FilePathHeader(log *Log, name, module string, level, depth int) {
+	// 级别
+	log.b = append(log.b, levels[level]...)
+	// 时间
 	FormatTime(log)
 	log.b = append(log.b, ' ')
+	// 名称
+	if name != "" {
+		log.b = append(log.b, name...)
+	}
+	// 模块
+	if module != "" {
+		log.b = append(log.b, module...)
+	}
 	// [filePath:fileLine]
 	_, path, line, ok := runtime.Caller(depth)
 	if !ok {

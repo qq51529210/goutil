@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	loggerDepth = 4
+	loggerDepth = 3
 )
 
 // Logger 默认实现，修改字段注意并发
@@ -87,27 +87,12 @@ func (lg *Logger) DisableLevels(levels []string) {
 	}
 }
 
-func (lg *Logger) printPrefix(l *Log, depth, level int) {
-	// 级别
-	l.b = append(l.b, levels[level]...)
-	// 头
-	lg.Header(l, depth)
-	l.b = append(l.b, ' ')
-	// 名称
-	if lg.name != "" {
-		l.b = append(l.b, lg.name...)
-	}
-	// 模块
-	if lg.module != "" {
-		l.b = append(l.b, lg.module...)
-	}
-}
-
 func (lg *Logger) print(depth, level int, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 头
-	lg.printPrefix(l, depth, level)
+	lg.Header(l, lg.name, lg.module, level, depth)
+	l.b = append(l.b, ' ')
 	// 日志
 	fmt.Fprint(l, args...)
 	// 换行
@@ -122,7 +107,8 @@ func (lg *Logger) printf(depth, level int, format string, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 头
-	lg.printPrefix(l, depth, level)
+	lg.Header(l, lg.name, lg.module, level, depth)
+	l.b = append(l.b, ' ')
 	// 日志
 	fmt.Fprintf(l, format, args...)
 	// 换行
@@ -137,7 +123,8 @@ func (lg *Logger) printTrace(depth, level int, trace string, args ...any) {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 头
-	lg.printPrefix(l, depth, level)
+	lg.Header(l, lg.name, lg.module, level, depth)
+	l.b = append(l.b, ' ')
 	// 追踪
 	l.b = append(l.b, '<')
 	l.b = append(l.b, trace...)
@@ -157,7 +144,8 @@ func (lg *Logger) printfTrace(depth, level int, trace, format string, args ...an
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 头
-	lg.printPrefix(l, depth, level)
+	lg.Header(l, lg.name, lg.module, level, depth)
+	l.b = append(l.b, ' ')
 	// 追踪
 	l.b = append(l.b, '<')
 	l.b = append(l.b, trace...)
