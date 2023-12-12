@@ -34,6 +34,11 @@ const (
 	querySecret = "secret"
 )
 
+var (
+	// Logger 用于打印
+	Logger *log.Logger = log.DefaultLogger
+)
+
 // httpCallRes 封装请求
 func httpCallRes[ReqQuery, ResData any](ctx context.Context, ser *Server, path string, query *ReqQuery, res *ResData) error {
 	return httpCall(ctx, ser.Secret, ser.APIBaseURL, path, query, func(response *http.Response) error {
@@ -62,6 +67,6 @@ func httpCall[Query any](ctx context.Context, secret, apiBaseURL, path string, q
 	if err != nil {
 		return err
 	}
-	log.DebugfTrace("zlm api", "[%v] %s", time.Since(old), url)
+	Logger.Debugf("[%v] %s", time.Since(old), url)
 	return nil
 }

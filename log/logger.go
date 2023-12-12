@@ -36,12 +36,12 @@ func NewLogger(writer io.Writer, header FormatHeader, name, module string, disab
 	lg := new(Logger)
 	lg.Writer = writer
 	lg.Header = header
-	// 多加一个空格
+	//
 	if name != "" {
-		lg.name = fmt.Sprintf("[%s] ", name)
+		lg.name = fmt.Sprintf("[%s]", name)
 	}
 	if module != "" {
-		lg.module = fmt.Sprintf("[%s] ", module)
+		lg.module = fmt.Sprintf("[%s]", module)
 	}
 	// 禁用级别
 	if len(disableLevels) > 0 {
