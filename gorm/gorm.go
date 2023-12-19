@@ -28,12 +28,11 @@ type PageQuery struct {
 func (m *PageQuery) NextPage(n int) bool {
 	// 分页
 	if m.HasCount() && m.Offset != nil {
-		// 最后的一页，不继续了
-		if *m.Count > n {
-			return false
+		if *m.Count <= n {
+			*m.Offset += *m.Count
+			return true
 		}
-		*m.Offset += *m.Count
-		return true
+		// 当前页数据小于条数，说明是最后一页了
 	}
 	// 不分页
 	return false
