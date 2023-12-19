@@ -124,7 +124,7 @@ func (s *Server) checkActiveTxTimeoutRoutine(network string, at *gosync.Map[stri
 		s.w.Done()
 	}()
 	// 日志
-	s.Logger.Warnf("%s check active tx routine start", network)
+	s.Logger.Debugf("%s check active tx routine start", network)
 	// 开始
 	var ts []*activeTx
 	for s.isOK() {
