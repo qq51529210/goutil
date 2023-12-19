@@ -119,7 +119,7 @@ func (s *Server) Serve() error {
 	if s.Logger == nil {
 		s.Logger = log.DefaultLogger
 	}
-	s.Logger.InfoTrace(SIP, "ok")
+	s.Logger.Infof("listen %s", s.Addr)
 	//
 	return nil
 }
