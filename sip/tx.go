@@ -3,7 +3,6 @@ package sip
 import (
 	"bytes"
 	"context"
-	"fmt"
 	gosync "goutil/sync"
 	"sync/atomic"
 	"time"
@@ -110,28 +109,22 @@ func (s *Server) delActiveTx(k string, at *gosync.Map[string, *activeTx]) *activ
 }
 
 // checkActiveTxTimeoutRoutine 检查主动事务的超时
-func (s *Server) checkActiveTxTimeoutRoutine(name string, at *gosync.Map[string, *activeTx]) {
-	logTrace := fmt.Sprintf("%s check active tx routine", name)
+func (s *Server) checkActiveTxTimeoutRoutine(network string, at *gosync.Map[string, *activeTx]) {
 	// 计时器
 	dur := s.TxTimeout / 2
 	timer := time.NewTimer(dur)
 	defer func() {
 		// 异常
-		r := recover()
-		if s.Logger != nil {
-			s.Logger.Recover(r)
-			// 日志
-			s.Logger.InfoTrace(logTrace, "stop")
-		}
+		s.Logger.Recover(recover())
+		// 日志
+		s.Logger.Warnf("%s check active tx routine stop", network)
 		// 计时器
 		timer.Stop()
 		// 结束
 		s.w.Done()
 	}()
 	// 日志
-	if s.Logger != nil {
-		s.Logger.InfoTrace(logTrace, "start")
-	}
+	s.Logger.Warnf("%s check active tx routine start", network)
 	// 开始
 	var ts []*activeTx
 	for s.isOK() {
@@ -194,28 +187,22 @@ func (s *Server) newPassiveTx(m *message, pt *gosync.Map[string, *passiveTx]) *p
 }
 
 // checkPassiveTxTimeoutRoutine 检查被动事务的超时
-func (s *Server) checkPassiveTxTimeoutRoutine(name string, pt *gosync.Map[string, *passiveTx]) {
-	logTrace := fmt.Sprintf("%s check passive tx routine", name)
+func (s *Server) checkPassiveTxTimeoutRoutine(network string, pt *gosync.Map[string, *passiveTx]) {
 	// 计时器
 	dur := s.TxTimeout / 2
 	timer := time.NewTimer(dur)
 	defer func() {
 		// 异常
-		r := recover()
-		if s.Logger != nil {
-			s.Logger.Recover(r)
-			// 日志
-			s.Logger.InfoTrace(logTrace, "stop")
-		}
+		s.Logger.Recover(recover())
+		// 日志
+		s.Logger.Warnf("%s check passive tx routine stop", network)
 		// 计时器
 		timer.Stop()
 		// 结束
 		s.w.Done()
 	}()
 	// 日志
-	if s.Logger != nil {
-		s.Logger.InfoTrace(logTrace, "start")
-	}
+	s.Logger.Debugf("%s check passive tx routine start", network)
 	// 开始
 	var ts []*passiveTx
 	for s.isOK() {
