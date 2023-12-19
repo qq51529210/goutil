@@ -486,11 +486,12 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 
 // handleRequestRoutine 在协程中处理请求消息
 func (s *Server) handleRequestRoutine(c conn, t *passiveTx, m *message) {
+	old := time.Now()
 	defer func() {
 		// 异常
 		s.Logger.Recover(recover())
 		// 日志
-		s.Logger.DebugfTrace(t.TxKey(), "[%v] handle request", time.Since(t.time))
+		s.Logger.DebugfTrace(t.TxKey(), "[%v] handle request", time.Since(old))
 		// 结束
 		s.w.Done()
 	}()
@@ -509,11 +510,12 @@ func (s *Server) handleRequestRoutine(c conn, t *passiveTx, m *message) {
 
 // handleResponseRoutine 在协程中处理响应消息
 func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
+	old := time.Now()
 	defer func() {
 		// 异常
 		s.Logger.Recover(recover())
 		// 日志
-		s.Logger.DebugfTrace(t.TxKey(), "[%v] handle response", time.Since(t.time))
+		s.Logger.DebugfTrace(t.TxKey(), "[%v] handle response", time.Since(old))
 		// 无论回调有没有通知，这里都通知一下
 		t.Finish(nil)
 		// 结束
