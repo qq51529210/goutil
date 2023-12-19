@@ -3,7 +3,6 @@ package sip
 import (
 	"bytes"
 	"fmt"
-	"goutil/log"
 	gostrings "goutil/strings"
 	"goutil/uid"
 	"io"
@@ -607,11 +606,11 @@ func (m *Request) response(status, phrase string) {
 	m.writeData.Reset()
 	m.Enc(&m.writeData)
 	// 日志
-	log.DebugfTrace(m.TxKey(), "write response to %s %s\n%s", m.Network(), m.RemoteAddrString(), m.writeData.String())
+	m.Server.Logger.DebugfTrace(m.TxKey(), "write response to %s %s\n%s", m.Network(), m.RemoteAddrString(), m.writeData.String())
 	// 立刻发送
 	err := m.write(m.writeData.Bytes())
 	if err != nil {
-		log.ErrorDepthTrace(2, m.txKey(), err)
+		m.Server.Logger.ErrorDepthTrace(2, m.txKey(), err)
 	}
 }
 
