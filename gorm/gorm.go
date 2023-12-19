@@ -24,6 +24,21 @@ type PageQuery struct {
 	Total *int8 `json:"total,omitempty" form:"total" binding:"omitempty,oneof=0 1"`
 }
 
+// NextPage 下一页，n 是当前页的数据量
+func (m *PageQuery) NextPage(n int) bool {
+	// 分页
+	if m.HasCount() && m.Offset != nil {
+		// 最后的一页，不继续了
+		if *m.Count > n {
+			return false
+		}
+		*m.Offset += *m.Count
+		return true
+	}
+	// 不分页
+	return false
+}
+
 // HasCount 是否有分页
 func (m *PageQuery) HasCount() bool {
 	return m.Count != nil && *m.Count > 0
