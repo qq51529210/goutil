@@ -52,7 +52,7 @@ func NewLogger(writer io.Writer, header FormatHeader, name, module string, disab
 }
 
 // DisableLevelBelow 禁用 level 以下的级别，[all,debug,info,warn,error]
-func (lg *Logger) DisableLevelBelow(level Level) {
+func (lg *Logger) DisableLevelBelow(level string) {
 	switch level {
 	case "info":
 		lg.DisableDebug = true
