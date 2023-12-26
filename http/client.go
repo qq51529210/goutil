@@ -134,6 +134,32 @@ func Request[Data any](ctx context.Context, client *http.Client, method, url str
 	return onResponse(res)
 }
 
+// Forward 转发请求
+func Forward(client *http.Client, method, url string, res http.ResponseWriter, req *http.Request) error {
+	// 新的请求
+	_req, err := http.NewRequest(method, url, req.Body)
+	if err != nil {
+		return err
+	}
+	_req.Header = req.Header
+	// 发送
+	_res, err := client.Do(_req)
+	if err != nil {
+		return err
+	}
+	defer _res.Body.Close()
+	// 响应
+	res.WriteHeader(_res.StatusCode)
+	for k, v := range _res.Header {
+		for _, vv := range v {
+			res.Header().Add(k, vv)
+		}
+	}
+	_, err = io.Copy(res, _res.Body)
+	//
+	return err
+}
+
 // Server 封装代码
 type Server struct {
 	S http.Server
