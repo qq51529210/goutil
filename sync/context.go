@@ -90,7 +90,7 @@ func (m *Context) routine() {
 		case now := <-m.timer.C:
 			t := m.deadline
 			// 超时了
-			dur := now.Sub(*t)
+			dur := t.Sub(now)
 			if dur < 0 {
 				m.Finish(context.DeadlineExceeded)
 				return
