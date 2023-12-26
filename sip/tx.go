@@ -8,6 +8,13 @@ import (
 	"time"
 )
 
+type tx interface {
+	context.Context
+	Finish(err error)
+	TxKey() string
+	dataBuffer() *bytes.Buffer
+}
+
 // baseTx 实现一个 context.Context
 type baseTx struct {
 	// 池的 key
@@ -64,6 +71,10 @@ type activeTx struct {
 	writeData bytes.Buffer
 	// 停止发送，一般是遇到 1xx 类响应
 	stopRT bool
+}
+
+func (m *activeTx) dataBuffer() *bytes.Buffer {
+	return &m.writeData
 }
 
 func (m *activeTx) Value(any) any {
@@ -161,6 +172,10 @@ type passiveTx struct {
 	handing int32
 	// 用于判断是否处理完毕
 	done bool
+}
+
+func (m *passiveTx) dataBuffer() *bytes.Buffer {
+	return &m.writeData
 }
 
 func (m *passiveTx) Value(any) any {

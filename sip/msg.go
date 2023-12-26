@@ -573,13 +573,20 @@ func (m *message) String() string {
 type Request struct {
 	*Server
 	*message
-	*passiveTx
+	tx
 	conn
 }
 
 // NewRequest 创建请求
 func NewRequest() *Request {
 	return &Request{message: new(message)}
+}
+
+// Finish 通知
+func (m *Request) Finish(err error) {
+	if m.tx != nil {
+		m.tx.Finish(err)
+	}
 }
 
 func (m *Request) response(status, phrase string) {
@@ -603,12 +610,13 @@ func (m *Request) response(status, phrase string) {
 	//
 	m.Header.UserAgent = m.Server.UserAgent
 	// 格式化
-	m.writeData.Reset()
-	m.Enc(&m.writeData)
+	buf := m.dataBuffer()
+	buf.Reset()
+	m.Enc(buf)
 	// 日志
-	m.Server.Logger.DebugfTrace(m.TxKey(), "write response to %s %s\n%s", m.Network(), m.RemoteAddrString(), m.writeData.String())
+	m.Server.Logger.DebugfTrace(m.tx.TxKey(), "write response to %s %s\n%s", m.Network(), m.RemoteAddrString(), buf.String())
 	// 立刻发送
-	err := m.write(m.writeData.Bytes())
+	err := m.write(buf.Bytes())
 	if err != nil {
 		m.Server.Logger.ErrorDepthTrace(2, m.txKey(), err)
 	}

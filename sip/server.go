@@ -497,10 +497,10 @@ func (s *Server) handleRequestRoutine(c conn, t *passiveTx, m *message) {
 	}()
 	// 回调
 	t.done = s.HandleRequest(&Request{
-		Server:    s,
-		message:   m,
-		passiveTx: t,
-		conn:      c,
+		Server:  s,
+		message: m,
+		tx:      t,
+		conn:    c,
 	})
 	if !t.done {
 		// 没有完成，回复标记，等下一次的消息再回调
@@ -543,7 +543,7 @@ func (s *Server) Request(ctx context.Context, r *Request, a net.Addr, d any) err
 			}
 		}
 		// 请求
-		return s.doRequest(ctx, c, r.message, d, &s.tcp.at)
+		return s.doRequest(ctx, c, r, d, &s.tcp.at)
 	}
 	// udp
 	if _a, ok := a.(*net.UDPAddr); ok {
@@ -552,19 +552,20 @@ func (s *Server) Request(ctx context.Context, r *Request, a net.Addr, d any) err
 		c.conn = s.udp.c
 		c.initAddr(_a)
 		//
-		return s.doRequest(ctx, c, r.message, d, &s.udp.at)
+		return s.doRequest(ctx, c, r, d, &s.udp.at)
 	}
 	//
 	return errUnknownAddress
 }
 
 // doRequest 封装 Request 的公共代码
-func (s *Server) doRequest(ctx context.Context, c conn, m *message, d any, at *gosync.Map[string, *activeTx]) error {
+func (s *Server) doRequest(ctx context.Context, c conn, r *Request, d any, at *gosync.Map[string, *activeTx]) error {
 	// 事务
-	t, err := s.newActiveTx(c, m, d, at)
+	t, err := s.newActiveTx(c, r.message, d, at)
 	if err != nil {
 		return err
 	}
+	r.tx = t
 	// 日志
 	s.Logger.DebugfTrace(t.TxKey(), "request to %s %s\n%s", c.Network(), c.RemoteAddrString(), t.writeData.String())
 	// 立即发送
