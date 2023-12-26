@@ -26,14 +26,16 @@ type Context struct {
 	OnFinish func()
 }
 
-// Init 初始化
-func (m *Context) Init(data any, timeout time.Duration) {
+// Run 初始化
+func (m *Context) Run(data any, timeout time.Duration) {
 	t := time.Now().Add(timeout)
 	m.timeout = timeout
 	m.data = data
 	m.deadline = &t
 	m.timer = time.NewTimer(timeout)
 	m.c = make(chan struct{})
+	//
+	go m.routine()
 }
 
 // Deadline 实现 context.Context
