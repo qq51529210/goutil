@@ -12,7 +12,12 @@ import (
 
 // GetSnapReq 是 GetSnap 的参数
 type GetSnapReq struct {
-	apiCall
+	// http://localhost:8080
+	BaseURL string
+	// 访问密钥
+	Secret string `query:"secret"`
+	// 虚拟主机，例如 __defaultVhost__
+	VHost string `query:"vhost"`
 	// 需要截图的url，可以是本机的，也可以是远程主机的
 	URL string `query:"url"`
 	// 截图失败超时时间，防止FFmpeg一直等待截图
@@ -28,7 +33,7 @@ const (
 // GetSnap 调用 /index/api/getSnap
 // 获取截图或生成实时截图并返回，jpeg格式的图片，可以在浏览器直接打开
 func GetSnap(ctx context.Context, req *GetSnapReq, out io.Writer) error {
-	url := requestURL[any](&req.apiCall, apiGetSnap, nil)
+	url := requestURL[any](req.BaseURL, apiGetSnap, nil)
 	// 请求
 	old := time.Now()
 	err := gh.Request[any](ctx, http.DefaultClient, http.MethodGet, url, nil, nil,

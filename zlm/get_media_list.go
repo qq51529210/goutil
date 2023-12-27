@@ -6,7 +6,10 @@ import (
 
 // GetMediaListReq 是 GetMediaList 的参数
 type GetMediaListReq struct {
-	apiCall
+	// http://localhost:8080
+	BaseURL string
+	// 访问密钥
+	Secret string `query:"secret"`
 	// 筛选虚拟主机，例如 __defaultVhost__
 	VHost string `query:"vhost"`
 	// 筛选协议，例如 rtsp或rtmp
@@ -79,12 +82,11 @@ const (
 func GetMediaList(ctx context.Context, req *GetMediaListReq) ([]*MediaListData, error) {
 	// 请求
 	var res getMediaListRes
-	err := request(ctx, &req.apiCall, apiGetMediaList, req, &res)
+	err := request(ctx, req.BaseURL, apiGetMediaList, req, &res)
 	if err != nil {
 		return nil, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiGetMediaList
 		return nil, &res.apiError
 	}

@@ -6,9 +6,14 @@ import (
 
 // DelFFMPEGSourceReq 是 DelFFMPEGSource 的参数
 type DelFFMPEGSourceReq struct {
-	apiCall
+	// http://localhost:8080
+	BaseURL string
+	// 访问密钥
+	Secret string `query:"secret"`
 	// 流的唯一标识
 	Key string `query:"key"`
+	// 虚拟主机，例如 __defaultVhost__
+	VHost string `query:"vhost"`
 }
 
 // delFFMPEGSourceRes 是 DelFFMPEGSource 返回值
@@ -33,14 +38,13 @@ const (
 func DelFFmpegSource(ctx context.Context, req *DelFFMPEGSourceReq) (bool, error) {
 	// 请求
 	var res delFFMPEGSourceRes
-	err := request(ctx, &req.apiCall, apiDelFFmpegSource, req, &res)
+	err := request(ctx, req.BaseURL, apiDelFFmpegSource, req, &res)
 	if err != nil {
 		return false, err
 	}
 	if res.apiError.Code != codeTrue {
 		// -500 是没有找到流，也算成功
 		if res.apiError.Code != -500 {
-			res.apiError.SerID = req.apiCall.ID
 			res.apiError.Path = apiDelFFmpegSource
 			return false, &res.apiError
 		}

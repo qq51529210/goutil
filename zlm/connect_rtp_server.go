@@ -6,7 +6,12 @@ import (
 
 // ConnectRTPServerReq 是 ConnectRTPServer 的参数
 type ConnectRTPServerReq struct {
-	apiCall
+	// http://localhost:8080
+	BaseURL string
+	// 访问密钥
+	Secret string `query:"secret"`
+	// 虚拟主机，例如 __defaultVhost__
+	VHost string `query:"vhost"`
 	// tcp主动模式时服务端地址
 	DstURL string `query:"dst_url"`
 	// tcp主动模式时服务端端口
@@ -29,12 +34,11 @@ const (
 func ConnectRTPServer(ctx context.Context, req *ConnectRTPServerReq) error {
 	// 请求
 	var res connectRTPServerRes
-	err := request(ctx, &req.apiCall, apiConnectRTPServer, req, &res)
+	err := request(ctx, req.BaseURL, apiConnectRTPServer, req, &res)
 	if err != nil {
 		return err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiConnectRTPServer
 		return &res.apiError
 	}

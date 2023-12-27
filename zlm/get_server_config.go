@@ -12,7 +12,14 @@ var (
 
 // GetServerConfigReq 是 GetServerConfig 参数
 type GetServerConfigReq struct {
-	apiCall
+	// http://localhost:8080
+	BaseURL string
+	// 服务标识
+	ID string
+	// 访问密钥
+	Secret string `query:"secret"`
+	// 虚拟主机，例如 __defaultVhost__
+	VHost string `query:"vhost"`
 }
 
 // getServerConfigRes 是 GetServerConfig 的返回值
@@ -29,18 +36,17 @@ const (
 func GetServerConfig(ctx context.Context, req *GetServerConfigReq) (map[string]string, error) {
 	// 请求
 	var res getServerConfigRes
-	err := request[any](ctx, &req.apiCall, apiGetServerConfig, nil, &res)
+	err := request[any](ctx, req.BaseURL, apiGetServerConfig, nil, &res)
 	if err != nil {
 		return nil, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiGetServerConfig
 		return nil, &res.apiError
 	}
 	// 找到自己的配置
 	for _, d := range res.Data {
-		if d["general.mediaServerId"] == req.apiCall.ID {
+		if d["general.mediaServerId"] == req.ID {
 			return d, nil
 		}
 	}
@@ -58,12 +64,11 @@ type getServerConfigAndUnmarshalRes[M any] struct {
 func GetServerConfigAndUnmarshal[M any](ctx context.Context, req *GetServerConfigReq) ([]M, error) {
 	// 请求
 	var res getServerConfigAndUnmarshalRes[M]
-	err := request[any](ctx, &req.apiCall, apiGetServerConfig, nil, &res)
+	err := request[any](ctx, req.BaseURL, apiGetServerConfig, nil, &res)
 	if err != nil {
 		return nil, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiGetServerConfig
 		return nil, &res.apiError
 	}

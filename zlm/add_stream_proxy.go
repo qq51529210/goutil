@@ -6,7 +6,10 @@ import (
 
 // AddStreamProxyReq 是 AddStreamProxy 参数
 type AddStreamProxyReq struct {
-	apiCall
+	// http://localhost:8080
+	BaseURL string
+	// 访问密钥
+	Secret string `query:"secret"`
 	// 添加的流的虚拟主机，例如 __defaultVhost__
 	VHost string `query:"vhost"`
 	// 添加的应用名，例如 live
@@ -65,12 +68,11 @@ const (
 func AddStreamProxy(ctx context.Context, req *AddStreamProxyReq) (string, error) {
 	// 请求
 	var res addStreamProxyRes
-	err := request(ctx, &req.apiCall, apiAddStreamProxy, req, &res)
+	err := request(ctx, req.BaseURL, apiAddStreamProxy, req, &res)
 	if err != nil {
 		return "", err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiAddStreamProxy
 		return "", &res.apiError
 	}

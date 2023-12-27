@@ -6,8 +6,11 @@ import (
 
 // StartSendRTPReq 是 StartSendRTP 参数
 type StartSendRTPReq struct {
-	apiCall
-	// 筛选虚拟主机
+	// http://localhost:8080
+	BaseURL string
+	// 访问密钥
+	Secret string `query:"secret"`
+	// 添加的流的虚拟主机，例如 __defaultVhost__
 	VHost string `query:"vhost"`
 	// 筛选应用名，例如 live
 	App string `query:"app"`
@@ -55,12 +58,11 @@ const (
 func StartSendRTP(ctx context.Context, req *StartSendRTPReq) (int, error) {
 	// 请求
 	var res startSendRTPRes
-	err := request(ctx, &req.apiCall, apiStartSendRtp, req, &res)
+	err := request(ctx, req.BaseURL, apiStartSendRtp, req, &res)
 	if err != nil {
 		return 0, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiStartSendRtp
 		return 0, &res.apiError
 	}

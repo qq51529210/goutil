@@ -6,7 +6,12 @@ import (
 
 // CloseRTPServerReq 是 CloseRTPServer 的参数
 type CloseRTPServerReq struct {
-	apiCall
+	// http://localhost:8080
+	BaseURL string
+	// 访问密钥
+	Secret string `query:"secret"`
+	// 虚拟主机，例如 __defaultVhost__
+	VHost string `query:"vhost"`
 	// 调用closeRtpServer接口时提供的流ID
 	Stream string `query:"stream_id"`
 }
@@ -28,12 +33,11 @@ const (
 func CloseRTPServer(ctx context.Context, req *CloseRTPServerReq) (int, error) {
 	// 请求
 	var res closeRTPServerRes
-	err := request(ctx, &req.apiCall, apiCloseRtpServer, req, &res)
+	err := request(ctx, req.BaseURL, apiCloseRtpServer, req, &res)
 	if err != nil {
 		return 0, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiCloseRtpServer
 		return 0, &res.apiError
 	}

@@ -6,7 +6,10 @@ import (
 
 // StartRecordReq 是 StartRecord 的参数
 type StartRecordReq struct {
-	apiCall
+	// http://localhost:8080
+	BaseURL string
+	// 访问密钥
+	Secret string `query:"secret"`
 	// 筛选虚拟主机
 	VHost string `query:"vhost"`
 	// 筛选应用名，例如 live
@@ -38,12 +41,11 @@ const (
 func StartRecord(ctx context.Context, req *StartRecordReq) (bool, error) {
 	// 请求
 	var res startRecordRes
-	err := request(ctx, &req.apiCall, apiStartRecord, req, &res)
+	err := request(ctx, req.BaseURL, apiStartRecord, req, &res)
 	if err != nil {
 		return false, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiStartRecord
 		return false, &res.apiError
 	}

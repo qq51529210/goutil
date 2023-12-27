@@ -6,7 +6,10 @@ import (
 
 // StopRecordReq 是 StopRecord 的参数
 type StopRecordReq struct {
-	apiCall
+	// http://localhost:8080
+	BaseURL string
+	// 访问密钥
+	Secret string `query:"secret"`
 	// 添加的流的虚拟主机，例如 __defaultVhost__
 	VHost string `query:"vhost"`
 	// 添加的应用名，例如 live
@@ -33,7 +36,7 @@ const (
 // 返回是否成功
 func StopRecord(ctx context.Context, req *StopRecordReq) (bool, error) {
 	var res stopRecordRes
-	err := request(ctx, &req.apiCall, apiStopRecord, req, &res)
+	err := request(ctx, req.BaseURL, apiStopRecord, req, &res)
 	if err != nil {
 		return false, err
 	}
@@ -41,7 +44,6 @@ func StopRecord(ctx context.Context, req *StopRecordReq) (bool, error) {
 	if res.apiError.Code != codeTrue &&
 		res.apiError.Code != -500 &&
 		res.apiError.Code != -1 {
-		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiStopRecord
 		return false, &res.apiError
 	}

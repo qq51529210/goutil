@@ -7,7 +7,6 @@ import (
 	gh "goutil/http"
 	"goutil/log"
 	"net/http"
-	"net/url"
 	"time"
 )
 
@@ -39,29 +38,17 @@ var (
 	Logger *log.Logger = log.DefaultLogger
 )
 
-type apiCall struct {
-	// 标识
-	ID string
-	// http://localhost:8080
-	BaseURL string
-	// 配置的密钥
-	Secret string
-}
-
-func requestURL[Query any](m *apiCall, path string, query *Query) string {
+func requestURL[Query any](baseURL, path string, query *Query) string {
 	// 参数
-	q := make(url.Values)
-	q.Set(querySecret, m.Secret)
-	q.Set(queryVHost, VHost)
 	if query != nil {
-		q = gh.Query(query, q)
+		return fmt.Sprintf("%s/index/api/%s?%s", baseURL, path, gh.Query(query, nil).Encode())
 	}
-	return fmt.Sprintf("%s/index/api/%s?%s", m.BaseURL, path, q.Encode())
+	return fmt.Sprintf("%s/index/api/%s", baseURL, path)
 }
 
 // request 封装请求
-func request[Query, Response any](ctx context.Context, call *apiCall, path string, query *Query, data *Response) error {
-	url := requestURL(call, path, query)
+func request[Query, Response any](ctx context.Context, baseURL, path string, query *Query, data *Response) error {
+	url := requestURL(baseURL, path, query)
 	// 请求
 	old := time.Now()
 	err := gh.Request[any](ctx, http.DefaultClient, http.MethodGet, url, nil, nil,

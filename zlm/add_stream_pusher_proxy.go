@@ -6,7 +6,10 @@ import (
 
 // AddStreamPusherProxyReq 是 AddStreamPusherProxy 参数
 type AddStreamPusherProxyReq struct {
-	apiCall
+	// http://localhost:8080
+	BaseURL string
+	// 访问密钥
+	Secret string `query:"secret"`
 	// 添加的流的虚拟主机，例如 __defaultVhost__
 	VHost string `query:"vhost"`
 	// 筛选协议，例如 rtsp或rtmp
@@ -45,12 +48,11 @@ const (
 func AddStreamPusherProxy(ctx context.Context, req *AddStreamPusherProxyReq) (string, error) {
 	// 请求
 	var res addStreamPusherProxyRes
-	err := request(ctx, &req.apiCall, apiAddStreamPusherProxy, req, &res)
+	err := request(ctx, req.BaseURL, apiAddStreamPusherProxy, req, &res)
 	if err != nil {
 		return "", err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiAddStreamPusherProxy
 		return "", &res.apiError
 	}

@@ -20,14 +20,13 @@ var (
 
 // apiError 用于接收接口错误
 type apiError struct {
-	Code  int    `json:"code"`
-	Msg   string `json:"msg"`
-	SerID string `json:"-"`
-	Path  string `json:"-"`
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Path string `json:"-"`
 }
 
 func (e *apiError) Error() string {
-	return fmt.Sprintf("%s/%s code %d msg %s", e.SerID, e.Path, e.Code, e.Msg)
+	return fmt.Sprintf("call %s code %d msg %s", e.Path, e.Code, e.Msg)
 }
 
 // IsZLMError 检查是否 zlm 定义的错误
