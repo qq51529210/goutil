@@ -14,12 +14,12 @@ var (
 type GetServerConfigReq struct {
 	// http://localhost:8080
 	BaseURL string
-	// 服务标识
-	ID string
 	// 访问密钥
 	Secret string `query:"secret"`
 	// 虚拟主机，例如 __defaultVhost__
 	VHost string `query:"vhost"`
+	// 服务标识，用于筛选配置
+	ID string
 }
 
 // getServerConfigRes 是 GetServerConfig 的返回值
@@ -64,7 +64,7 @@ type getServerConfigAndUnmarshalRes[M any] struct {
 func GetServerConfigAndUnmarshal[M any](ctx context.Context, req *GetServerConfigReq) ([]M, error) {
 	// 请求
 	var res getServerConfigAndUnmarshalRes[M]
-	err := request[any](ctx, req.BaseURL, apiGetServerConfig, nil, &res)
+	err := request(ctx, req.BaseURL, apiGetServerConfig, req, &res)
 	if err != nil {
 		return nil, err
 	}
