@@ -181,9 +181,14 @@ type Result[T any] struct {
 	// 状态码
 	Code int `json:"code,omitempty"`
 	// 错误短语
-	Error string `json:"error,omitempty"`
+	Err string `json:"error,omitempty"`
 	// 错误详细
 	Detail string `json:"detail,omitempty"`
 	// 没有错误时候的数据
 	Data T `json:"data,omitempty"`
+}
+
+// Error 实现 error 接口
+func (c *Result[T]) Error() string {
+	return fmt.Sprintf("code: %d, error: %s, detail: %s", c.Code, c.Err, c.Detail)
 }
