@@ -69,6 +69,10 @@ type PlayInfo struct {
 	App string `json:"app,omitempty"`
 	// 媒体流标识
 	Stream string `json:"stream,omitempty"`
+	// 音频轨道信息
+	Audio []*MediaInfoAudioTrack `json:"audioTracks,omitempty" copy:"-"`
+	// 视频轨道信息
+	Video []*MediaInfoVideoTrack `json:"videoTracks,omitempty" copy:"-"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// rtsp://ip:port/app/stream
 	RTSP string `json:"rtsp,omitempty"`
