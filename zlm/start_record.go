@@ -6,6 +6,7 @@ import (
 
 // StartRecordReq 是 StartRecord 的参数
 type StartRecordReq struct {
+	apiCall
 	// 筛选虚拟主机
 	VHost string `query:"vhost"`
 	// 筛选应用名，例如 live
@@ -34,15 +35,15 @@ const (
 // StartRecord 调用 /index/api/startRecord
 // 开始录制hls或MP4
 // 返回是否成功
-func (s *Server) StartRecord(ctx context.Context, req *StartRecordReq) (bool, error) {
+func StartRecord(ctx context.Context, req *StartRecordReq) (bool, error) {
 	// 请求
 	var res startRecordRes
-	err := httpCallRes(ctx, s, apiStartRecord, req, &res)
+	err := request(ctx, &req.apiCall, apiStartRecord, req, &res)
 	if err != nil {
 		return false, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = s.ID
+		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiStartRecord
 		return false, &res.apiError
 	}

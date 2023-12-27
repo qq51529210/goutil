@@ -6,6 +6,7 @@ import (
 
 // StartSendRTPReq 是 StartSendRTP 参数
 type StartSendRTPReq struct {
+	apiCall
 	// 筛选虚拟主机
 	VHost string `query:"vhost"`
 	// 筛选应用名，例如 live
@@ -51,15 +52,15 @@ const (
 // 作为GB28181客户端，启动ps-rtp推流，支持rtp/udp方式；该接口支持rtsp/rtmp等协议转ps-rtp推流。
 // 第一次推流失败会直接返回错误，成功一次后，后续失败也将无限重试。
 // 返回使用的本地端口号
-func (s *Server) StartSendRTP(ctx context.Context, req *StartSendRTPReq) (int, error) {
+func StartSendRTP(ctx context.Context, req *StartSendRTPReq) (int, error) {
 	// 请求
 	var res startSendRTPRes
-	err := httpCallRes(ctx, s, apiStartSendRtp, req, &res)
+	err := request(ctx, &req.apiCall, apiStartSendRtp, req, &res)
 	if err != nil {
 		return 0, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = s.ID
+		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiStartSendRtp
 		return 0, &res.apiError
 	}

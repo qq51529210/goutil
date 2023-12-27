@@ -10,6 +10,11 @@ var (
 	ErrConfig = errors.New("error config")
 )
 
+// GetServerConfigReq 是 GetServerConfig 参数
+type GetServerConfigReq struct {
+	apiCall
+}
+
 // getServerConfigRes 是 GetServerConfig 的返回值
 type getServerConfigRes struct {
 	apiError
@@ -20,22 +25,22 @@ const (
 	apiGetServerConfig = "getServerConfig"
 )
 
-// GetServerConfig 调用 /index/api/getServerConfig
-func (s *Server) GetServerConfig(ctx context.Context) (map[string]string, error) {
+// GetServerConfig 调用 /index/api/getServerConfig ，返回配置
+func GetServerConfig(ctx context.Context, req *GetServerConfigReq) (map[string]string, error) {
 	// 请求
 	var res getServerConfigRes
-	err := httpCallRes[any](ctx, s, apiGetServerConfig, nil, &res)
+	err := request[any](ctx, &req.apiCall, apiGetServerConfig, nil, &res)
 	if err != nil {
 		return nil, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = s.ID
+		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiGetServerConfig
 		return nil, &res.apiError
 	}
 	// 找到自己的配置
 	for _, d := range res.Data {
-		if d["general.mediaServerId"] == s.ID {
+		if d["general.mediaServerId"] == req.apiCall.ID {
 			return d, nil
 		}
 	}
@@ -43,23 +48,22 @@ func (s *Server) GetServerConfig(ctx context.Context) (map[string]string, error)
 	return nil, ErrConfig
 }
 
-// getServerConfigRes2 是 GetServerConfig 的返回值
-type getServerConfigRes2[M any] struct {
+// getServerConfigAndUnmarshalRes 是 GetServerConfigAndUnmarshal 的返回值
+type getServerConfigAndUnmarshalRes[M any] struct {
 	apiError
 	Data []M `json:"data"`
 }
 
-// GetServerConfig 调用 /index/api/getServerConfig
-// 它这个返回确实是一个数组，不知道为什么
-func GetServerConfig[M any](ctx context.Context, s *Server) ([]M, error) {
+// GetServerConfigAndUnmarshal 调用 /index/api/getServerConfig ，返回配置
+func GetServerConfigAndUnmarshal[M any](ctx context.Context, req *GetServerConfigReq) ([]M, error) {
 	// 请求
-	var res getServerConfigRes2[M]
-	err := httpCallRes[any](ctx, s, apiGetServerConfig, nil, &res)
+	var res getServerConfigAndUnmarshalRes[M]
+	err := request[any](ctx, &req.apiCall, apiGetServerConfig, nil, &res)
 	if err != nil {
 		return nil, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = s.ID
+		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiGetServerConfig
 		return nil, &res.apiError
 	}

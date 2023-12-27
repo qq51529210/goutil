@@ -6,6 +6,7 @@ import (
 
 // AddStreamProxyReq 是 AddStreamProxy 参数
 type AddStreamProxyReq struct {
+	apiCall
 	// 添加的流的虚拟主机，例如 __defaultVhost__
 	VHost string `query:"vhost"`
 	// 添加的应用名，例如 live
@@ -60,18 +61,16 @@ const (
 	apiAddStreamProxy = "addStreamProxy"
 )
 
-// AddStreamProxy 调用 /index/api/addStreamProxy
-// 动态添加rtsp/rtmp/hls拉流代理(只支持H264/H265/aac/G711负载)
-// 返回 key
-func (s *Server) AddStreamProxy(ctx context.Context, req *AddStreamProxyReq) (string, error) {
+// AddStreamProxy 调用 /index/api/addStreamProxy ，返回 key
+func AddStreamProxy(ctx context.Context, req *AddStreamProxyReq) (string, error) {
 	// 请求
 	var res addStreamProxyRes
-	err := httpCallRes(ctx, s, apiAddStreamProxy, req, &res)
+	err := request(ctx, &req.apiCall, apiAddStreamProxy, req, &res)
 	if err != nil {
 		return "", err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = s.ID
+		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiAddStreamProxy
 		return "", &res.apiError
 	}

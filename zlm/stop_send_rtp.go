@@ -6,6 +6,7 @@ import (
 
 // StopSendRTPReq 是 StopSendRTP 参数
 type StopSendRTPReq struct {
+	apiCall
 	// 添加的流的虚拟主机，例如 __defaultVhost__
 	VHost string `query:"vhost"`
 	// 添加的应用名，例如 live
@@ -27,9 +28,9 @@ const (
 
 // StopSendRTP 调用 /index/api/stopSendRtp
 // 停止 GB28181 rtp 推流。
-func (s *Server) StopSendRTP(ctx context.Context, req *StopSendRTPReq) error {
+func StopSendRTP(ctx context.Context, req *StopSendRTPReq) error {
 	var res stopSendRTPRes
-	err := httpCallRes(ctx, s, apiStopSendRTP, req, &res)
+	err := request(ctx, &req.apiCall, apiStopSendRTP, req, &res)
 	if err != nil {
 		return err
 	}
@@ -37,7 +38,7 @@ func (s *Server) StopSendRTP(ctx context.Context, req *StopSendRTPReq) error {
 	if res.apiError.Code != codeTrue &&
 		res.apiError.Code != -500 &&
 		res.apiError.Code != -1 {
-		res.apiError.SerID = s.ID
+		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiStopSendRTP
 		return &res.apiError
 	}

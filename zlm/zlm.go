@@ -39,31 +39,40 @@ var (
 	Logger *log.Logger = log.DefaultLogger
 )
 
-// httpCallRes 封装请求
-func httpCallRes[ReqQuery, ResData any](ctx context.Context, ser *Server, path string, query *ReqQuery, res *ResData) error {
-	return httpCall(ctx, ser.Secret, ser.APIBaseURL, path, query, func(response *http.Response) error {
-		// 必须是 200
-		if response.StatusCode != http.StatusOK {
-			return gh.StatusError(response.StatusCode)
-		}
-		// 解析
-		return json.NewDecoder(response.Body).Decode(res)
-	})
+type apiCall struct {
+	// 标识
+	ID string
+	// http://localhost:8080
+	BaseURL string
+	// 配置的密钥
+	Secret string
 }
 
-// httpCall 封装请求
-func httpCall[Query any](ctx context.Context, secret, apiBaseURL, path string, query *Query, onRes func(res *http.Response) error) error {
+func (m *apiCall) url(path string, query any) string {
 	// 参数
 	q := make(url.Values)
-	q.Set(querySecret, secret)
+	q.Set(querySecret, m.Secret)
 	q.Set(queryVHost, VHost)
 	if query != nil {
 		q = gh.Query(query, q)
 	}
+	return fmt.Sprintf("%s/index/api/%s?%s", m.BaseURL, path, q.Encode())
+}
+
+// request 封装请求
+func request[Query, Response any](ctx context.Context, call *apiCall, path string, query *Query, data *Response) error {
+	url := call.url(path, query)
 	// 请求
 	old := time.Now()
-	url := fmt.Sprintf("%s/index/api/%s?%s", apiBaseURL, path, q.Encode())
-	err := gh.Request[any](ctx, http.DefaultClient, http.MethodGet, url, nil, nil, onRes)
+	err := gh.Request[any](ctx, http.DefaultClient, http.MethodGet, url, nil, nil,
+		func(res *http.Response) error {
+			// 必须是 200
+			if res.StatusCode != http.StatusOK {
+				return gh.StatusError(res.StatusCode)
+			}
+			// 解析
+			return json.NewDecoder(res.Body).Decode(data)
+		})
 	if err != nil {
 		return err
 	}

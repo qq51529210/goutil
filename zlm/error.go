@@ -27,7 +27,7 @@ type apiError struct {
 }
 
 func (e *apiError) Error() string {
-	return fmt.Sprintf("zlm %s api call %s code %d msg %s", e.SerID, e.Path, e.Code, e.Msg)
+	return fmt.Sprintf("%s/%s code %d msg %s", e.SerID, e.Path, e.Code, e.Msg)
 }
 
 // IsZLMError 检查是否 zlm 定义的错误

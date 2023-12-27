@@ -6,6 +6,7 @@ import (
 
 // DelFFMPEGSourceReq 是 DelFFMPEGSource 的参数
 type DelFFMPEGSourceReq struct {
+	apiCall
 	// 流的唯一标识
 	Key string `query:"key"`
 }
@@ -29,17 +30,17 @@ const (
 )
 
 // DelFFmpegSource 调用 /index/api/delFFmpegSource
-func (s *Server) DelFFmpegSource(ctx context.Context, req *DelFFMPEGSourceReq) (bool, error) {
+func DelFFmpegSource(ctx context.Context, req *DelFFMPEGSourceReq) (bool, error) {
 	// 请求
 	var res delFFMPEGSourceRes
-	err := httpCallRes(ctx, s, apiDelFFmpegSource, req, &res)
+	err := request(ctx, &req.apiCall, apiDelFFmpegSource, req, &res)
 	if err != nil {
 		return false, err
 	}
 	if res.apiError.Code != codeTrue {
 		// -500 是没有找到流，也算成功
 		if res.apiError.Code != -500 {
-			res.apiError.SerID = s.ID
+			res.apiError.SerID = req.apiCall.ID
 			res.apiError.Path = apiDelFFmpegSource
 			return false, &res.apiError
 		}

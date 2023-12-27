@@ -6,6 +6,7 @@ import (
 
 // StopRecordReq 是 StopRecord 的参数
 type StopRecordReq struct {
+	apiCall
 	// 添加的流的虚拟主机，例如 __defaultVhost__
 	VHost string `query:"vhost"`
 	// 添加的应用名，例如 live
@@ -30,9 +31,9 @@ const (
 // StopRecord 调用 /index/api/stopRecord
 // 停止录制流
 // 返回是否成功
-func (s *Server) StopRecord(ctx context.Context, req *StopRecordReq) (bool, error) {
+func StopRecord(ctx context.Context, req *StopRecordReq) (bool, error) {
 	var res stopRecordRes
-	err := httpCallRes(ctx, s, apiStopRecord, req, &res)
+	err := request(ctx, &req.apiCall, apiStopRecord, req, &res)
 	if err != nil {
 		return false, err
 	}
@@ -40,7 +41,7 @@ func (s *Server) StopRecord(ctx context.Context, req *StopRecordReq) (bool, erro
 	if res.apiError.Code != codeTrue &&
 		res.apiError.Code != -500 &&
 		res.apiError.Code != -1 {
-		res.apiError.SerID = s.ID
+		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiStopRecord
 		return false, &res.apiError
 	}

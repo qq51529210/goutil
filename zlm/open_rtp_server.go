@@ -6,6 +6,7 @@ import (
 
 // OpenRTPServerReq 是 OpenRTPServer 的参数
 type OpenRTPServerReq struct {
+	apiCall
 	// 接收端口，0则为随机端口
 	Port string `query:"port"`
 	// tcp模式，0时为不启用tcp监听，1时为启用tcp监听，2时为tcp主动连接模式
@@ -34,15 +35,15 @@ const (
 // OpenRTPServer 调用 /index/api/openRtpServer
 // 创建GB28181 RTP接收端口，如果该端口接收数据超时，则会自动被回收(不用调用closeRtpServer接口)
 // 返回使用的端口
-func (s *Server) OpenRTPServer(ctx context.Context, req *OpenRTPServerReq) (int, error) {
+func OpenRTPServer(ctx context.Context, req *OpenRTPServerReq) (int, error) {
 	// 请求
 	var res openRTPServerRes
-	err := httpCallRes(ctx, s, apiOpenRTPServer, req, &res)
+	err := request(ctx, &req.apiCall, apiOpenRTPServer, req, &res)
 	if err != nil {
 		return 0, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = s.ID
+		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiOpenRTPServer
 		return 0, &res.apiError
 	}

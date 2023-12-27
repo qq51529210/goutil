@@ -6,6 +6,7 @@ import (
 
 // StartSendRTPPassiveReq 是 StartSendRTPPassive 参数
 type StartSendRTPPassiveReq struct {
+	apiCall
 	// 筛选虚拟主机
 	VHost string `query:"vhost"`
 	// 筛选应用名，例如 live
@@ -43,15 +44,15 @@ const (
 // 作为GB28181 Passive TCP服务器；该接口支持rtsp/rtmp等协议转ps-rtp被动推流。调用该接口，zlm会启动tcp服务器等待连接请求，连接建立后，zlm会关闭tcp服务器，然后源源不断的往客户端推流。
 // 第一次推流失败会直接返回错误，成功一次后，后续失败也将无限重试(不停地建立tcp监听，超时后再关闭)。
 // 返回使用的本地端口号
-func (s *Server) StartSendRTPPassive(ctx context.Context, req *StartSendRTPPassiveReq) (int, error) {
+func StartSendRTPPassive(ctx context.Context, req *StartSendRTPPassiveReq) (int, error) {
 	// 请求
 	var res startSendRTPPassiveRes
-	err := httpCallRes(ctx, s, apiStartSendRtpPassive, req, &res)
+	err := request(ctx, &req.apiCall, apiStartSendRtpPassive, req, &res)
 	if err != nil {
 		return 0, err
 	}
 	if res.apiError.Code != codeTrue {
-		res.apiError.SerID = s.ID
+		res.apiError.SerID = req.apiCall.ID
 		res.apiError.Path = apiStartSendRtpPassive
 		return 0, &res.apiError
 	}
