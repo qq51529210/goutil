@@ -28,7 +28,7 @@ const (
 // GetSnap 调用 /index/api/getSnap
 // 获取截图或生成实时截图并返回，jpeg格式的图片，可以在浏览器直接打开
 func GetSnap(ctx context.Context, req *GetSnapReq, out io.Writer) error {
-	url := req.apiCall.url(apiGetSnap, nil)
+	url := requestURL[any](&req.apiCall, apiGetSnap, nil)
 	// 请求
 	old := time.Now()
 	err := gh.Request[any](ctx, http.DefaultClient, http.MethodGet, url, nil, nil,

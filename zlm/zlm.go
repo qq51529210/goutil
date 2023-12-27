@@ -48,7 +48,7 @@ type apiCall struct {
 	Secret string
 }
 
-func (m *apiCall) url(path string, query any) string {
+func requestURL[Query any](m *apiCall, path string, query *Query) string {
 	// 参数
 	q := make(url.Values)
 	q.Set(querySecret, m.Secret)
@@ -61,7 +61,7 @@ func (m *apiCall) url(path string, query any) string {
 
 // request 封装请求
 func request[Query, Response any](ctx context.Context, call *apiCall, path string, query *Query, data *Response) error {
-	url := call.url(path, query)
+	url := requestURL(call, path, query)
 	// 请求
 	old := time.Now()
 	err := gh.Request[any](ctx, http.DefaultClient, http.MethodGet, url, nil, nil,
