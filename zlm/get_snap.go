@@ -46,7 +46,7 @@ func GetSnap(ctx context.Context, req *GetSnapReq, out io.Writer) error {
 			_, err := io.Copy(out, res.Body)
 			return err
 		})
-	Logger.Debugf("[%v] %s", time.Since(old), url)
+	Logger.DebugfDepth(1, "[%v] %s", time.Since(old), url)
 	//
 	return err
 }

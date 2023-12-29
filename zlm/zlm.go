@@ -63,6 +63,6 @@ func request[Query, Response any](ctx context.Context, baseURL, path string, que
 	if err != nil {
 		return err
 	}
-	Logger.Debugf("[%v] %s", time.Since(old), url)
+	Logger.DebugfDepth(2, "[%v] %s", time.Since(old), url)
 	return nil
 }
