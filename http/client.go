@@ -135,9 +135,9 @@ func Request[Data any](ctx context.Context, client *http.Client, method, url str
 }
 
 // Forward 转发请求
-func Forward(client *http.Client, method, url string, res http.ResponseWriter, req *http.Request) error {
+func Forward(ctx context.Context, client *http.Client, method, url string, res http.ResponseWriter, req *http.Request) error {
 	// 新的请求
-	_req, err := http.NewRequest(method, url, req.Body)
+	_req, err := http.NewRequestWithContext(ctx, method, url, req.Body)
 	if err != nil {
 		return err
 	}
