@@ -9,8 +9,6 @@ import (
 )
 
 var (
-	// InitQueryTag 是 InitQuery 解析 tag 的名称
-	InitQueryTag = "gq"
 	// InitQueryFunc 是 InitQuery 处理函数
 	InitQueryFunc = map[string]func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB{
 		"in": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
@@ -81,7 +79,7 @@ var (
 //	}
 //
 // 先这样，以后遇到再加
-func InitQuery(db *gorm.DB, q any) *gorm.DB {
+func InitQuery(db *gorm.DB, q any, tag string) *gorm.DB {
 	v := reflect.ValueOf(q)
 	vk := v.Kind()
 	if vk == reflect.Pointer {
@@ -94,11 +92,11 @@ func InitQuery(db *gorm.DB, q any) *gorm.DB {
 	if vk != reflect.Struct {
 		panic("q must be struct")
 	}
-	return initQuery(db, v)
+	return initQuery(db, v, tag)
 }
 
 // initQuery 是 InitQuery 的实现
-func initQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
+func initQuery(db *gorm.DB, v reflect.Value, tag string) *gorm.DB {
 	vt := v.Type()
 	for i := 0; i < vt.NumField(); i++ {
 		// 类型
@@ -118,7 +116,7 @@ func initQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 		// 嵌入不是结构不处理
 		if ft.Anonymous {
 			if fk == reflect.Struct {
-				db = initQuery(db, fv)
+				db = initQuery(db, fv, tag)
 			}
 			continue
 		}
@@ -127,7 +125,7 @@ func initQuery(db *gorm.DB, v reflect.Value) *gorm.DB {
 			continue
 		}
 		// 没有 tag 不处理
-		tag := ft.Tag.Get(InitQueryTag)
+		tag := ft.Tag.Get(tag)
 		if tag == "" {
 			continue
 		}

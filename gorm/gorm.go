@@ -88,10 +88,10 @@ func Page[M any](db *gorm.DB, page *PageQuery, res *PageResult[M]) (err error) {
 }
 
 // All 用于查询全部
-func All[M any](db *gorm.DB, query any) (ms []M, err error) {
+func All[M any](db *gorm.DB, query any, tag string) (ms []M, err error) {
 	// 查询条件
 	if query != nil {
-		db = InitQuery(db, query)
+		db = InitQuery(db, query, tag)
 	}
 	// 查询
 	err = db.Scan(&ms).Error
