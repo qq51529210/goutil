@@ -9,6 +9,8 @@ import (
 )
 
 var (
+	// InitQueryTag 是 InitQuery 解析 tag 的名称
+	InitQueryTag = "gq"
 	// InitQueryFunc 是 InitQuery 处理函数
 	InitQueryFunc = map[string]func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB{
 		"in": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
@@ -79,7 +81,12 @@ var (
 //	}
 //
 // 先这样，以后遇到再加
-func InitQuery(db *gorm.DB, q any, tag string) *gorm.DB {
+func InitQuery(db *gorm.DB, q any) *gorm.DB {
+	return InitQueryWithTag(db, q, InitQueryTag)
+}
+
+// InitQueryWithTag 自定义 tag
+func InitQueryWithTag(db *gorm.DB, q any, tag string) *gorm.DB {
 	v := reflect.ValueOf(q)
 	vk := v.Kind()
 	if vk == reflect.Pointer {

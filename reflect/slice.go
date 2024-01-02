@@ -2,10 +2,10 @@ package reflect
 
 import "reflect"
 
-// var (
-// 	// StructToSliceTagName 是 StructToSlice 结构解析的 tag 名称
-// 	StructToSliceTagName = "slice"
-// )
+var (
+	// StructToSliceTagName 是 StructToSlice 结构解析的 tag 名称
+	StructToSliceTagName = "slice"
+)
 
 // StructToSlice 将 v 转换为 slice 必须是结构体
 // 主要是用于 redis 的 HSET 命令
@@ -25,7 +25,12 @@ import "reflect"
 //	   S1 -> 直接嵌入 ["A", A, "b", B ...]
 //	   F S1 -> 不处理
 //	}
-func StructToSlice(v any, tag string) []any {
+func StructToSlice(v any) []any {
+	return StructToSliceWithTag(v, StructToSliceTagName)
+}
+
+// StructToSliceWithTag 使用自定义 tag
+func StructToSliceWithTag(v any, tag string) []any {
 	vv := reflect.ValueOf(v)
 	if vv.Kind() == reflect.Pointer {
 		vv = vv.Elem()
@@ -34,11 +39,11 @@ func StructToSlice(v any, tag string) []any {
 		panic("v must be struct")
 	}
 	m := make([]any, 0)
-	return structToSlice(vv, tag, m)
+	return structToSlice(vv, m, tag)
 }
 
 // structToSlice 封装 StructToSlice 的代码
-func structToSlice(v reflect.Value, tag string, m []any) []any {
+func structToSlice(v reflect.Value, m []any, tag string) []any {
 	// 类型
 	st := v.Type()
 	// 所有字段
@@ -71,7 +76,7 @@ func structToSlice(v reflect.Value, tag string, m []any) []any {
 		if ft.Anonymous {
 			// 结构
 			if fk == reflect.Struct {
-				m = structToSlice(fv, tag, m)
+				m = structToSlice(fv, m, tag)
 			}
 			// 嵌入的不是结构不处理
 			continue

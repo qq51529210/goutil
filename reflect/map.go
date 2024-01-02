@@ -2,10 +2,10 @@ package reflect
 
 import "reflect"
 
-// var (
-// 	// StructToMapTagName 是 StructToMap 结构解析的 tag 名称
-// 	StructToMapTagName = "map"
-// )
+var (
+	// StructToMapTagName 是 StructToMap 结构解析的 tag 名称
+	StructToMapTagName = "map"
+)
 
 // StructToMap 将 v 转换为 map，v 必须是结构体
 // 嵌入的字段不是结构，或者是 nil 的结构指针，不处理
@@ -23,7 +23,12 @@ import "reflect"
 //	   S1 -> 直接嵌入 map["A"]=A , map["b"]=B ...
 //	   F S1 -> map["F"]=F
 //	}
-func StructToMap(v any, tag string) map[string]any {
+func StructToMap(v any) map[string]any {
+	return StructToMapWithTag(v, StructToMapTagName)
+}
+
+// StructToMapWithTag 使用自定义 tag
+func StructToMapWithTag(v any, tag string) map[string]any {
 	vv := reflect.ValueOf(v)
 	if vv.Kind() == reflect.Pointer {
 		vv = vv.Elem()
@@ -108,7 +113,12 @@ func structToMap(v reflect.Value, tag string, m map[string]any) map[string]any {
 //	   D *string -> D=map["D"]  指针不为 nil 不算零值
 //	   E string `map:"-"` -> 忽略
 //	}
-func StructFromMap(v any, tag string, m map[string]any) {
+func StructFromMap(v any, m map[string]any) {
+	StructFromMapWithTag(v, m, StructToMapTagName)
+}
+
+// StructFromMapWithTag 使用自定义 tag
+func StructFromMapWithTag(v any, m map[string]any, tag string) {
 	vv := reflect.ValueOf(v)
 	if vv.Kind() == reflect.Pointer {
 		vv = vv.Elem()

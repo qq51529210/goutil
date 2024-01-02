@@ -79,7 +79,7 @@ func Test_StructCopy(t *testing.T) {
 	//
 	var dst structCopyDst
 	dst.Dst8 = new(int)
-	StructCopy(&dst, src, "cp")
+	StructCopyWithTag(&dst, src, "cp")
 	//
 	fmt.Println(dst)
 }

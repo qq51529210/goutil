@@ -52,7 +52,7 @@ func Test_StructFromMap(t *testing.T) {
 		"F22": "21",
 	}
 	s := new(StructFromMap1)
-	StructFromMap(s, "fm", m)
+	StructFromMapWithTag(s, m, "fm")
 	fmt.Println(s)
 }
 
@@ -109,6 +109,6 @@ func Test_StructToMap(t *testing.T) {
 	//
 	d, _ := json.Marshal(s)
 	fmt.Println(string(d))
-	m := StructToMap(s, "tm")
+	m := StructToMapWithTag(s, "tm")
 	fmt.Println(m)
 }

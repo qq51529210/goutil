@@ -4,14 +4,19 @@ import (
 	"reflect"
 )
 
-// var (
-// 	// StructDiffFieldTagName 是 StructDiffField 结构解析的 tag 名称
-// 	StructDiffFieldTagName = "diff"
-// )
+var (
+	// StructDiffFieldTagName 是 StructDiffField 结构解析的 tag 名称
+	StructDiffFieldTagName = "diff"
+)
 
 // StructDiffField 从 src 中找出 与 dst 不同值的字段，然后返回这些字段的 map
 // src 和 dst 是相同数据类型的结构
-func StructDiffField(dst, src any, tag string) map[string]any {
+func StructDiffField(dst, src any) map[string]any {
+	return StructDiffFieldWithTag(dst, src, StructDiffFieldTagName)
+}
+
+// StructDiffFieldWithTag 使用自定义 tag
+func StructDiffFieldWithTag(dst, src any, tag string) map[string]any {
 	// dst
 	dv := reflect.ValueOf(dst)
 	dk := dv.Kind()

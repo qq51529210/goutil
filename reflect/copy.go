@@ -2,10 +2,10 @@ package reflect
 
 import "reflect"
 
-// var (
-// 	// StructCopyTagName 是 StructCopy 结构解析的 tag 名称
-// 	StructCopyTagName = "copy"
-// )
+var (
+	// StructCopyTagName 是 StructCopy 结构解析的 tag 名称
+	StructCopyTagName = "copy"
+)
 
 // StructCopy 将 src 的字段拷贝到 dst
 // 嵌入的字段不是结构，或者是 nil 的结构指针，不处理
@@ -36,7 +36,12 @@ import "reflect"
 //	   A1 string
 //	   B1 string
 //	}
-func StructCopy(dst, src any, tag string) {
+func StructCopy(dst, src any) {
+	StructCopyWithTag(dst, src, StructCopyTagName)
+}
+
+// StructCopyWithTag 使用自定义 tag
+func StructCopyWithTag(dst, src any, tag string) {
 	dv := reflect.ValueOf(dst)
 	if !dv.IsValid() {
 		panic("dst is invalid")
