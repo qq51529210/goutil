@@ -2,10 +2,10 @@ package reflect
 
 import "reflect"
 
-var (
-	// StructToMapTagName 是 StructToMap 结构解析的 tag 名称
-	StructToMapTagName = "map"
-)
+// var (
+// 	// StructToMapTagName 是 StructToMap 结构解析的 tag 名称
+// 	StructToMapTagName = "map"
+// )
 
 // StructToMap 将 v 转换为 map，v 必须是结构体
 // 嵌入的字段不是结构，或者是 nil 的结构指针，不处理
@@ -23,7 +23,7 @@ var (
 //	   S1 -> 直接嵌入 map["A"]=A , map["b"]=B ...
 //	   F S1 -> map["F"]=F
 //	}
-func StructToMap(v any) map[string]any {
+func StructToMap(v any, tag string) map[string]any {
 	vv := reflect.ValueOf(v)
 	if vv.Kind() == reflect.Pointer {
 		vv = vv.Elem()
@@ -32,11 +32,11 @@ func StructToMap(v any) map[string]any {
 		panic("v must be struct")
 	}
 	m := make(map[string]any)
-	return structToMap(vv, m)
+	return structToMap(vv, tag, m)
 }
 
 // structToMap 封装 StructToMap 的代码
-func structToMap(v reflect.Value, m map[string]any) map[string]any {
+func structToMap(v reflect.Value, tag string, m map[string]any) map[string]any {
 	// 类型
 	st := v.Type()
 	// 所有字段
@@ -44,7 +44,7 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 		// 类型
 		ft := st.Field(i)
 		// tag
-		name, omitempty, ignore := parseTag(&ft, StructToMapTagName)
+		name, omitempty, ignore := parseTag(&ft, tag)
 		// 忽略
 		if ignore {
 			continue
@@ -80,7 +80,7 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 		if ft.Anonymous {
 			// 结构
 			if fk == reflect.Struct {
-				structToMap(fv, m)
+				structToMap(fv, tag, m)
 			}
 			// 嵌入的不是结构不处理
 			continue
@@ -91,7 +91,7 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 		}
 		// 结构
 		if fk == reflect.Struct {
-			m[name] = structToMap(fv, make(map[string]any))
+			m[name] = structToMap(fv, tag, make(map[string]any))
 			continue
 		}
 		// 其他
@@ -108,12 +108,12 @@ func structToMap(v reflect.Value, m map[string]any) map[string]any {
 //	   D *string -> D=map["D"]  指针不为 nil 不算零值
 //	   E string `map:"-"` -> 忽略
 //	}
-func StructFromMap(v any, m map[string]any) {
+func StructFromMap(v any, tag string, m map[string]any) {
 	vv := reflect.ValueOf(v)
 	if vv.Kind() == reflect.Pointer {
 		vv = vv.Elem()
 		if vv.Kind() == reflect.Struct {
-			structFromMap(vv, m)
+			structFromMap(vv, tag, m)
 			return
 		}
 	}
@@ -125,7 +125,7 @@ var (
 )
 
 // structFromMap 封装 StructFromMap 的代码
-func structFromMap(v reflect.Value, m map[string]any) {
+func structFromMap(v reflect.Value, tag string, m map[string]any) {
 	// 类型
 	st := v.Type()
 	// 所有字段
@@ -133,7 +133,7 @@ func structFromMap(v reflect.Value, m map[string]any) {
 		// 类型
 		ft := st.Field(i)
 		// tag
-		name, _, ignore := parseTag(&ft, StructToMapTagName)
+		name, _, ignore := parseTag(&ft, tag)
 		// 忽略
 		if ignore {
 			continue
@@ -154,7 +154,7 @@ func structFromMap(v reflect.Value, m map[string]any) {
 		if ft.Anonymous {
 			// 必须是结构
 			if fk == reflect.Struct {
-				structFromMap(fv, m)
+				structFromMap(fv, tag, m)
 			}
 			continue
 		}
@@ -172,7 +172,7 @@ func structFromMap(v reflect.Value, m map[string]any) {
 		// 结构对应 map
 		if fk == reflect.Struct {
 			if mvv.Type() == structFromMapType {
-				structFromMap(fv, mv.(map[string]any))
+				structFromMap(fv, tag, mv.(map[string]any))
 			}
 			continue
 		}

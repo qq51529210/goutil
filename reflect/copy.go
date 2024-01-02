@@ -2,10 +2,10 @@ package reflect
 
 import "reflect"
 
-var (
-	// StructCopyTagName 是 StructCopy 结构解析的 tag 名称
-	StructCopyTagName = "copy"
-)
+// var (
+// 	// StructCopyTagName 是 StructCopy 结构解析的 tag 名称
+// 	StructCopyTagName = "copy"
+// )
 
 // StructCopy 将 src 的字段拷贝到 dst
 // 嵌入的字段不是结构，或者是 nil 的结构指针，不处理
@@ -36,7 +36,7 @@ var (
 //	   A1 string
 //	   B1 string
 //	}
-func StructCopy(dst, src any) {
+func StructCopy(dst, src any, tag string) {
 	dv := reflect.ValueOf(dst)
 	if !dv.IsValid() {
 		panic("dst is invalid")
@@ -61,11 +61,11 @@ func StructCopy(dst, src any) {
 	}
 	//
 	//
-	structCopy(dv, sv)
+	structCopy(dv, sv, tag)
 }
 
 // structCopy 是 StructCopy 的实现
-func structCopy(dstStructValue, srcStructValue reflect.Value) {
+func structCopy(dstStructValue, srcStructValue reflect.Value, tag string) {
 	// 类型
 	srcStructType := srcStructValue.Type()
 	// 所有字段
@@ -73,7 +73,7 @@ func structCopy(dstStructValue, srcStructValue reflect.Value) {
 		// src 字段类型
 		srcFieldType := srcStructType.Field(i)
 		// tag
-		name, omitempty, ignore := parseTag(&srcFieldType, StructCopyTagName)
+		name, omitempty, ignore := parseTag(&srcFieldType, tag)
 		// 忽略字段
 		if ignore {
 			continue
@@ -99,7 +99,7 @@ func structCopy(dstStructValue, srcStructValue reflect.Value) {
 		} else {
 			// 无论导出，处理嵌入的结构
 			if srcFieldType.Anonymous && srcFieldKind == reflect.Struct {
-				structCopy(dstStructValue, srcFieldValue)
+				structCopy(dstStructValue, srcFieldValue, tag)
 				continue
 			}
 			// 不可导出 / 忽略零值
@@ -164,7 +164,7 @@ func structCopy(dstStructValue, srcStructValue reflect.Value) {
 		}
 		// 结构拷贝
 		if srcFieldKind == reflect.Struct {
-			structCopy(dstFieldValue, srcFieldValue)
+			structCopy(dstFieldValue, srcFieldValue, tag)
 			continue
 		}
 		// 其他类型赋值

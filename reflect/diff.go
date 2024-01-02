@@ -4,14 +4,14 @@ import (
 	"reflect"
 )
 
-var (
-	// StructDiffFieldTagName 是 StructDiffField 结构解析的 tag 名称
-	StructDiffFieldTagName = "diff"
-)
+// var (
+// 	// StructDiffFieldTagName 是 StructDiffField 结构解析的 tag 名称
+// 	StructDiffFieldTagName = "diff"
+// )
 
 // StructDiffField 从 src 中找出 与 dst 不同值的字段，然后返回这些字段的 map
 // src 和 dst 是相同数据类型的结构
-func StructDiffField(dst, src any) map[string]any {
+func StructDiffField(dst, src any, tag string) map[string]any {
 	// dst
 	dv := reflect.ValueOf(dst)
 	dk := dv.Kind()
@@ -37,17 +37,17 @@ func StructDiffField(dst, src any) map[string]any {
 		panic("src dst must be same struct type")
 	}
 	//
-	return structDiffField(dv, sv, make(map[string]any))
+	return structDiffField(dv, sv, tag, make(map[string]any))
 }
 
 // structDiffField 是 StructDiffFields 的实现
-func structDiffField(dstStructValue, srcStructValue reflect.Value, m map[string]any) map[string]any {
+func structDiffField(dstStructValue, srcStructValue reflect.Value, tag string, m map[string]any) map[string]any {
 	srcStructType := srcStructValue.Type()
 	for i := 0; i < srcStructType.NumField(); i++ {
 		// 字段类型
 		fieldType := srcStructType.Field(i)
 		// 忽略
-		if fieldType.Tag.Get(StructDiffFieldTagName) == "-" {
+		if fieldType.Tag.Get(tag) == "-" {
 			continue
 		}
 		fieldKind := fieldType.Type.Kind()
@@ -65,7 +65,7 @@ func structDiffField(dstStructValue, srcStructValue reflect.Value, m map[string]
 					if fieldKind == reflect.Struct {
 						// 嵌入
 						if fieldType.Anonymous {
-							structDiffField(dstStructValue, srcFieldValue, m)
+							structDiffField(dstStructValue, srcFieldValue, tag, m)
 						} else {
 							if !srcFieldValue.CanInterface() {
 								continue
@@ -84,7 +84,7 @@ func structDiffField(dstStructValue, srcStructValue reflect.Value, m map[string]
 					if fieldKind == reflect.Struct {
 						// 嵌入
 						if fieldType.Anonymous {
-							structDiffField(dstStructValue, srcFieldValue, m)
+							structDiffField(dstStructValue, srcFieldValue, tag, m)
 						} else {
 							if !srcFieldValue.CanInterface() {
 								continue
@@ -115,7 +115,7 @@ func structDiffField(dstStructValue, srcStructValue reflect.Value, m map[string]
 		if fieldKind == reflect.Struct {
 			// 嵌入
 			if fieldType.Anonymous {
-				structDiffField(dstFieldValue, srcFieldValue, m)
+				structDiffField(dstFieldValue, srcFieldValue, tag, m)
 				continue
 			}
 		}

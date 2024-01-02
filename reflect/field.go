@@ -2,13 +2,13 @@ package reflect
 
 import "reflect"
 
-var (
-	// StructFieldNameTagName 是 StructFieldName 结构解析的 tag 名称
-	StructFieldNameTagName = "field"
-)
+// var (
+// 	// StructFieldNameTagName 是 StructFieldName 结构解析的 tag 名称
+// 	StructFieldNameTagName = "field"
+// )
 
 // StructFieldName 按顺序提取所有字段名称
-func StructFieldName(v any) []string {
+func StructFieldName(v any, tag string) []string {
 	vv := reflect.ValueOf(v)
 	if !vv.IsValid() {
 		panic("vv is invalid")
@@ -19,17 +19,17 @@ func StructFieldName(v any) []string {
 	if vv.Kind() != reflect.Struct {
 		panic("v must be struct")
 	}
-	return structFieldName(vv.Type(), make([]string, 0))
+	return structFieldName(vv.Type(), tag, make([]string, 0))
 }
 
 // structFieldName  是 StructFieldName 的实现
-func structFieldName(st reflect.Type, a []string) []string {
+func structFieldName(st reflect.Type, tag string, a []string) []string {
 	// 所有字段
 	for i := 0; i < st.NumField(); i++ {
 		// 类型
 		ft := st.Field(i)
 		// tag
-		name, _, ignore := parseTag(&ft, StructFieldNameTagName)
+		name, _, ignore := parseTag(&ft, tag)
 		// 忽略 / 不可导出
 		if ignore || !ft.IsExported() {
 			continue
@@ -42,7 +42,7 @@ func structFieldName(st reflect.Type, a []string) []string {
 			}
 			// 结构
 			if t.Kind() == reflect.Struct {
-				a = structFieldName(t, a)
+				a = structFieldName(t, tag, a)
 			}
 			continue
 		}
