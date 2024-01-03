@@ -9,8 +9,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Forward 转发请求和响应
-func Forward(ctx *gin.Context, client *http.Client) error {
+// Forward 转发请求和响应，baseURL 是 http(s)://host:port
+func Forward(ctx *gin.Context, client *http.Client, baseURL string) error {
+	// 请求
+	req, err := http.NewRequestWithContext(ctx, ctx.Request.Method, baseURL, ctx.Request.Body)
+	if err != nil {
+		return err
+	}
+	// path + query
+	req.URL.Path = ctx.Request.URL.Path
+	req.URL.RawQuery = ctx.Request.URL.RawQuery
+	// header
+	for k, v := range ctx.Request.Header {
+		for _, vv := range v {
+			req.Header.Add(k, vv)
+		}
+	}
+	//
 	return ForwardResponseWithRequest(ctx, client, ctx.Request)
 }
 
