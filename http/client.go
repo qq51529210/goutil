@@ -4,78 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"reflect"
 )
-
-// StatusError 表示状态错误
-type StatusError int
-
-func (e StatusError) Error() string {
-	return fmt.Sprintf("status code %d", e)
-}
-
-var (
-	// QueryTag 是 Query 解析 tag 的名称
-	QueryTag = "query"
-)
-
-// Query 将结构体 v 格式化到 url.Values
-// 只扫描一层，并略过空值
-func Query(v any, q url.Values) url.Values {
-	if q == nil {
-		q = make(url.Values)
-	}
-	rv := reflect.ValueOf(v)
-	vk := rv.Kind()
-	if vk == reflect.Pointer {
-		rv = rv.Elem()
-		vk = rv.Kind()
-	}
-	if vk != reflect.Struct {
-		panic("v must be struct or struct ptr")
-	}
-	return httpQuery(rv, q)
-}
-
-func httpQuery(v reflect.Value, q url.Values) url.Values {
-	vt := v.Type()
-	for i := 0; i < vt.NumField(); i++ {
-		fv := v.Field(i)
-		if !fv.IsValid() {
-			continue
-		}
-		fvk := fv.Kind()
-		if fvk == reflect.Pointer {
-			// 空指针
-			if fv.IsNil() {
-				continue
-			}
-			fv = fv.Elem()
-			fvk = fv.Kind()
-		}
-		// 结构，只一层
-		if fvk == reflect.Struct {
-			continue
-		}
-		if fvk == reflect.String {
-			// 空字符串
-			if fv.IsZero() {
-				continue
-			}
-		}
-		ft := vt.Field(i)
-		tn := ft.Tag.Get(QueryTag)
-		if tn == "" || tn == "-" {
-			continue
-		}
-		q.Add(tn, fmt.Sprintf("%v", fv.Interface()))
-	}
-	return q
-}
 
 // JSONClient 封装 http 请求代码
 type JSONClient[Data any] struct {
@@ -132,80 +64,4 @@ func Request[Data any](ctx context.Context, client *http.Client, method, url str
 	defer res.Body.Close()
 	// 回调
 	return onResponse(res)
-}
-
-// Forward 转发请求
-func Forward(client *http.Client, req *http.Request, res http.ResponseWriter) error {
-	// 发送
-	_res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer _res.Body.Close()
-	// 响应
-	res.WriteHeader(_res.StatusCode)
-	for k, v := range _res.Header {
-		for _, vv := range v {
-			res.Header().Add(k, vv)
-		}
-	}
-	_, err = io.Copy(res, _res.Body)
-	return err
-}
-
-// ForwardResponseWithJSONBody 请求后转发响应
-func ForwardResponseWithJSONBody[Data any](ctx context.Context, client *http.Client, method, url string, header http.Header, body *Data, res http.ResponseWriter) error {
-	// body
-	var data *bytes.Buffer = nil
-	if body != nil {
-		data = bytes.NewBuffer(nil)
-		json.NewEncoder(data).Encode(body)
-	}
-	return ForwardResponse(ctx, client, method, url, header, data, res)
-}
-
-// ForwardResponse 请求后转发响应
-func ForwardResponse(ctx context.Context, client *http.Client, method, url string, header http.Header, body io.Reader, res http.ResponseWriter) error {
-	// 请求
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return err
-	}
-	// header
-	if header != nil {
-		req.Header = header
-	}
-	// 转发
-	return Forward(client, req, res)
-}
-
-// Server 封装代码
-type Server struct {
-	S http.Server
-	// 证书路径
-	CertFile string
-	KeyFile  string
-}
-
-// Serve 如果证书路径不为空，监听 tls
-func (s *Server) Serve() error {
-	if s.CertFile != "" && s.KeyFile != "" {
-		return s.S.ListenAndServeTLS(s.CertFile, s.KeyFile)
-	}
-	return s.S.ListenAndServe()
-}
-
-// Result 表示返回的结果
-type Result[T any] struct {
-	// 状态码
-	Code int `json:"code,omitempty"`
-	// 错误短语
-	Msg string `json:"msg,omitempty"`
-	// 没有错误时候的数据
-	Data T `json:"data,omitempty"`
-}
-
-// Error 实现 error 接口
-func (c *Result[T]) Error() string {
-	return fmt.Sprintf("code: %d, msg: %s", c.Code, c.Msg)
 }
