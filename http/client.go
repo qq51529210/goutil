@@ -153,16 +153,21 @@ func Forward(client *http.Client, req *http.Request, res http.ResponseWriter) er
 	return err
 }
 
-// ForwardResponse 请求后转发响应
-func ForwardResponse[Data any](ctx context.Context, client *http.Client, method, url string, header http.Header, body *Data, res http.ResponseWriter) error {
+// ForwardResponseWithJSONBody 请求后转发响应
+func ForwardResponseWithJSONBody[Data any](ctx context.Context, client *http.Client, method, url string, header http.Header, body *Data, res http.ResponseWriter) error {
 	// body
 	var data *bytes.Buffer = nil
 	if body != nil {
 		data = bytes.NewBuffer(nil)
 		json.NewEncoder(data).Encode(body)
 	}
+	return ForwardResponse(ctx, client, method, url, header, data, res)
+}
+
+// ForwardResponse 请求后转发响应
+func ForwardResponse(ctx context.Context, client *http.Client, method, url string, header http.Header, body io.Reader, res http.ResponseWriter) error {
 	// 请求
-	req, err := http.NewRequestWithContext(ctx, method, url, data)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return err
 	}
