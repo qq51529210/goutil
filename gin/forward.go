@@ -29,6 +29,11 @@ func Forward(ctx *gin.Context, client *http.Client, baseURL string) error {
 	return ForwardResponseWithRequest(ctx, client, req)
 }
 
+// ForwardWithURL 转发请求和响应，
+func ForwardWithURL(ctx *gin.Context, client *http.Client, url string) error {
+	return ForwardResponse(ctx, client, ctx.Request.Method, url, ctx.Request.Header, ctx.Request.Body)
+}
+
 // ForwardResponse 使用参数构造新的请求后转发响应
 func ForwardResponse(ctx *gin.Context, client *http.Client, method, url string, header http.Header, body io.Reader) error {
 	// 请求
