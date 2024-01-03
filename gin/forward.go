@@ -26,7 +26,7 @@ func Forward(ctx *gin.Context, client *http.Client, baseURL string) error {
 		}
 	}
 	//
-	return ForwardResponseWithRequest(ctx, client, ctx.Request)
+	return ForwardResponseWithRequest(ctx, client, req)
 }
 
 // ForwardResponse 使用参数构造新的请求后转发响应
