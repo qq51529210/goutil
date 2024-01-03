@@ -135,15 +135,9 @@ func Request[Data any](ctx context.Context, client *http.Client, method, url str
 }
 
 // Forward 转发请求
-func Forward(ctx context.Context, client *http.Client, method, url string, res http.ResponseWriter, req *http.Request) error {
-	// 新的请求
-	_req, err := http.NewRequestWithContext(ctx, method, url, req.Body)
-	if err != nil {
-		return err
-	}
-	_req.Header = req.Header
+func Forward(client *http.Client, req *http.Request, res http.ResponseWriter) error {
 	// 发送
-	_res, err := client.Do(_req)
+	_res, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -156,8 +150,28 @@ func Forward(ctx context.Context, client *http.Client, method, url string, res h
 		}
 	}
 	_, err = io.Copy(res, _res.Body)
-	//
 	return err
+}
+
+// ForwardResponse 请求后转发响应
+func ForwardResponse[Data any](ctx context.Context, client *http.Client, method, url string, header http.Header, body *Data, res http.ResponseWriter) error {
+	// body
+	var data *bytes.Buffer = nil
+	if body != nil {
+		data = bytes.NewBuffer(nil)
+		json.NewEncoder(data).Encode(body)
+	}
+	// 请求
+	req, err := http.NewRequestWithContext(ctx, method, url, data)
+	if err != nil {
+		return err
+	}
+	// header
+	if header != nil {
+		req.Header = header
+	}
+	// 转发
+	return Forward(client, req, res)
 }
 
 // Server 封装代码
