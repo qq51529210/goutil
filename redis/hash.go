@@ -47,7 +47,7 @@ func PageHGet[M any](ctx context.Context, db redis.UniversalClient, key string, 
 	cmd := db.Scan(ctx, cursor, key, int64(count))
 	keys, _cursor, err := cmd.Result()
 	if err != nil {
-		return nil, cursor, err
+		return nil, _cursor, err
 	}
 	// 根据 keys 再查询
 	var ms []*M
@@ -56,7 +56,7 @@ func PageHGet[M any](ctx context.Context, db redis.UniversalClient, key string, 
 		err := HGet(ctx, db, keys[i], m, fields...)
 		if err != nil {
 			if err != redis.Nil {
-				return nil, cursor, err
+				return nil, _cursor, err
 			}
 			continue
 		}
