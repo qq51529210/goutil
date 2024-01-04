@@ -41,10 +41,10 @@ func HGet[M any](ctx context.Context, db redis.UniversalClient, key string, m *M
 	return redis.Nil
 }
 
-// PageHGet 分页查询哈希，不指定字段则查询全部，注意 redis 这个包无法 scan 到指针字段
-func PageHGet[M any](ctx context.Context, db redis.UniversalClient, key string, cursor, count uint64, fields ...string) ([]*M, uint64, error) {
+// HGetPage 分页查询哈希，不指定字段则查询全部，注意 redis 这个包无法 scan 到指针字段
+func HGetPage[M any](ctx context.Context, db redis.UniversalClient, scanKey string, cursor, count uint64, fields ...string) ([]*M, uint64, error) {
 	// 扫描 key
-	cmd := db.Scan(ctx, cursor, key, int64(count))
+	cmd := db.Scan(ctx, cursor, scanKey, int64(count))
 	keys, _cursor, err := cmd.Result()
 	if err != nil {
 		return nil, _cursor, err
@@ -64,6 +64,43 @@ func PageHGet[M any](ctx context.Context, db redis.UniversalClient, key string, 
 	}
 	// 返回
 	return ms, _cursor, nil
+}
+
+// HGetAll 查询全部
+func HGetAll[M any](ctx context.Context, db redis.UniversalClient, scanKey string, fields ...string) ([]*M, error) {
+	var ms []*M
+	// 用迭代器
+	it := db.Scan(ctx, 0, scanKey, 0).Iterator()
+	for it.Next(ctx) {
+		m := new(M)
+		err := HGet(ctx, db, it.Val(), m, fields...)
+		if err != nil {
+			if err != redis.Nil {
+				return nil, err
+			}
+			continue
+		}
+		ms = append(ms, m)
+	}
+	if err := it.Err(); err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
+// HGetFirst 返回第一个
+func HGetFirst[M any](ctx context.Context, db redis.UniversalClient, scanKey string, m *M, fields ...string) error {
+	// 用迭代器
+	it := db.Scan(ctx, 0, scanKey, 0).Iterator()
+	for it.Next(ctx) {
+		m := new(M)
+		err := HGet(ctx, db, it.Val(), m, fields...)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return it.Err()
 }
 
 // HSetNxEx 存在才设置
