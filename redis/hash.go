@@ -25,7 +25,16 @@ func HGet[M any](ctx context.Context, db redis.UniversalClient, key string, m *M
 			return err
 		}
 		if len(data) > 0 {
-			return cmd.Scan(m)
+			ok := false
+			for i := 0; i < len(data); i++ {
+				if data[i] != nil {
+					ok = true
+					break
+				}
+			}
+			if ok {
+				return cmd.Scan(m)
+			}
 		}
 	}
 	// 没有数据
