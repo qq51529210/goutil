@@ -328,8 +328,9 @@ func (s *Server) serveTCP() error {
 	}
 	s.Logger.Infof("tcp listen %s", s.Addr)
 	//
-	s.udp.at.Init()
-	s.udp.pt.Init()
+	s.tcp.c.Init()
+	s.tcp.at.Init()
+	s.tcp.pt.Init()
 	//
 	s.w.Add(3)
 	// 监听
