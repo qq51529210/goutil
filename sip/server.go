@@ -523,6 +523,7 @@ func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
 	}()
 	// 回调处理
 	s.HandleResponse(&Response{
+		Server:   s,
 		activeTx: t,
 		message:  m,
 	})
