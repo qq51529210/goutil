@@ -544,6 +544,7 @@ func (s *Server) Request(ctx context.Context, r *Request, a net.Addr, d any) err
 				return err
 			}
 			// 启动处理协程
+			s.w.Add(1)
 			go s.handleTCPConnRoutine(c)
 		}
 		// 请求
