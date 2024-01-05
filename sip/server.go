@@ -543,6 +543,8 @@ func (s *Server) Request(ctx context.Context, r *Request, a net.Addr, d any) err
 			if err != nil {
 				return err
 			}
+			// 启动处理协程
+			go s.handleTCPConnRoutine(c)
 		}
 		// 请求
 		return s.doRequest(ctx, c, r, d, &s.tcp.at)
