@@ -65,7 +65,7 @@ func (m *Media) AddAttr(k, v string) {
 }
 
 // SetAttr 设置
-func (m *Media) SetAttr(k string, v []string) {
+func (m *Media) SetAttr(k string, v ...string) {
 	if m.A == nil {
 		m.A = make(map[string][]string)
 	}
