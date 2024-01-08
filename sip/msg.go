@@ -446,6 +446,13 @@ func (m *header) Set(key, value string) {
 	m.others[key] = value
 }
 
+// Del 删除
+func (m *header) Del(key string) {
+	if m.others != nil {
+		delete(m.others, key)
+	}
+}
+
 // ResetOther 重置 others
 func (m *header) ResetOther() {
 	m.others = make(map[string]string)
