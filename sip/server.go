@@ -518,7 +518,7 @@ func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
 		// 日志
 		s.Logger.DebugfTrace(t.TxKey(), "[%v] handle response", time.Since(old))
 		// 无论回调有没有通知，这里都通知一下
-		t.Finish(nil)
+		t.Finish(context.Canceled)
 		// 结束
 		s.w.Done()
 	}()
