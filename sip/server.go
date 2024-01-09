@@ -307,10 +307,10 @@ func (s *Server) closeUDP() {
 		s.udp.c = nil
 		//
 		for _, t := range s.udp.at.TakeAll() {
-			t.Finish(errServerClosed)
+			t.finish(errServerClosed)
 		}
 		for _, t := range s.udp.pt.TakeAll() {
-			t.Finish(errServerClosed)
+			t.finish(errServerClosed)
 		}
 	}
 }
@@ -518,7 +518,7 @@ func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
 		// 日志
 		s.Logger.DebugfTrace(t.TxKey(), "[%v] handle response", time.Since(old))
 		// 无论回调有没有通知，这里都通知一下
-		t.Finish(nil)
+		t.finish(nil)
 		// 结束
 		s.w.Done()
 	}()
@@ -583,12 +583,13 @@ func (s *Server) doRequest(ctx context.Context, c conn, r *Request, d any, at *g
 			// 移除
 			at.Del(t.key)
 			// 通知
-			t.Finish(err)
+			t.finish(err)
 		case <-t.c:
 			err = t.err
-			// 要么是收到了响应的消息被移除
-			// 要么是检查超时被移除
-			// 所以这里不需要显示调用，提高性能
+			// 要么是收到了响应的消息被调用
+			// 要么是检查超时被被调用
+			// 所以这里不需要调用
+			// s.delActiveTx(t.key, at)
 		}
 	}
 	// 日志
