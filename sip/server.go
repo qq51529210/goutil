@@ -565,6 +565,7 @@ func (s *Server) Request(ctx context.Context, r *Request, a net.Addr, d any) err
 
 // doRequest 封装 Request 的公共代码
 func (s *Server) doRequest(ctx context.Context, c conn, r *Request, d any, at *gosync.Map[string, *activeTx]) error {
+	r.Header.UserAgent = s.UserAgent
 	// 事务
 	t, err := s.newActiveTx(c, r.message, d, at)
 	if err != nil {
