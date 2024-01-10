@@ -309,7 +309,7 @@ type MessageDeviceList struct {
 type MessageInfo struct {
 	// Control-DeviceControl
 	// 文档上没有说明，就是消息范例那里有出现，我觉得应该是整数，越大越优先
-	ControlPriority int64 `xml:",omitempty"`
+	ControlPriority string `xml:",omitempty"`
 	// Notify-Alarm
 	// 报警类型
 	// 报警方式为2时,不携带AlarmType为默认的报警设备报警,携带AlarmType取值及对应报警类型如下:
@@ -388,7 +388,7 @@ type MessageHomePosition struct {
 	// 自动归位时间间隔，开启看守位时使用，单位:秒
 	ResetTime int64 `xml:",omitempty" json:"resetTime,omitempty"`
 	// 调用预置位编号，开启看守位时使用，取值范围0~255
-	PresetIndex int8 `xml:"" json:"presetIndex"`
+	PresetIndex string `xml:",omitempty" json:"presetIndex"`
 }
 
 // MessageBasicParam 是 Message 的 BasicParam 字段
