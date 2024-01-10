@@ -307,10 +307,10 @@ func (s *Server) closeUDP() {
 		s.udp.c = nil
 		//
 		for _, t := range s.udp.at.TakeAll() {
-			t.finish(errServerClosed)
+			t.Finish(errServerClosed)
 		}
 		for _, t := range s.udp.pt.TakeAll() {
-			t.finish(errServerClosed)
+			t.Finish(errServerClosed)
 		}
 	}
 }
@@ -518,7 +518,7 @@ func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
 		// 日志
 		s.Logger.DebugfTrace(t.TxKey(), "[%v] handle response", time.Since(old))
 		// 无论回调有没有通知，这里都通知一下
-		t.finish(nil)
+		t.Finish(nil)
 		// 结束
 		s.w.Done()
 	}()
@@ -583,7 +583,7 @@ func (s *Server) doRequest(ctx context.Context, c conn, r *Request, d any, at *g
 			// 移除
 			at.Del(t.key)
 			// 通知
-			t.finish(err)
+			t.Finish(err)
 		case <-t.c:
 			err = t.err
 			// 要么是收到了响应的消息被调用

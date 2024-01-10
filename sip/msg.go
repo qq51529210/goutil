@@ -589,13 +589,6 @@ func NewRequest() *Request {
 	return &Request{message: new(message)}
 }
 
-// Finish 通知
-// func (m *Request) Finish(err error) {
-// if m.tx != nil {
-// m.tx.finish(err)
-// }
-// }
-
 func (m *Request) response(status, phrase string) {
 	// start line
 	m.StartLine[0] = SIPVersion
@@ -656,12 +649,4 @@ func (m *Response) IsStatus(status string) bool {
 // Error 返回当前的 status 和 pharse
 func (m *Response) Error() *ResponseError {
 	return NewResponseError(m.StartLine[1], m.StartLine[2], "")
-}
-
-// Finish 异步通知，用于在处理响应的时候，通知发送请求的那个协程
-// 底层的超时通知是 context.DeadlineExceeded
-// 不要保存在其他协程作为 context.Context
-// 因为 Err() 可能返回 nil
-func (m *Response) Finish(err error) {
-	m.finish(err)
 }

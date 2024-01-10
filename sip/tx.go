@@ -12,7 +12,7 @@ type tx interface {
 	context.Context
 	TxKey() string
 	dataBuffer() *bytes.Buffer
-	finish(err error)
+	Finish(err error)
 }
 
 // baseTx 实现一个 context.Context
@@ -47,7 +47,11 @@ func (m *baseTx) TxKey() string {
 	return m.key
 }
 
-func (m *baseTx) finish(err error) {
+// Finish 异步通知，用于在处理响应的时候，通知发送请求的那个协程
+// 底层的超时通知是 context.DeadlineExceeded
+// 不要保存在其他协程作为 context.Context
+// 因为 Err() 可能返回 nil
+func (m *baseTx) Finish(err error) {
 	if atomic.CompareAndSwapInt32(&m.ok, 0, 1) {
 		m.err = err
 		close(m.c)
@@ -153,7 +157,7 @@ func (s *Server) checkActiveTxTimeoutRoutine(network string, at *gosync.Map[stri
 				// 移除
 				at.Del(t.key)
 				// 通知
-				t.finish(context.DeadlineExceeded)
+				t.Finish(context.DeadlineExceeded)
 			}
 		}
 		// 重置计时器
@@ -235,7 +239,7 @@ func (s *Server) checkPassiveTxTimeoutRoutine(network string, pt *gosync.Map[str
 				// 移除
 				pt.Del(t.key)
 				// 通知
-				t.finish(context.DeadlineExceeded)
+				t.Finish(context.DeadlineExceeded)
 			}
 		}
 		// 重置计时器
