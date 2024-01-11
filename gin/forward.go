@@ -93,7 +93,7 @@ func ForwardResponseWithReader(ctx *gin.Context, client *http.Client, method, ur
 // ForwardResponseWithJSONBody 使用参数构造新的 json body 请求后转发响应
 func ForwardResponseWithJSONBody(ctx *gin.Context, client *http.Client, method, url string, header http.Header, body any) error {
 	// body
-	var data *bytes.Buffer = nil
+	var data io.ReadWriter
 	if body != nil {
 		data = bytes.NewBuffer(nil)
 		json.NewEncoder(data).Encode(body)
