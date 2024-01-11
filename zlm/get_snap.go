@@ -36,7 +36,7 @@ func GetSnap(ctx context.Context, req *GetSnapReq, out io.Writer) error {
 	url := requestURL(req.BaseURL, apiGetSnap, req)
 	// 请求
 	old := time.Now()
-	err := gh.Request[any](ctx, http.DefaultClient, http.MethodGet, url, nil, nil,
+	err := gh.Request(ctx, http.DefaultClient, http.MethodGet, url, nil, nil,
 		func(res *http.Response) error {
 			// 必须是 200
 			if res.StatusCode != http.StatusOK {

@@ -51,7 +51,7 @@ func request[Query, Response any](ctx context.Context, baseURL, path string, que
 	url := requestURL(baseURL, path, query)
 	// 请求
 	old := time.Now()
-	err := gh.Request[any](ctx, http.DefaultClient, http.MethodGet, url, nil, nil,
+	err := gh.JSONRequest(ctx, http.DefaultClient, http.MethodGet, url, nil, nil,
 		func(res *http.Response) error {
 			// 必须是 200
 			if res.StatusCode != http.StatusOK {
