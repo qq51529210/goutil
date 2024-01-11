@@ -73,6 +73,23 @@ func ForwardResponseWithRequest(ctx *gin.Context, client *http.Client, req *http
 	return err
 }
 
+// ForwardResponseWithReader 使用 reader 作为 body 构造新的请求转发响应
+func ForwardResponseWithReader(ctx *gin.Context, client *http.Client, method, url string, header http.Header, body io.Reader) error {
+	// 请求
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		return err
+	}
+	// header
+	for k, v := range header {
+		for _, vv := range v {
+			req.Header.Add(k, vv)
+		}
+	}
+	//
+	return ForwardResponseWithRequest(ctx, client, req)
+}
+
 // ForwardResponseWithJSONBody 使用参数构造新的 json body 请求后转发响应
 func ForwardResponseWithJSONBody(ctx *gin.Context, client *http.Client, method, url string, header http.Header, body any) error {
 	// body
