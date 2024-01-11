@@ -74,7 +74,7 @@ func ForwardResponseWithRequest(ctx *gin.Context, client *http.Client, req *http
 }
 
 // ForwardResponseWithJSONBody 使用参数构造新的 json body 请求后转发响应
-func ForwardResponseWithJSONBody[Data any](ctx *gin.Context, client *http.Client, method, url string, header http.Header, body *Data) error {
+func ForwardResponseWithJSONBody(ctx *gin.Context, client *http.Client, method, url string, header http.Header, body any) error {
 	// body
 	var data *bytes.Buffer = nil
 	if body != nil {
