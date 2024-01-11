@@ -155,7 +155,10 @@ func HGetFirst[M any](ctx context.Context, db redis.UniversalClient, scanKey str
 	for it.Next(ctx) {
 		return HGet(ctx, db, it.Val(), m, fields...)
 	}
-	return it.Err()
+	if err := it.Err(); err != nil {
+		return err
+	}
+	return redis.Nil
 }
 
 // HGetPageFromSet 使用 set 中的值作为 key 查询
