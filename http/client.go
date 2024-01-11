@@ -10,7 +10,7 @@ import (
 )
 
 // JSONClient 封装 http 请求代码
-type JSONClient[Data any] struct {
+type JSONClient struct {
 	// 客户端，需要初始化
 	C *http.Client
 	// 地址，需要初始化
@@ -20,19 +20,12 @@ type JSONClient[Data any] struct {
 }
 
 // Do 发送请求
-func (c *JSONClient[Data]) Do(ctx context.Context, method string, query url.Values, body *Data) error {
-	return Request[Data](ctx, c.C, method, c.URL, query, body, c.OnRes)
+func (c *JSONClient) Do(ctx context.Context, method string, query url.Values, body any) error {
+	return JSONRequest(ctx, c.C, method, c.URL, query, body, c.OnRes)
 }
 
-// Request 封装 http 操作
-// ctx 超时上下文
-// client 使用的客户端
-// method 方法
-// url 请求地址
-// query 请求参数
-// body 格式化 json 后写入 body
-// onResponse 处理结果
-func Request[Data any](ctx context.Context, client *http.Client, method, url string, query url.Values, data *Data, onResponse func(res *http.Response) error) error {
+// JSONRequest 封装 http json 请求
+func JSONRequest(ctx context.Context, client *http.Client, method, url string, query url.Values, data any, onResponse func(res *http.Response) error) error {
 	// body
 	var body io.Reader = nil
 	if data != nil {
@@ -40,6 +33,11 @@ func Request[Data any](ctx context.Context, client *http.Client, method, url str
 		json.NewEncoder(buf).Encode(data)
 		body = buf
 	}
+	return Request(ctx, client, method, url, query, body, onResponse)
+}
+
+// Request 封装 http 请求
+func Request(ctx context.Context, client *http.Client, method, url string, query url.Values, body io.Reader, onResponse func(res *http.Response) error) error {
 	// 请求
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
