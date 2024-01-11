@@ -13,5 +13,8 @@ func ScanFirst(ctx context.Context, db redis.UniversalClient, scanKey string) (s
 	for it.Next(ctx) {
 		return it.Val(), nil
 	}
-	return "", it.Err()
+	if err := it.Err(); err != nil {
+		return "", err
+	}
+	return "", redis.Nil
 }
