@@ -590,7 +590,13 @@ func NewRequest() *Request {
 
 // Response 用于发送响应消息，在处理请求消息的时候使用
 // 直接修改的是 request 的数据哦
-func (m *Request) Response(status, phrase string) {
+func (m *Request) Response(status string) {
+	m.ResponseWith(status, StatusPhrase(status))
+}
+
+// ResponseWith 用于发送响应消息，在处理请求消息的时候使用
+// 直接修改的是 request 的数据哦
+func (m *Request) ResponseWith(status, phrase string) {
 	// start line
 	m.StartLine[0] = SIPVersion
 	m.StartLine[1] = string(status)
@@ -625,7 +631,7 @@ func (m *Request) Response(status, phrase string) {
 
 // ResponseError 调用 Response
 func (m *Request) ResponseError(err *ResponseError) {
-	m.Response(err.Status, err.Phrase)
+	m.ResponseWith(err.Status, err.Phrase)
 }
 
 // NewResponse 根据 Request 创建 Response
