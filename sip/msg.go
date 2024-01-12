@@ -624,6 +624,11 @@ func (m *Request) Response(status, phrase string) {
 	}
 }
 
+// ResponseError 调用 Response
+func (m *Request) ResponseError(err *ResponseError) {
+	m.Response(err.Status, err.Phrase)
+}
+
 // NewResponse 根据 Request 创建 Response
 func (m *Request) NewResponse(status, phrase string) *Response {
 	r := new(Response)
