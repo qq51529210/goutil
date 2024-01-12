@@ -13,6 +13,7 @@ type tx interface {
 	TxKey() string
 	Finish(err error)
 	dataBuffer() *bytes.Buffer
+	setDataBuffer(d *bytes.Buffer)
 	conn() conn
 }
 
@@ -32,6 +33,8 @@ type baseTx struct {
 	time time.Time
 	// 使用的连接
 	c conn
+	// 用于发送数据
+	writeData *bytes.Buffer
 }
 
 func (m *baseTx) Deadline() (time.Time, bool) {
@@ -54,6 +57,14 @@ func (m *baseTx) conn() conn {
 	return m.c
 }
 
+func (m *baseTx) dataBuffer() *bytes.Buffer {
+	return m.writeData
+}
+
+func (m *baseTx) setDataBuffer(d *bytes.Buffer) {
+	m.writeData = d
+}
+
 // Finish 异步通知，用于在处理响应的时候，通知发送请求的那个协程
 // 底层的超时通知是 context.DeadlineExceeded
 // 不要保存在其他协程作为 context.Context
@@ -74,14 +85,8 @@ type activeTx struct {
 	rto time.Duration
 	// 发送时间，用于 udp 消息重发计算
 	writeTime time.Time
-	// 用于发送数据，用于 udp 消息重发
-	writeData bytes.Buffer
 	// 停止发送，一般是遇到 1xx 类响应
 	stopRT bool
-}
-
-func (m *activeTx) dataBuffer() *bytes.Buffer {
-	return &m.writeData
 }
 
 func (m *activeTx) Value(any) any {
@@ -99,7 +104,8 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *
 	t.c = c
 	t.rto = s.MinRTO
 	t.writeTime = t.time
-	m.Enc(&t.writeData)
+	t.writeData = bytes.NewBuffer(nil)
+	m.Enc(t.writeData)
 	// 添加
 	at.Lock()
 	_, ok := at.D[t.key]
@@ -173,16 +179,10 @@ func (s *Server) checkActiveTxTimeoutRoutine(network string, at *gosync.Map[stri
 // passiveTx 用于被动接收请求
 type passiveTx struct {
 	baseTx
-	// 用于发送数据
-	writeData bytes.Buffer
 	// 用于控制多消息并发时的单一处理
 	handing int32
 	// 用于判断是否处理完毕
 	done bool
-}
-
-func (m *passiveTx) dataBuffer() *bytes.Buffer {
-	return &m.writeData
 }
 
 func (m *passiveTx) Value(any) any {
@@ -201,11 +201,21 @@ func (s *Server) newPassiveTx(c conn, m *message, pt *gosync.Map[string, *passiv
 		t.time = time.Now()
 		t.c = c
 		t.deadline = t.time.Add(s.TxTimeout)
+		t.writeData = bytes.NewBuffer(nil)
 		t.exit = make(chan struct{})
 		pt.D[k] = t
 	}
 	pt.Unlock()
 	//
+	return t
+}
+
+// getPassiveTx 获取
+func (s *Server) getPassiveTx(m *message, pt *gosync.Map[string, *passiveTx]) *passiveTx {
+	k := m.txKey()
+	pt.RLock()
+	t := pt.D[k]
+	pt.RUnlock()
 	return t
 }
 

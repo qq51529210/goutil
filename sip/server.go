@@ -1,6 +1,7 @@
 package sip
 
 import (
+	"bytes"
 	"context"
 	"goutil/log"
 	gosync "goutil/sync"
@@ -598,7 +599,7 @@ func (s *Server) doRequest(ctx context.Context, c conn, r *Request, d any, at *g
 	return err
 }
 
-// Send 发送一次消息，
+// Send 发送一次消息
 func (s *Server) Send(ctx context.Context, a net.Addr, d []byte) error {
 	// tcp
 	if _a, ok := a.(*net.TCPAddr); ok {
@@ -623,6 +624,34 @@ func (s *Server) Send(ctx context.Context, a net.Addr, d []byte) error {
 		c.initAddr(_a)
 		//
 		return c.write(d)
+	}
+	//
+	return errUnknownAddress
+}
+
+// Response 发送响应，替换掉前一个响应消息
+func (s *Server) Response(ctx context.Context, r *Response, a net.Addr) error {
+	// tcp
+	if _, ok := a.(*net.TCPAddr); ok {
+		t := s.getPassiveTx(r.message, &s.tcp.pt)
+		if t != nil {
+			data := bytes.NewBuffer(nil)
+			r.Enc(data)
+			t.setDataBuffer(data)
+			return t.c.write(data.Bytes())
+		}
+		return errTransactionTimeout
+	}
+	// udp
+	if _, ok := a.(*net.UDPAddr); ok {
+		t := s.getPassiveTx(r.message, &s.udp.pt)
+		if t != nil {
+			data := bytes.NewBuffer(nil)
+			r.Enc(data)
+			t.setDataBuffer(data)
+			return t.c.write(data.Bytes())
+		}
+		return errTransactionTimeout
 	}
 	//
 	return errUnknownAddress
