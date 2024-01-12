@@ -13,6 +13,7 @@ type conn interface {
 	RemotePort() string
 	RemoteAddrString() string
 	write([]byte) error
+	isUDP() bool
 }
 
 // connKey 用于连接表，ip + 端口 标识一个连接
@@ -66,6 +67,10 @@ func (c *tcpConn) write(b []byte) (err error) {
 	return
 }
 
+func (c *tcpConn) isUDP() bool {
+	return false
+}
+
 func (c *tcpConn) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
@@ -105,6 +110,10 @@ func (c *udpConn) initAddr(a *net.UDPAddr) {
 	c.ip = a.IP.String()
 	c.port = fmt.Sprintf("%d", a.Port)
 	c.ipport = c.ip + ":" + c.port
+}
+
+func (c *udpConn) isUDP() bool {
+	return true
 }
 
 func (c *udpConn) write(b []byte) (err error) {

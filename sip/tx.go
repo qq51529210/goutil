@@ -14,7 +14,6 @@ type tx interface {
 	Finish(err error)
 	dataBuffer() *bytes.Buffer
 	setDataBuffer(d *bytes.Buffer)
-	conn() conn
 }
 
 // baseTx 实现一个 context.Context
@@ -31,8 +30,6 @@ type baseTx struct {
 	deadline time.Time
 	// 创建时间
 	time time.Time
-	// 使用的连接
-	c conn
 	// 用于发送数据
 	writeData *bytes.Buffer
 }
@@ -51,10 +48,6 @@ func (m *baseTx) Done() <-chan struct{} {
 
 func (m *baseTx) TxKey() string {
 	return m.key
-}
-
-func (m *baseTx) conn() conn {
-	return m.c
 }
 
 func (m *baseTx) dataBuffer() *bytes.Buffer {
@@ -79,6 +72,8 @@ func (m *baseTx) Finish(err error) {
 // activeTx 用于主动发起请求
 type activeTx struct {
 	baseTx
+	// 使用的连接
+	c conn
 	// 用于保存发起请求时传入的数据
 	data any
 	// 用于 udp 消息重发间隔，每发送一次叠加一倍，但是有最大值
@@ -179,6 +174,8 @@ func (s *Server) checkActiveTxTimeoutRoutine(network string, at *gosync.Map[stri
 // passiveTx 用于被动接收请求
 type passiveTx struct {
 	baseTx
+	// 使用的连接
+	c conn
 	// 用于控制多消息并发时的单一处理
 	handing int32
 	// 用于判断是否处理完毕
