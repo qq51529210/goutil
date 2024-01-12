@@ -634,5 +634,5 @@ func (s *Server) Response(ctx context.Context, r *Response) error {
 	data := bytes.NewBuffer(nil)
 	r.Enc(data)
 	r.tx.setDataBuffer(data)
-	return r.c.write(data.Bytes())
+	return r.tx.write(data.Bytes())
 }

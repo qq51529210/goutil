@@ -581,7 +581,6 @@ type Request struct {
 	*Server
 	*message
 	tx
-	c conn
 }
 
 // NewRequest 创建请求
@@ -604,10 +603,10 @@ func (m *Request) Response(status, phrase string) {
 		m.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
 	}
 	if m.Header.Via[0].Received == "" {
-		m.Header.Via[0].Received = m.c.RemoteIP()
+		m.Header.Via[0].Received = m.RemoteIP()
 	}
 	if m.Header.Via[0].RProt == "" {
-		m.Header.Via[0].RProt = m.c.RemotePort()
+		m.Header.Via[0].RProt = m.RemotePort()
 	}
 	//
 	m.Header.UserAgent = m.Server.UserAgent
@@ -616,9 +615,9 @@ func (m *Request) Response(status, phrase string) {
 	buf.Reset()
 	m.Enc(buf)
 	// 日志
-	m.Server.Logger.DebugfTrace(m.tx.TxKey(), "write response to %s %s\n%s", m.c.Network(), m.c.RemoteAddrString(), buf.String())
+	m.Server.Logger.DebugfTrace(m.tx.TxKey(), "write response to %s %s\n%s", m.Network(), m.RemoteAddrString(), buf.String())
 	// 立刻发送
-	err := m.c.write(buf.Bytes())
+	err := m.write(buf.Bytes())
 	if err != nil {
 		m.Server.Logger.ErrorDepthTrace(2, m.txKey(), err)
 	}
@@ -633,7 +632,6 @@ func (m *Request) ResponseError(err *ResponseError) {
 func (m *Request) NewResponse(status, phrase string) *Response {
 	r := new(Response)
 	r.Server = m.Server
-	r.c = m.c
 	r.tx = m.tx
 	r.message = new(message)
 	// start line
@@ -650,10 +648,10 @@ func (m *Request) NewResponse(status, phrase string) *Response {
 		r.Header.Via = append(r.Header.Via, vv)
 	}
 	if r.Header.Via[0].Received == "" {
-		r.Header.Via[0].Received = m.c.RemoteIP()
+		r.Header.Via[0].Received = m.RemoteIP()
 	}
 	if r.Header.Via[0].RProt == "" {
-		r.Header.Via[0].RProt = m.c.RemotePort()
+		r.Header.Via[0].RProt = m.RemotePort()
 	}
 	r.Header.From = m.Header.From
 	r.Header.To = m.Header.To
@@ -673,7 +671,6 @@ type Response struct {
 	*Server
 	*message
 	tx
-	c conn
 }
 
 // IsStatus 返回是否与 code 相等，因为 StartLine[1] 不好记忆
