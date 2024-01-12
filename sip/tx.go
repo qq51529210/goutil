@@ -11,8 +11,9 @@ import (
 type tx interface {
 	context.Context
 	TxKey() string
-	dataBuffer() *bytes.Buffer
 	Finish(err error)
+	dataBuffer() *bytes.Buffer
+	conn() conn
 }
 
 // baseTx 实现一个 context.Context
@@ -22,13 +23,15 @@ type baseTx struct {
 	// 状态
 	ok int32
 	// 信号
-	c chan struct{}
+	exit chan struct{}
 	// 错误
 	err error
 	// 用于判断超时清理
 	deadline time.Time
 	// 创建时间
 	time time.Time
+	// 使用的连接
+	c conn
 }
 
 func (m *baseTx) Deadline() (time.Time, bool) {
@@ -40,11 +43,15 @@ func (m *baseTx) Err() error {
 }
 
 func (m *baseTx) Done() <-chan struct{} {
-	return m.c
+	return m.exit
 }
 
 func (m *baseTx) TxKey() string {
 	return m.key
+}
+
+func (m *baseTx) conn() conn {
+	return m.c
 }
 
 // Finish 异步通知，用于在处理响应的时候，通知发送请求的那个协程
@@ -54,7 +61,7 @@ func (m *baseTx) TxKey() string {
 func (m *baseTx) Finish(err error) {
 	if atomic.CompareAndSwapInt32(&m.ok, 0, 1) {
 		m.err = err
-		close(m.c)
+		close(m.exit)
 	}
 }
 
@@ -63,8 +70,6 @@ type activeTx struct {
 	baseTx
 	// 用于保存发起请求时传入的数据
 	data any
-	// 使用的连接
-	conn conn
 	// 用于 udp 消息重发间隔，每发送一次叠加一倍，但是有最大值
 	rto time.Duration
 	// 发送时间，用于 udp 消息重发计算
@@ -91,7 +96,7 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *
 	t.time = time.Now()
 	t.deadline = t.time.Add(s.TxTimeout)
 	t.data = d
-	t.conn = c
+	t.c = c
 	t.rto = s.MinRTO
 	t.writeTime = t.time
 	m.Enc(&t.writeData)
@@ -102,7 +107,7 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *
 		// 已存在
 		return nil, errTransactionExists
 	}
-	t.c = make(chan struct{})
+	t.exit = make(chan struct{})
 	at.D[t.key] = t
 	at.Unlock()
 	//
@@ -185,7 +190,7 @@ func (m *passiveTx) Value(any) any {
 }
 
 // newPassiveTx 添加并返回，用于被动接收请求
-func (s *Server) newPassiveTx(m *message, pt *gosync.Map[string, *passiveTx]) *passiveTx {
+func (s *Server) newPassiveTx(c conn, m *message, pt *gosync.Map[string, *passiveTx]) *passiveTx {
 	k := m.txKey()
 	// 添加
 	pt.Lock()
@@ -194,8 +199,9 @@ func (s *Server) newPassiveTx(m *message, pt *gosync.Map[string, *passiveTx]) *p
 		t = new(passiveTx)
 		t.key = k
 		t.time = time.Now()
+		t.c = c
 		t.deadline = t.time.Add(s.TxTimeout)
-		t.c = make(chan struct{})
+		t.exit = make(chan struct{})
 		pt.D[k] = t
 	}
 	pt.Unlock()

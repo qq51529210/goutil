@@ -581,7 +581,6 @@ type Request struct {
 	*Server
 	*message
 	tx
-	conn
 }
 
 // NewRequest 创建请求
@@ -589,7 +588,10 @@ func NewRequest() *Request {
 	return &Request{message: new(message)}
 }
 
-func (m *Request) response(status, phrase string) {
+// Response 用于发送响应消息，在处理请求消息的时候使用
+// 直接修改的是 request 的数据哦
+func (m *Request) Response(status, phrase string) {
+	c := m.conn()
 	// start line
 	m.StartLine[0] = SIPVersion
 	m.StartLine[1] = string(status)
@@ -602,10 +604,10 @@ func (m *Request) response(status, phrase string) {
 		m.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
 	}
 	if m.Header.Via[0].Received == "" {
-		m.Header.Via[0].Received = m.RemoteIP()
+		m.Header.Via[0].Received = c.RemoteIP()
 	}
 	if m.Header.Via[0].RProt == "" {
-		m.Header.Via[0].RProt = m.RemotePort()
+		m.Header.Via[0].RProt = c.RemotePort()
 	}
 	//
 	m.Header.UserAgent = m.Server.UserAgent
@@ -614,31 +616,57 @@ func (m *Request) response(status, phrase string) {
 	buf.Reset()
 	m.Enc(buf)
 	// 日志
-	m.Server.Logger.DebugfTrace(m.tx.TxKey(), "write response to %s %s\n%s", m.Network(), m.RemoteAddrString(), buf.String())
+	m.Server.Logger.DebugfTrace(m.tx.TxKey(), "write response to %s %s\n%s", c.Network(), c.RemoteAddrString(), buf.String())
 	// 立刻发送
-	err := m.write(buf.Bytes())
+	err := c.write(buf.Bytes())
 	if err != nil {
 		m.Server.Logger.ErrorDepthTrace(2, m.txKey(), err)
 	}
 }
 
-// Response 用于发送响应消息，在处理请求消息的时候使用
-// 然后 m 的数据就改变了，不能使用了
-func (m *Request) Response(status string) {
-	m.response(status, "")
-}
-
-// ResponseError 用于发送响应消息，在处理请求消息的时候使用
-// 然后 m 的数据就改变了，不能使用了
-func (m *Request) ResponseError(rs *ResponseError) {
-	m.response(rs.Status, rs.Phrase)
+// NewResponse 根据 Request 创建 Response
+func (m *Request) NewResponse(status, phrase string) *Response {
+	r := new(Response)
+	r.Server = m.Server
+	r.message = new(message)
+	// start line
+	r.StartLine[0] = SIPVersion
+	r.StartLine[1] = string(status)
+	r.StartLine[2] = phrase
+	if r.StartLine[2] == "" {
+		r.StartLine[2] = StatusPhrase(status)
+	}
+	// header
+	for _, v := range m.Header.Via {
+		vv := new(Via)
+		*vv = *v
+		r.Header.Via = append(r.Header.Via, vv)
+	}
+	c := m.conn()
+	if r.Header.Via[0].Received == "" {
+		r.Header.Via[0].Received = c.RemoteIP()
+	}
+	if r.Header.Via[0].RProt == "" {
+		r.Header.Via[0].RProt = c.RemotePort()
+	}
+	r.Header.From = m.Header.From
+	r.Header.To = m.Header.To
+	r.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
+	r.Header.CallID = m.Header.CallID
+	r.Header.CSeq = m.Header.CSeq
+	r.Header.MaxForwards = m.Header.MaxForwards
+	r.Header.Expires = m.Header.Expires
+	r.Header.UserAgent = m.Server.UserAgent
+	r.Header.others = make(map[string]string)
+	//
+	return r
 }
 
 // Response 表示响应消息
 type Response struct {
 	*Server
 	*message
-	*activeTx
+	tx
 }
 
 // IsStatus 返回是否与 code 相等，因为 StartLine[1] 不好记忆

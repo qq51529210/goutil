@@ -281,7 +281,7 @@ func (s *Server) writeUDPRoutine(ts []*activeTx, now time.Time) {
 		}
 		// 超时
 		if now.Sub(t.writeTime) >= t.rto {
-			err := t.conn.write(t.writeData.Bytes())
+			err := t.c.write(t.writeData.Bytes())
 			if err != nil {
 				s.Logger.Errorf("udp write %v", err)
 				continue
@@ -446,11 +446,11 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 		// 日志
 		s.Logger.DebugfTrace(m.txKey(), "request from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
 		// 事务，返回一定不为 nil
-		t := s.newPassiveTx(m, pt)
+		t := s.newPassiveTx(c, m, pt)
 		if atomic.CompareAndSwapInt32(&t.handing, 0, 1) {
 			// 在协程中处理
 			s.w.Add(1)
-			go s.handleRequestRoutine(c, t, m)
+			go s.handleRequestRoutine(t, m)
 		} else {
 			// 已经处理过
 			if t.done {
@@ -486,7 +486,7 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 }
 
 // handleRequestRoutine 在协程中处理请求消息
-func (s *Server) handleRequestRoutine(c conn, t *passiveTx, m *message) {
+func (s *Server) handleRequestRoutine(t *passiveTx, m *message) {
 	old := time.Now()
 	defer func() {
 		// 异常
@@ -501,7 +501,6 @@ func (s *Server) handleRequestRoutine(c conn, t *passiveTx, m *message) {
 		Server:  s,
 		message: m,
 		tx:      t,
-		conn:    c,
 	})
 	if !t.done {
 		// 没有完成，回复标记，等下一次的消息再回调
@@ -524,9 +523,9 @@ func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
 	}()
 	// 回调处理
 	s.HandleResponse(&Response{
-		Server:   s,
-		activeTx: t,
-		message:  m,
+		Server:  s,
+		tx:      t,
+		message: m,
 	})
 }
 
@@ -585,7 +584,7 @@ func (s *Server) doRequest(ctx context.Context, c conn, r *Request, d any, at *g
 			at.Del(t.key)
 			// 通知
 			t.Finish(err)
-		case <-t.c:
+		case <-t.exit:
 			err = t.err
 			// 要么是收到了响应的消息被调用
 			// 要么是检查超时被被调用
@@ -597,4 +596,34 @@ func (s *Server) doRequest(ctx context.Context, c conn, r *Request, d any, at *g
 	s.Logger.DebugfTrace(t.TxKey(), "[%v] do request", time.Since(t.time))
 	//
 	return err
+}
+
+// Send 发送一次消息，
+func (s *Server) Send(ctx context.Context, a net.Addr, d []byte) error {
+	// tcp
+	if _a, ok := a.(*net.TCPAddr); ok {
+		var err error
+		// 获取连接
+		c := s.getTCPConn(_a)
+		if c == nil {
+			// 没有就创建
+			c, err = s.dialTCPConn(_a)
+			if err != nil {
+				return err
+			}
+		}
+		// 发送
+		return c.write(d)
+	}
+	// udp
+	if _a, ok := a.(*net.UDPAddr); ok {
+		// 连接
+		c := new(udpConn)
+		c.conn = s.udp.c
+		c.initAddr(_a)
+		//
+		return c.write(d)
+	}
+	//
+	return errUnknownAddress
 }
