@@ -10,6 +10,7 @@ import (
 
 type tx interface {
 	context.Context
+	conn
 	TxKey() string
 	Finish(err error)
 	dataBuffer() *bytes.Buffer
@@ -18,6 +19,7 @@ type tx interface {
 
 // baseTx 实现一个 context.Context
 type baseTx struct {
+	conn
 	// 池的 key
 	key string
 	// 状态
@@ -72,8 +74,6 @@ func (m *baseTx) Finish(err error) {
 // activeTx 用于主动发起请求
 type activeTx struct {
 	baseTx
-	// 使用的连接
-	c conn
 	// 用于保存发起请求时传入的数据
 	data any
 	// 用于 udp 消息重发间隔，每发送一次叠加一倍，但是有最大值
@@ -96,7 +96,7 @@ func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *
 	t.time = time.Now()
 	t.deadline = t.time.Add(s.TxTimeout)
 	t.data = d
-	t.c = c
+	t.conn = c
 	t.rto = s.MinRTO
 	t.writeTime = t.time
 	t.writeData = bytes.NewBuffer(nil)
@@ -174,8 +174,6 @@ func (s *Server) checkActiveTxTimeoutRoutine(network string, at *gosync.Map[stri
 // passiveTx 用于被动接收请求
 type passiveTx struct {
 	baseTx
-	// 使用的连接
-	c conn
 	// 用于控制多消息并发时的单一处理
 	handing int32
 	// 用于判断是否处理完毕
@@ -196,7 +194,7 @@ func (s *Server) newPassiveTx(c conn, m *message, pt *gosync.Map[string, *passiv
 		t = new(passiveTx)
 		t.key = k
 		t.time = time.Now()
-		t.c = c
+		t.conn = c
 		t.deadline = t.time.Add(s.TxTimeout)
 		t.writeData = bytes.NewBuffer(nil)
 		t.exit = make(chan struct{})

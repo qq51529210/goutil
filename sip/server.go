@@ -282,7 +282,7 @@ func (s *Server) writeUDPRoutine(ts []*activeTx, now time.Time) {
 		}
 		// 超时
 		if now.Sub(t.writeTime) >= t.rto {
-			err := t.c.write(t.writeData.Bytes())
+			err := t.conn.write(t.writeData.Bytes())
 			if err != nil {
 				s.Logger.Errorf("udp write %v", err)
 				continue
@@ -502,7 +502,6 @@ func (s *Server) handleRequestRoutine(t *passiveTx, m *message) {
 		Server:  s,
 		message: m,
 		tx:      t,
-		c:       t.c,
 	})
 	if !t.done {
 		// 没有完成，回复标记，等下一次的消息再回调
@@ -528,7 +527,6 @@ func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
 		Server:  s,
 		tx:      t,
 		message: m,
-		c:       t.c,
 	})
 }
 
