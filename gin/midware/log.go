@@ -13,11 +13,13 @@ import (
 )
 
 var (
+	// DefaultLog 默认的
 	DefaultLog = new(Log)
 )
 
 func init() {
 	DefaultLog.CtxKeySubmitData = "SubmitData"
+	DefaultLog.CtxKeyResponseData = "ResponseData"
 	DefaultLog.CtxKeyError = "Error"
 	DefaultLog.CtxKeyTraceID = "TraceID"
 	DefaultLog.HeaderNameRemoteAddr = "X-Remote-Addr"
@@ -26,11 +28,13 @@ func init() {
 
 // Log 日志中间件
 type Log struct {
-	// CtxKeySubmitData 用于 log 保存提交的 body 的数据
+	// CtxKeySubmitData 用于保存提交的 body 的数据
 	CtxKeySubmitData string
-	// CtxKeyError 用于 log 保存处理中发生的错误
+	// CtxKeyResponseData 用于保存返回的 body 的数据
+	CtxKeyResponseData string
+	// CtxKeyError 用于保存处理中发生的错误
 	CtxKeyError string
-	// CtxKeyTraceID 用于 log 追踪 id
+	// CtxKeyTraceID 用于追踪 id
 	CtxKeyTraceID string
 	// HeaderNameRemoteAddr 代理服务透传的客户端地址头名称
 	HeaderNameRemoteAddr string
@@ -69,6 +73,15 @@ func (h *Log) ServeHTTP(ctx *gin.Context) {
 		d, err := json.Marshal(submitData)
 		if err == nil {
 			str.WriteString("\nsubmit data: ")
+			str.Write(d)
+		}
+	}
+	// 返回的数据
+	responseData := ctx.Value(h.CtxKeyResponseData)
+	if responseData != nil {
+		d, err := json.Marshal(responseData)
+		if err == nil {
+			str.WriteString("\nresponse data: ")
 			str.Write(d)
 		}
 	}
