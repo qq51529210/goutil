@@ -3,6 +3,7 @@ package sip
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"goutil/log"
 	gosync "goutil/sync"
 	"io"
@@ -79,8 +80,8 @@ type tcpServer struct {
 type Server struct {
 	// 回调函数
 	Handler
-	// 监听地址
-	Addr string
+	// 监听端口
+	Port int
 	// udp 超时重发起始间隔
 	MinRTO time.Duration
 	// udp 超时重发最大间隔
@@ -140,7 +141,7 @@ func (s *Server) Close() error {
 // serveUDP 启动 udp 服务
 func (s *Server) serveUDP() error {
 	// 初始化地址
-	a, err := net.ResolveUDPAddr("udp", s.Addr)
+	a, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%d", s.Port))
 	if err != nil {
 		return err
 	}
@@ -149,7 +150,7 @@ func (s *Server) serveUDP() error {
 	if err != nil {
 		return err
 	}
-	s.Logger.Infof("listen udp %s", s.Addr)
+	s.Logger.Infof("listen udp %d", s.Port)
 	//
 	s.udp.at.Init()
 	s.udp.pt.Init()
@@ -319,7 +320,7 @@ func (s *Server) closeUDP() {
 // serveTCP 开始 tcp 服务
 func (s *Server) serveTCP() error {
 	// 初始化
-	a, err := net.ResolveTCPAddr("tcp", s.Addr)
+	a, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%d", s.Port))
 	if err != nil {
 		return err
 	}
@@ -327,7 +328,7 @@ func (s *Server) serveTCP() error {
 	if err != nil {
 		return err
 	}
-	s.Logger.Infof("tcp listen %s", s.Addr)
+	s.Logger.Infof("tcp listen %d", s.Port)
 	//
 	s.tcp.c.Init()
 	s.tcp.at.Init()

@@ -3,11 +3,11 @@ package http
 import "fmt"
 
 // Result 表示返回的结果
-type Result struct {
+type Result[T any] struct {
 	// 状态码
 	Code int `json:"code,omitempty"`
 	// 正确时返回的数据
-	Data any `json:"data,omitempty"`
+	Data T `json:"data,omitempty"`
 	// 错误短语
 	Msg string `json:"msg,omitempty"`
 	// 错误详细
@@ -15,7 +15,7 @@ type Result struct {
 }
 
 // Error 实现 error 接口
-func (c *Result) Error() string {
+func (c *Result[T]) Error() string {
 	return c.Err
 }
 
