@@ -141,7 +141,7 @@ func (s *Server) Close() error {
 // serveUDP 启动 udp 服务
 func (s *Server) serveUDP() error {
 	// 初始化地址
-	a, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%d", s.Port))
+	a, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", s.Port))
 	if err != nil {
 		return err
 	}
@@ -320,7 +320,7 @@ func (s *Server) closeUDP() {
 // serveTCP 开始 tcp 服务
 func (s *Server) serveTCP() error {
 	// 初始化
-	a, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%d", s.Port))
+	a, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%d", s.Port))
 	if err != nil {
 		return err
 	}
