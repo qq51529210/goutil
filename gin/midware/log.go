@@ -12,19 +12,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var (
-	// DefaultLog 默认的
-	DefaultLog = new(Log)
+// Log 上下文 key
+const (
+	LogCtxKeySubmitData     = "SubmitData"
+	LogCtxKeyResponseData   = "ResponseData"
+	LogCtxKeyError          = "Error"
+	LogCtxKeyTraceID        = "TraceID"
+	LogHeaderNameRemoteAddr = "X-Remote-Addr"
 )
-
-func init() {
-	DefaultLog.CtxKeySubmitData = "SubmitData"
-	DefaultLog.CtxKeyResponseData = "ResponseData"
-	DefaultLog.CtxKeyError = "Error"
-	DefaultLog.CtxKeyTraceID = "TraceID"
-	DefaultLog.HeaderNameRemoteAddr = "X-Remote-Addr"
-	DefaultLog.Logger = log.DefaultLogger
-}
 
 // Log 日志中间件
 type Log struct {
