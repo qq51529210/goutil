@@ -1,32 +1,31 @@
 package device
 
 import (
-	"encoding/xml"
-	"os"
+	"context"
+	"fmt"
 	"testing"
 )
 
-func print(v any) {
-	enc := xml.NewEncoder(os.Stdout)
-	enc.Indent("", " ")
-	enc.Encode(v)
-	os.Stdout.WriteString("\n")
-}
+const (
+	host     = "192.168.31.66"
+	username = "admin"
+	password = "hwonvif66"
+)
 
 func Test_GetSystemDateAndTime(t *testing.T) {
-	var _req getSystemDateAndTimeReq
-	_req.Envelope.Attr = envelopeAttr
-	print(&_req)
+	d := NewDevice(host, username, password)
+	m, err := d.GetSystemDateAndTime(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(m.UTC())
+	fmt.Println(m.Local())
 }
 
 func Test_GetDeviceInformation(t *testing.T) {
-	var _req getDeviceInformationReq
-	_req.Envelope.Attr = envelopeAttr
-	print(&_req)
+
 }
 
 func Test_GetCapabilities(t *testing.T) {
-	var _req getCapabilitiesReq
-	_req.Envelope.Attr = envelopeAttr
-	print(&_req)
+
 }

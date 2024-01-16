@@ -5,35 +5,46 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"net/http"
 )
 
 // Do 发送请求, 格式化 req , 判断 status code 200 , 然后解析到 res
-func Do[request, response any](ctx context.Context, url string, req *request, res *response) error {
+func Do[reqData, resData any](ctx context.Context, url string, rqd *reqData, rsd *resData) error {
 	// 格式化
 	var body bytes.Buffer
-	err := xml.NewEncoder(&body).Encode(req)
+	// err := xml.NewEncoder(&body).Encode(rqd)
+	// for test
+	enc := xml.NewEncoder(&body)
+	enc.Indent("", " ")
+	err := enc.Encode(rqd)
 	if err != nil {
 		return fmt.Errorf("encode xml %v", err)
 	}
+	// for test
+	fmt.Println(string(body.Bytes()))
 	// 请求
-	_req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &body)
 	if err != nil {
 		return fmt.Errorf("create request %v", err)
 	}
-	_req.Header.Add("Content-Type", "application/soap+xml; charset=utf-8;")
+	req.Header.Add("Content-Type", "application/soap+xml; charset=utf-8;")
 	// 发送
-	_res, err := http.DefaultClient.Do(_req)
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("do request %v", err)
 	}
-	defer _res.Body.Close()
+	defer res.Body.Close()
 	// 状态码
-	if _res.StatusCode != http.StatusOK {
-		return fmt.Errorf("error status code %d", _res.StatusCode)
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("error status code %d", res.StatusCode)
 	}
 	// 解析
-	err = xml.NewDecoder(_res.Body).Decode(res)
+	// err = xml.NewDecoder(res.Body).Decode(rsd)
+	// for test
+	io.Copy(&body, res.Body)
+	fmt.Println(string(body.Bytes()))
+	err = xml.NewDecoder(&body).Decode(rsd)
 	if err != nil {
 		return fmt.Errorf("decode response %v", err)
 	}

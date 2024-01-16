@@ -2,43 +2,33 @@ package device
 
 import (
 	"context"
+	"encoding/xml"
 	"goutil/onvif/wsdl/ver10/schema"
 	"goutil/soap"
 )
 
-type getSystemDateAndTimeReq struct {
-	soap.Envelope[any, struct {
-		XMLName string `xml:"tt:GetSystemDateAndTime"`
+// GetSystemDateAndTime 获取时间日期
+func (d *Device) GetSystemDateAndTime(ctx context.Context) (*schema.SystemDateTime, error) {
+	// 请求体
+	var req soap.ReqEnvelope[any, struct {
+		XMLName xml.Name `xml:"tds:GetSystemDateAndTime"`
 	}]
-}
-
-type getSystemDateAndTimeRes struct {
-	soap.Envelope[any, getSystemDateAndTimeResponse]
-}
-
-type getSystemDateAndTimeResponse struct {
-	schema.SystemDateTime
-}
-
-// GetSystemDateAndTime
-// This operation gets the device system date and time. The device shall support the return of
-// the daylight saving setting and of the manual system date and time (if applicable) or indication
-// of NTP time (if applicable) through the GetSystemDateAndTime command.
-// A device shall provide the UTCDateTime information.
-func GetSystemDateAndTime(ctx context.Context, url string) (*schema.SystemDateTime, error) {
-	// 消息
-	var _req getSystemDateAndTimeReq
-	_req.Envelope.Attr = envelopeAttr
-	var _res getSystemDateAndTimeRes
+	req.Attr = envelopeAttr
+	// 响应体
+	var res soap.ResEnvelope[any, struct {
+		XMLName           xml.Name `xml:"GetSystemDateAndTimeResponse"`
+		SystemDateAndTime schema.SystemDateTime
+	}]
 	// 请求
-	err := soap.Do(ctx, url, &_req, &_res)
+	err := soap.Do(ctx, d.url, &req, &res)
 	if err != nil {
 		return nil, err
 	}
 	// 错误
-	if _res.Body.Fault != nil {
-		return nil, _res.Body.Fault
+	if res.Body.Fault != nil {
+		return nil, res.Body.Fault
 	}
 	// 成功
-	return &_res.Body.Data.SystemDateTime, nil
+	// return nil, nil
+	return &res.Body.Data.SystemDateAndTime, nil
 }

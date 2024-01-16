@@ -2,23 +2,27 @@ package schema
 
 import "time"
 
+// Time 时间
 type Time struct {
 	Hour   int
 	Minute int
 	Second int
 }
 
+// Date 日期
 type Date struct {
 	Year  int
 	Month int
 	Day   int
 }
 
+// DateTime 日期和时间
 type DateTime struct {
 	Time Time
 	Date Date
 }
 
+// ToTime 转换返回 go time
 func (t *DateTime) ToTime(location *time.Location) time.Time {
 	return time.Date(t.Date.Year,
 		time.Month(t.Date.Month),
@@ -29,33 +33,44 @@ func (t *DateTime) ToTime(location *time.Location) time.Time {
 		0, location)
 }
 
+// TimeZone 时区
 type TimeZone struct {
 	TZ string
 }
 
-type SetDateTimeType string
+// DateTimeType 类型
+type DateTimeType string
 
+// DateTimeType 枚举
 const (
-	SetDateTimeTypeManual SetDateTimeType = "Manual"
-	SetDateTimeTypeNTP    SetDateTimeType = "NTP"
+	DateTimeTypeManual DateTimeType = "Manual"
+	DateTimeTypeNTP    DateTimeType = "NTP"
 )
 
+// SystemDateTime 系统日期时间大全
 type SystemDateTime struct {
-	DateTimeType    SetDateTimeType
+	// 类型，Manual / NTP
+	DateTimeType DateTimeType
+	// 夏令时当前是否打开
 	DaylightSavings bool
-	TimeZone        TimeZone
-	UTCDateTime     DateTime
-	LocalDateTime   DateTime
-	//
+	// Posix 格式
+	TimeZone TimeZone
+	// utc 时间
+	UTCDateTime DateTime
+	// local 时间
+	LocalDateTime DateTime
+	// 是一个 any 看不懂
 	Extension SystemDateTimeExtension `xml:",chardata"`
 }
 
+// UTC 返回 utc 的 go time
 func (t *SystemDateTime) UTC() time.Time {
 	return t.UTCDateTime.ToTime(time.UTC)
 }
 
+// Local 返回 local 的 go time
 func (t *SystemDateTime) Local() time.Time {
-	return t.UTCDateTime.ToTime(time.Local)
+	return t.LocalDateTime.ToTime(time.Local)
 }
 
 type SystemDateTimeExtension string

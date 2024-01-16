@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	SecurityNamespace       = "http://schemas.xmlsoap.org/ws/2002/12/secext"
-	SecurityNamespacePrefix = "wsse"
+	// SecurityNamespace 命名空间
+	SecurityNamespace = "http://schemas.xmlsoap.org/ws/2002/12/secext"
 )
 
 var (
@@ -20,7 +20,7 @@ var (
 
 // Security 表示
 type Security struct {
-	XMLName       xml.Name `xml:"Security"`
+	XMLName       xml.Name `xml:"wsse:Security"`
 	UsernameToken UsernameToken
 }
 
@@ -49,10 +49,10 @@ func (s *Security) Init(username, password string) {
 
 // UsernameToken 表示 Security 的 UsernameToken 字段
 type UsernameToken struct {
-	XMLName  xml.Name `xml:"UsernameToken"`
-	Username string   `xml:"Username"`
-	Password Password `xml:"Password"`
-	Nonce    Nonce    `xml:"Nonce"`
+	XMLName  xml.Name `xml:"wsse:UsernameToken"`
+	Username string   `xml:"wsse:Username"`
+	Password Password `xml:"wsse:Password"`
+	Nonce    Nonce    `xml:"wsse:Nonce"`
 	Created  string   `xml:"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd Created"`
 }
 
