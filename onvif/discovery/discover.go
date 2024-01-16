@@ -31,26 +31,42 @@ const (
 	readBufLen = 1024 * 10
 )
 
+// Run 启动协程后台探测，通过 handle 回调
+func Run(iface, addr string, dur time.Duration, handle func(addr string)) (*Discover, error) {
+	d := new(Discover)
+	d.quit = make(chan struct{})
+	atomic.StoreInt32(&d.running, 1)
+	// 初始化
+	mAddr, err := d.initConn(iface, addr)
+	if err != nil {
+		d.Stop()
+		return nil, err
+	}
+	// 启动读写
+	for _, conn := range d.conns {
+		go d.readRoutine(conn, handle)
+		go d.writeRoutine(conn, mAddr, dur)
+	}
+	//
+	return d, nil
+}
+
 // Discover 用于探测
 type Discover struct {
-	// 是否正常
+	// 打开的端口
+	conns []*net.UDPConn
+	// 并发控制
 	running int32
-	// 退出探测协程信号
+	// 退出信号
 	quit chan struct{}
 }
 
-// Run 启动协程后台探测，通过 handle 回调
-func (d *Discover) Run(iface, addr string, dur time.Duration, handle func(addr string)) error {
-	var conns []*net.UDPConn
-	defer func() {
-		for _, c := range conns {
-			c.Close()
-		}
-	}()
+// initConn 初始化 conn
+func (d *Discover) initConn(iface, addr string) (*net.UDPAddr, error) {
 	// 多播地址
 	mAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// 监听地址
 	lAddr := &net.UDPAddr{
@@ -61,52 +77,50 @@ func (d *Discover) Run(iface, addr string, dur time.Duration, handle func(addr s
 		// 所有网络接口
 		ifis, err := net.Interfaces()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for i := 0; i < len(ifis); i++ {
 			ifi := &ifis[i]
 			// 过滤接口
-			if ifi.Flags&net.FlagLoopback != 0 ||
-				ifi.Flags&net.FlagUp != 0 ||
-				ifi.Flags&net.FlagMulticast != 0 {
+			if ifi.Flags&net.FlagLoopback != 0 {
 				continue
 			}
 			// 底层连接
 			conn, err := net.ListenMulticastUDP(mAddr.Network(), ifi, lAddr)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			conns = append(conns, conn)
+			d.conns = append(d.conns, conn)
 		}
 	} else {
 		ifi, err := net.InterfaceByName(iface)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// 底层连接
 		conn, err := net.ListenMulticastUDP(mAddr.Network(), ifi, lAddr)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		conns = append(conns, conn)
+		d.conns = append(d.conns, conn)
 	}
-	atomic.StoreInt32(&d.running, 1)
-	d.quit = make(chan struct{})
-	// 启动读写
-	for _, conn := range conns {
-		go d.readRoutine(conn, handle)
-		go d.writeRoutine(conn, mAddr, dur)
-	}
-	// 等待结束
-	<-d.quit
-	//
-	return nil
+	return mAddr, nil
+}
+
+// IsRunning 是否运行中
+func (d *Discover) IsRunning() bool {
+	return atomic.LoadInt32(&d.running) == 1
 }
 
 // Stop 停止探测
 func (d *Discover) Stop() {
 	if atomic.CompareAndSwapInt32(&d.running, 1, 0) {
+		// 通知
 		close(d.quit)
+		// 关闭连接
+		for _, c := range d.conns {
+			c.Close()
+		}
 	}
 }
 
