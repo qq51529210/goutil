@@ -59,7 +59,7 @@ type SystemDateTime struct {
 	UTCDateTime DateTime
 	// local 时间
 	LocalDateTime DateTime
-	// 是一个 any 看不懂
+	// 没有说明
 	Extension SystemDateTimeExtension `xml:",chardata"`
 }
 
@@ -73,212 +73,358 @@ func (t *SystemDateTime) Local() time.Time {
 	return t.LocalDateTime.ToTime(time.Local)
 }
 
+// SystemDateTimeExtension 是 SystemDateTime 的 Extension 字段
 type SystemDateTimeExtension string
 
+// Capabilities 能力列表
 type Capabilities struct {
+	// 分析能力，nil 表示不提供
 	Analytics *AnalyticsCapabilities
-	Device    *DeviceCapabilities
-	Events    *EventCapabilities
-	Imaging   *ImagingCapabilities
-	Media     *MediaCapabilities
-	PTZ       *PTZCapabilities
+	// 设备能力，nil 表示不提供
+	Device *DeviceCapabilities
+	// 事件能力，nil 表示不提供
+	Events *EventCapabilities
+	// 图像能力，nil 表示不提供
+	Imaging *ImagingCapabilities
+	// 媒体能力，nil 表示不提供
+	Media *MediaCapabilities
+	// 云台控制能力，nil 表示不提供
+	PTZ *PTZCapabilities
+	// 没有说明
 	Extension *CapabilitiesExtension
 }
 
+// AnalyticsCapabilities 分析能力
 type AnalyticsCapabilities struct {
-	XAddr                  string
-	RuleSupport            bool
+	// 服务地址
+	XAddr string
+	// 规则是否支持
+	RuleSupport bool
+	// 模块是否支持
 	AnalyticsModuleSupport bool
 }
 
+// DeviceCapabilities 设备能力
 type DeviceCapabilities struct {
-	XAddr     string
-	Network   *NetworkCapabilities
-	System    *SystemCapabilities
-	IO        *IOCapabilities
-	Security  *SecurityCapabilities
+	// 服务地址
+	XAddr string
+	// 网络
+	Network *NetworkCapabilities
+	// 系统
+	System *SystemCapabilities
+	// IO
+	IO *IOCapabilities
+	// 安全
+	Security *SecurityCapabilities
+	// 没有说明
 	Extension DeviceCapabilitiesExtension `xml:",chardata"`
 }
 
+// NetworkCapabilities 网络能力
 type NetworkCapabilities struct {
-	IPFilter          bool
+	// ip 过滤是否支持
+	IPFilter bool
+	// 零配置是否支持
 	ZeroConfiguration bool
-	IPVersion6        bool
-	DynDNS            bool
-	Extension         NetworkCapabilitiesExtension
+	// ipv6
+	IPVersion6 bool
+	// 动态 dns
+	DynDNS bool
+	// 没有说明
+	Extension NetworkCapabilitiesExtension
 }
 
+// NetworkCapabilitiesExtension 是 NetworkCapabilities 的 Extension 字段
 type NetworkCapabilitiesExtension struct {
+	// 没有说明
 	Dot11Configuration bool
-	Extension          NetworkCapabilitiesExtension2
+	// 没有说明
+	Extension NetworkCapabilitiesExtension2
 }
 
+// NetworkCapabilitiesExtension2 是 NetworkCapabilitiesExtension 的 Extension 字段
 type NetworkCapabilitiesExtension2 map[string]any
 
+// SystemCapabilities 系统能力
 type SystemCapabilities struct {
-	DiscoveryResolve  bool
-	DiscoveryBye      bool
-	RemoteDiscovery   bool
-	SystemBackup      bool
-	SystemLogging     bool
-	FirmwareUpgrade   bool
+	// ws-discovery
+	DiscoveryResolve bool
+	// ws-discovery bye
+	DiscoveryBye bool
+	// remote discovery
+	RemoteDiscovery bool
+	// 系统备份是否支持
+	SystemBackup bool
+	// 系统日志是否支持
+	SystemLogging bool
+	// 防火墙升级是否支持
+	FirmwareUpgrade bool
+	// 支持的 onvif 版本
 	SupportedVersions OnvifVersion
-	//
+	// 扩展
 	Extension SystemCapabilitiesExtension
 }
 
+// OnvifVersion 是 SystemCapabilities 的 SupportedVersions 字段
 type OnvifVersion struct {
+	// 高版本
 	Major int
+	// 低版本，两个数字
+	// 如果主版本号小于 16
+	// X.0.1 映射到 01
+	// X.2.1 映射到 21
+	// 其中X代表主版本号
+	// 否则发布月份，例如 06 表示六月。
 	Minor int
 }
 
+// SystemCapabilitiesExtension 是 SystemCapabilities 的 Extension 字段
 type SystemCapabilitiesExtension struct {
-	HttpFirmwareUpgrade    bool
-	HttpSystemBackup       bool
-	HttpSystemLogging      bool
-	HttpSupportInformation bool
-	Extension              SystemCapabilitiesExtension2 `xml:",chardata"`
+	// 没有说明
+	HTTPFirmwareUpgrade bool `xml:"HttpFirmwareUpgrade"`
+	// 没有说明
+	HTTPSystemBackup bool `xml:"HttpSystemBackup"`
+	// 没有说明
+	HTTPSystemLogging bool `xml:"HttpSystemLogging"`
+	// 没有说明
+	HTTPSupportInformation bool `xml:"HttpSupportInformation"`
+	// 没有说明
+	Extension SystemCapabilitiesExtension2 `xml:",chardata"`
 }
 
+// SystemCapabilitiesExtension2 是 SystemCapabilitiesExtension 的 Extension 字段
 type SystemCapabilitiesExtension2 string
 
+// IOCapabilities IO 能力
 type IOCapabilities struct {
+	// 输入的连接器数量
 	InputConnectors int
-	RelayOutputs    int
-	Extension       IOCapabilitiesExtension
+	// 输出的转发数量
+	RelayOutputs int
+	// 没有说明
+	Extension IOCapabilitiesExtension
 }
 
+// IOCapabilitiesExtension 是 IOCapabilities 的 Extension 字段
 type IOCapabilitiesExtension struct {
-	Auxiliary         bool
+	// 没有说明
+	Auxiliary bool
+	// 没有说明
 	AuxiliaryCommands string
-	Extension         IOCapabilitiesExtension2 `xml:",chardata"`
+	// 没有说明
+	Extension IOCapabilitiesExtension2 `xml:",chardata"`
 }
 
+// IOCapabilitiesExtension2 是 IOCapabilitiesExtension 的 Extension 字段
 type IOCapabilitiesExtension2 string
 
+// SecurityCapabilities 安全能力
 type SecurityCapabilities struct {
-	TLS1_1               bool
-	TLS1_2               bool
+	// tls 1.1
+	TLS11 bool `xml:"TLS1.1"`
+	// tls 1.2
+	TLS12 bool `xml:"TLS1.2"`
+	// key 生成是否支持
 	OnboardKeyGeneration bool
-	AccessPolicyConfig   bool
-	X509Token            bool `xml:"X.509Token"`
-	SAMLToken            bool
-	KerberosToken        bool
-	RELToken             bool
-	Extension            SecurityCapabilitiesExtension
+	// 访问策略配置
+	AccessPolicyConfig bool
+	// WS-Security X.509 token
+	X509Token bool `xml:"X.509Token"`
+	// WS-Security SAML token
+	SAMLToken bool
+	// WS-Security Kerberos token
+	KerberosToken bool
+	// WS-Security REL token
+	RELToken bool
+	// 没有说明
+	Extension SecurityCapabilitiesExtension
 }
 
+// SecurityCapabilitiesExtension 是 SecurityCapabilities 的 Extension 字段
 type SecurityCapabilitiesExtension struct {
-	TLS1_0    bool
+	// 没有说明
+	TLS10 bool `xml:"TLS1.0"`
+	// 没有说明
 	Extension SecurityCapabilitiesExtension2
 }
 
+// SecurityCapabilitiesExtension2 是 SecurityCapabilitiesExtension 的 Extension 字段
 type SecurityCapabilitiesExtension2 struct {
-	Dot1X              bool
+	// 没有说明
+	Dot1X bool
+	// EAP 方法
 	SupportedEAPMethod int
+	// 没有说明
 	RemoteUserHandling bool
 }
 
+// DeviceCapabilitiesExtension 是 DeviceCapabilities 的 Extension 字段
 type DeviceCapabilitiesExtension string
 
+// EventCapabilities 时间能力
 type EventCapabilities struct {
-	XAddr                                         string
-	WSSubscriptionPolicySupport                   bool
-	WSPullPointSupport                            bool
+	// 服务地址
+	XAddr string
+	// WS Subscription policy
+	WSSubscriptionPolicySupport bool
+	// WS Pull Point
+	WSPullPointSupport bool
+	// WS Pausable Subscription Manager Interface
 	WSPausableSubscriptionManagerInterfaceSupport bool
 }
 
+// ImagingCapabilities 图像能力
 type ImagingCapabilities struct {
+	// 服务地址
 	XAddr string
 }
 
+// MediaCapabilities 媒体能力
 type MediaCapabilities struct {
-	XAddr                 string
+	// 服务地址
+	XAddr string
+	// 媒体流能力
 	StreamingCapabilities RealTimeStreamingCapabilities
-	Extension             MediaCapabilitiesExtension
+	// 没有说明
+	Extension MediaCapabilitiesExtension
 }
 
+// RealTimeStreamingCapabilities 是 MediaCapabilities 的 StreamingCapabilities 字段
 type RealTimeStreamingCapabilities struct {
+	// rtp 多播
 	RTPMulticast bool
-	RTP_TCP      bool
-	RTP_RTSP_TCP bool
-	Extension    RealTimeStreamingCapabilitiesExtension `xml:",chardata"`
+	// rtp over tcp
+	RTPOverTCP bool `xml:"RTP_TCP"`
+	// rtp/rtsp/tcp
+	RTPRTSPTCP bool
+	// 没有说明
+	Extension RealTimeStreamingCapabilitiesExtension `xml:",chardata"`
 }
 
+// RealTimeStreamingCapabilitiesExtension 是 RealTimeStreamingCapabilities 的 Extension 字段
 type RealTimeStreamingCapabilitiesExtension string
 
+// MediaCapabilitiesExtension 是 MediaCapabilities 的 Extension 字段
 type MediaCapabilitiesExtension struct {
 	ProfileCapabilities ProfileCapabilities
 }
 
+// ProfileCapabilities 是 MediaCapabilitiesExtension 的 ProfileCapabilities 字段
 type ProfileCapabilities struct {
+	// profile 数量
 	MaximumNumberOfProfiles int
 }
 
+// PTZCapabilities 云台能力
 type PTZCapabilities struct {
+	// 服务地址
 	XAddr string
 }
 
+// CapabilitiesExtension 是 Capabilities 的 Extension 字段
 type CapabilitiesExtension struct {
-	DeviceIO        *DeviceIOCapabilities
-	Display         *DisplayCapabilities
-	Recording       *RecordingCapabilities
-	Search          *SearchCapabilities
-	Replay          *ReplayCapabilities
-	Receiver        *ReceiverCapabilities
+	// 没有说明
+	DeviceIO *DeviceIOCapabilities
+	// 没有说明
+	Display *DisplayCapabilities
+	// 没有说明
+	Recording *RecordingCapabilities
+	// 没有说明
+	Search *SearchCapabilities
+	// 没有说明
+	Replay *ReplayCapabilities
+	// 没有说明
+	Receiver *ReceiverCapabilities
+	// 没有说明
 	AnalyticsDevice *AnalyticsDeviceCapabilities
-	Extensions      CapabilitiesExtension2 `xml:",chardata"`
+	// 没有说明
+	Extensions CapabilitiesExtension2 `xml:",chardata"`
 }
 
+// DeviceIOCapabilities 是 CapabilitiesExtension 的 DeviceIO 字段
 type DeviceIOCapabilities struct {
-	XAddr        string
+	// 没有说明
+	XAddr string
+	// 没有说明
 	VideoSources int
+	// 没有说明
 	VideoOutputs int
+	// 没有说明
 	AudioSources int
+	// 没有说明
 	AudioOutputs int
+	// 没有说明
 	RelayOutputs int
 }
 
+// DisplayCapabilities 是 CapabilitiesExtension 的 Display 字段
 type DisplayCapabilities struct {
-	XAddr       string
+	// 没有说明
+	XAddr string
+	// SetLayout 命令仅支持预定义布局
 	FixedLayout bool
 }
 
+// RecordingCapabilities 是 CapabilitiesExtension 的 Recording 字段
 type RecordingCapabilities struct {
-	XAddr              string
-	ReceiverSource     bool
+	// 没有说明
+	XAddr string
+	// 没有说明
+	ReceiverSource bool
+	// 没有说明
 	MediaProfileSource bool
-	DynamicRecordings  bool
-	DynamicTracks      bool
-	MaxStringLength    int
+	// 没有说明
+	DynamicRecordings bool
+	// 没有说明
+	DynamicTracks bool
+	// 没有说明
+	MaxStringLength int
 }
 
+// SearchCapabilities 是 CapabilitiesExtension 的 Search 字段
 type SearchCapabilities struct {
-	XAddr          string
+	// 没有说明
+	XAddr string
+	// 没有说明
 	MetadataSearch bool
 }
 
+// ReplayCapabilities 是 CapabilitiesExtension 的 Replay 字段
 type ReplayCapabilities struct {
+	// 服务地址
 	XAddr string
 }
 
+// ReceiverCapabilities 是 CapabilitiesExtension 的 Receiver 字段
 type ReceiverCapabilities struct {
-	XAddr                string
-	RTP_Multicast        bool
-	RTP_TCP              bool
-	RTP_RTSP_TCP         bool
-	SupportedReceivers   int
+	// 服务地址
+	XAddr string
+	// 设备是否能接收 rtp 多播流
+	RTPMulticast bool `xml:"RTP_Multicast"`
+	// 设备是否能接收 rtp/tcp 流
+	RTPTCP bool `xml:"RTP_TCP"`
+	// 设备是否能接收 rtp/rtsp/tcp 流
+	RTPRTSPTCP bool `xml:"RTP_RTSP_TCP"`
+	// 设备支持的最大接收数量
+	SupportedReceivers int
+	// rtsp url 字符串的最大长度
 	MaximumRTSPURILength int
 }
 
+// AnalyticsDeviceCapabilities 是 CapabilitiesExtension 的 AnalyticsDevice 字段
 type AnalyticsDeviceCapabilities struct {
-	XAddr       string
+	// 没有说明
+	XAddr string
+	// 过时的
 	RuleSupport bool
-	Extension   AnalyticsDeviceExtension `xml:",chardata"`
+	// 没有说明
+	Extension AnalyticsDeviceExtension `xml:",chardata"`
 }
 
+// AnalyticsDeviceExtension 是 AnalyticsDeviceCapabilities 的 Extension 字段
 type AnalyticsDeviceExtension string
 
+// CapabilitiesExtension2 是 CapabilitiesExtension 的 Extensions 字段
 type CapabilitiesExtension2 string
 
 type IntRectangle struct {

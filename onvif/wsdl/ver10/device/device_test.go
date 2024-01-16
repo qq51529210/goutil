@@ -13,7 +13,10 @@ const (
 )
 
 func Test_GetSystemDateAndTime(t *testing.T) {
-	d := NewDevice(host, username, password)
+	d, err := NewDevice(context.Background(), host, username, password)
+	if err != nil {
+		t.Fatal(err)
+	}
 	m, err := d.GetSystemDateAndTime(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -23,9 +26,9 @@ func Test_GetSystemDateAndTime(t *testing.T) {
 }
 
 func Test_GetDeviceInformation(t *testing.T) {
-
-}
-
-func Test_GetCapabilities(t *testing.T) {
-
+	// d, err := NewDevice(context.Background(), host, username, password)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// fmt.Println(m)
 }

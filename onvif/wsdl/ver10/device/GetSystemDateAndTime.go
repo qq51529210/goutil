@@ -19,7 +19,7 @@ func (d *Device) GetSystemDateAndTime(ctx context.Context) (*schema.SystemDateTi
 		XMLName           xml.Name `xml:"GetSystemDateAndTimeResponse"`
 		SystemDateAndTime schema.SystemDateTime
 	}]
-	// 请求
+	// 发送
 	err := soap.Do(ctx, d.url, &req, &res)
 	if err != nil {
 		return nil, err
@@ -29,6 +29,5 @@ func (d *Device) GetSystemDateAndTime(ctx context.Context) (*schema.SystemDateTi
 		return nil, res.Body.Fault
 	}
 	// 成功
-	// return nil, nil
 	return &res.Body.Data.SystemDateAndTime, nil
 }
