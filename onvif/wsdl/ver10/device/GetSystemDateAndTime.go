@@ -10,12 +10,13 @@ import (
 // GetSystemDateAndTime 获取时间日期
 func (d *Device) GetSystemDateAndTime(ctx context.Context) (*schema.SystemDateTime, error) {
 	// 请求体
-	var req soap.ReqEnvelope[any, struct {
+	var req soap.Envelope[any, struct {
 		XMLName xml.Name `xml:"tds:GetSystemDateAndTime"`
 	}]
+	req.SetSoapTag()
 	req.Attr = envelopeAttr
 	// 响应体
-	var res soap.ResEnvelope[any, struct {
+	var res soap.Envelope[any, struct {
 		XMLName           xml.Name `xml:"GetSystemDateAndTimeResponse"`
 		SystemDateAndTime schema.SystemDateTime
 	}]
