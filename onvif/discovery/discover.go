@@ -41,6 +41,12 @@ type Discover struct {
 
 // Run 启动协程后台探测，通过 handle 回调
 func (d *Discover) Run(iface, addr string, dur time.Duration, handle func(addr string)) error {
+	var conns []*net.UDPConn
+	defer func() {
+		for _, c := range conns {
+			c.Close()
+		}
+	}()
 	// 多播地址
 	mAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
@@ -70,9 +76,7 @@ func (d *Discover) Run(iface, addr string, dur time.Duration, handle func(addr s
 			if err != nil {
 				return err
 			}
-			// 启动读写
-			go d.readRoutine(conn, handle)
-			go d.writeRoutine(conn, mAddr, dur)
+			conns = append(conns, conn)
 		}
 	} else {
 		ifi, err := net.InterfaceByName(iface)
@@ -84,16 +88,22 @@ func (d *Discover) Run(iface, addr string, dur time.Duration, handle func(addr s
 		if err != nil {
 			return err
 		}
+		conns = append(conns, conn)
+	}
+	atomic.StoreInt32(&d.running, 1)
+	d.quit = make(chan struct{})
+	// 启动读写
+	for _, conn := range conns {
 		go d.readRoutine(conn, handle)
 		go d.writeRoutine(conn, mAddr, dur)
 	}
-	//
-	d.quit = make(chan struct{})
+	// 等待结束
+	<-d.quit
 	//
 	return nil
 }
 
-// 停止探测
+// Stop 停止探测
 func (d *Discover) Stop() {
 	if atomic.CompareAndSwapInt32(&d.running, 1, 0) {
 		close(d.quit)
@@ -133,11 +143,11 @@ func (d *Discover) writeRoutine(conn *net.UDPConn, addr *net.UDPAddr, dur time.D
 type envelope struct {
 	XMLName xml.Name `xml:"Envelope"`
 	Body    struct {
-		ProbeMatchs struct {
+		ProbeMatches struct {
 			ProbeMatch struct {
-				XAddr string `xml:"XAddrs"`
-			} `xml:"ProbeMatch"`
-		} `xml:"ProbeMatchs"`
+				XAddrs string
+			}
+		}
 	}
 }
 
@@ -163,6 +173,6 @@ func (d *Discover) readRoutine(conn *net.UDPConn, fn func(addr string)) {
 			continue
 		}
 		// 回调通知
-		fn(res.Body.ProbeMatchs.ProbeMatch.XAddr)
+		fn(res.Body.ProbeMatches.ProbeMatch.XAddrs)
 	}
 }

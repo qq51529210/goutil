@@ -11,22 +11,21 @@ import (
 // Do 发送请求, 格式化 req , 判断 status code 200 , 然后解析到 res
 func Do[request, response any](ctx context.Context, url string, req *request, res *response) error {
 	// 格式化
-	var data bytes.Buffer
-	err := xml.NewEncoder(&data).Encode(req)
+	var body bytes.Buffer
+	err := xml.NewEncoder(&body).Encode(req)
 	if err != nil {
-		return fmt.Errorf("encode xml data error %w", err)
+		return fmt.Errorf("encode xml %v", err)
 	}
 	// 请求
-	_req, err := http.NewRequest(http.MethodPost, url, &data)
+	_req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &body)
 	if err != nil {
-		return fmt.Errorf("create request error %w", err)
+		return fmt.Errorf("create request %v", err)
 	}
-	_req.Header.Set("Content-Type", "application/soap+xml; charset=utf-8;")
-	_req = _req.WithContext(ctx)
+	_req.Header.Add("Content-Type", "application/soap+xml; charset=utf-8;")
 	// 发送
 	_res, err := http.DefaultClient.Do(_req)
 	if err != nil {
-		return fmt.Errorf("do request error %w", err)
+		return fmt.Errorf("do request %v", err)
 	}
 	defer _res.Body.Close()
 	// 状态码
@@ -36,7 +35,7 @@ func Do[request, response any](ctx context.Context, url string, req *request, re
 	// 解析
 	err = xml.NewDecoder(_res.Body).Decode(res)
 	if err != nil {
-		return fmt.Errorf("decode response error %w", err)
+		return fmt.Errorf("decode response %v", err)
 	}
 	//
 	return nil

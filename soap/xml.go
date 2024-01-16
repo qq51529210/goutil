@@ -29,16 +29,16 @@ type Body[Data any] struct {
 type Envelope[H, B any] struct {
 	XMLName xml.Name    `xml:"soap:Envelope"`
 	Attr    []*xml.Attr `xml:",attr"`
-	Header  *Header[H]
-	Body    *Body[B]
+	Header  *Header[H]  `xml:",omitempty"`
+	Body    *Body[B]    `xml:",omitempty"`
 }
 
 // Fault 表示 Envelope.Body 中的错误
 type Fault struct {
-	XMLName xml.Name     `xml:"soap:Fault"`
-	Code    *FaultCode   `xml:"soap:Code"`
-	Reason  *FaultReason `xml:"soap:Reason"`
-	Detail  *FaultDetail `xml:"soap:Detail"`
+	XMLName xml.Name     `xml:"soap:Fault,omitempty"`
+	Code    *FaultCode   `xml:"soap:Code,omitempty"`
+	Reason  *FaultReason `xml:"soap:Reason,omitempty"`
+	Detail  *FaultDetail `xml:"soap:Detail,omitempty"`
 }
 
 func (c *Fault) Error() string {
