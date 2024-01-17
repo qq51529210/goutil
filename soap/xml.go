@@ -57,16 +57,19 @@ type Fault struct {
 
 func (c *Fault) Error() string {
 	if c.Detail != nil {
-		return fmt.Sprintf("code: %s, %s",
-			c.Detail.ErrorCode, c.Detail.Description)
+		if c.Detail.Text != "" {
+			return c.Detail.Text
+		}
 	}
-	if c.Reason != nil {
+	if c.Reason != nil && c.Reason.Text != "" {
 		return c.Reason.Text
 	}
 	if c.Code != nil {
 		var str strings.Builder
-		fmt.Fprintf(&str, "code: %s", c.Code.Value)
-		if c.Code.Subcode != nil {
+		if c.Code.Value != "" {
+			fmt.Fprintf(&str, "code: %s", c.Code.Value)
+		}
+		if c.Code.Subcode != nil && c.Code.Subcode.Value != "" {
 			fmt.Fprintf(&str, " sub code: %s", c.Code.Subcode.Value)
 		}
 		return str.String()
@@ -87,8 +90,7 @@ type FaultReason struct {
 
 // FaultDetail 表示 Fault 的 Detail 字段
 type FaultDetail struct {
-	ErrorCode   string `xml:"ErrorCode"`
-	Description string `xml:"Description"`
+	Text string `xml:"Text"`
 }
 
 // NewNamespaceAttr 返回命名空间属性

@@ -12,7 +12,7 @@ type Information struct {
 	Model           string
 	FirmwareVersion string
 	SerialNumber    string
-	HardwareID      string
+	HardwareID      string `xml:"HardwareId"`
 }
 
 // GetDeviceInformation 获取设备基本信息
@@ -23,7 +23,6 @@ func (d *Device) GetDeviceInformation(ctx context.Context) (*Information, error)
 	}]
 	req.SetSoapTag()
 	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
-	d.security.Init(d.security.UsernameToken.Username, d.security.UsernameToken.Password.Password)
 	req.Header.Data = d.security
 	// 响应体
 	var res soap.Envelope[any, struct {

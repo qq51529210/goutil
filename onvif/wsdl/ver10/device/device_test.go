@@ -7,11 +7,14 @@ import (
 )
 
 const (
-	host     = "192.168.31.66"
-	username = "admin"
-	password = "hwonvif66"
-	// username = "onvif"
-	// password = "dhonvif3"
+	// host     = "192.168.31.66"
+	// username = "admin"
+	// password = "hwonvif66"
+	host     = "192.168.31.3"
+	username = "ovfs"
+	password = "aa123123"
+	// username = "admin"
+	// password = "A@12345678"
 )
 
 func Test_GetSystemDateAndTime(t *testing.T) {
