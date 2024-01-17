@@ -25,10 +25,6 @@ func GetSystemDateAndTime(ctx context.Context, url string) (*schema.SystemDateTi
 	if err != nil {
 		return nil, err
 	}
-	// 错误
-	if res.Body.Fault != nil {
-		return nil, res.Body.Fault
-	}
 	// 成功
 	return &res.Body.Data.SystemDateAndTime, nil
 }

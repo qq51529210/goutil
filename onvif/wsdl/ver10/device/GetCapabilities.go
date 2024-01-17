@@ -45,10 +45,6 @@ func GetCapabilities(ctx context.Context, url string, security *soap.Security, c
 	if err != nil {
 		return nil, err
 	}
-	// 错误
-	if res.Body.Fault != nil {
-		return nil, res.Body.Fault
-	}
 	// 成功
 	return &res.Body.Data.Capabilities, nil
 }

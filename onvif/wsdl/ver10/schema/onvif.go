@@ -47,7 +47,7 @@ const (
 	DateTimeTypeNTP    DateTimeType = "NTP"
 )
 
-// SystemDateTime 系统日期时间大全
+// SystemDateTime 系统日期时间
 type SystemDateTime struct {
 	// 类型，Manual / NTP
 	DateTimeType DateTimeType
@@ -60,7 +60,7 @@ type SystemDateTime struct {
 	// local 时间
 	LocalDateTime DateTime
 	// 没有说明
-	Extension SystemDateTimeExtension `xml:",chardata"`
+	Extension string `xml:",chardata"`
 }
 
 // UTC 返回 utc 的 go time
@@ -72,9 +72,6 @@ func (t *SystemDateTime) UTC() time.Time {
 func (t *SystemDateTime) Local() time.Time {
 	return t.LocalDateTime.ToTime(time.Local)
 }
-
-// SystemDateTimeExtension 是 SystemDateTime 的 Extension 字段
-type SystemDateTimeExtension string
 
 // Capabilities 能力列表
 type Capabilities struct {
@@ -117,7 +114,7 @@ type DeviceCapabilities struct {
 	// 安全
 	Security *SecurityCapabilities
 	// 没有说明
-	Extension DeviceCapabilitiesExtension `xml:",chardata"`
+	Extension string `xml:",chardata"`
 }
 
 // NetworkCapabilities 网络能力
@@ -134,16 +131,13 @@ type NetworkCapabilities struct {
 	Extension NetworkCapabilitiesExtension
 }
 
-// NetworkCapabilitiesExtension 是 NetworkCapabilities 的 Extension 字段
+// NetworkCapabilitiesExtension 网络能力扩展
 type NetworkCapabilitiesExtension struct {
 	// 没有说明
 	Dot11Configuration bool
 	// 没有说明
-	Extension NetworkCapabilitiesExtension2
+	Extension string `xml:",chardata"`
 }
-
-// NetworkCapabilitiesExtension2 是 NetworkCapabilitiesExtension 的 Extension 字段
-type NetworkCapabilitiesExtension2 map[string]any
 
 // SystemCapabilities 系统能力
 type SystemCapabilities struct {
@@ -165,7 +159,7 @@ type SystemCapabilities struct {
 	Extension SystemCapabilitiesExtension
 }
 
-// OnvifVersion 是 SystemCapabilities 的 SupportedVersions 字段
+// OnvifVersion 版本
 type OnvifVersion struct {
 	// 高版本
 	Major int
@@ -178,7 +172,7 @@ type OnvifVersion struct {
 	Minor int
 }
 
-// SystemCapabilitiesExtension 是 SystemCapabilities 的 Extension 字段
+// SystemCapabilitiesExtension 系统能力扩展
 type SystemCapabilitiesExtension struct {
 	// 没有说明
 	HTTPFirmwareUpgrade bool `xml:"HttpFirmwareUpgrade"`
@@ -189,11 +183,8 @@ type SystemCapabilitiesExtension struct {
 	// 没有说明
 	HTTPSupportInformation bool `xml:"HttpSupportInformation"`
 	// 没有说明
-	Extension SystemCapabilitiesExtension2 `xml:",chardata"`
+	Extension string `xml:",chardata"`
 }
-
-// SystemCapabilitiesExtension2 是 SystemCapabilitiesExtension 的 Extension 字段
-type SystemCapabilitiesExtension2 string
 
 // IOCapabilities IO 能力
 type IOCapabilities struct {
@@ -205,18 +196,15 @@ type IOCapabilities struct {
 	Extension IOCapabilitiesExtension
 }
 
-// IOCapabilitiesExtension 是 IOCapabilities 的 Extension 字段
+// IOCapabilitiesExtension IO 能力扩展
 type IOCapabilitiesExtension struct {
 	// 没有说明
 	Auxiliary bool
 	// 没有说明
 	AuxiliaryCommands string
 	// 没有说明
-	Extension IOCapabilitiesExtension2 `xml:",chardata"`
+	Extension string `xml:",chardata"`
 }
-
-// IOCapabilitiesExtension2 是 IOCapabilitiesExtension 的 Extension 字段
-type IOCapabilitiesExtension2 string
 
 // SecurityCapabilities 安全能力
 type SecurityCapabilities struct {
@@ -240,7 +228,7 @@ type SecurityCapabilities struct {
 	Extension SecurityCapabilitiesExtension
 }
 
-// SecurityCapabilitiesExtension 是 SecurityCapabilities 的 Extension 字段
+// SecurityCapabilitiesExtension 安全能力扩展
 type SecurityCapabilitiesExtension struct {
 	// 没有说明
 	TLS10 bool `xml:"TLS1.0"`
@@ -248,7 +236,7 @@ type SecurityCapabilitiesExtension struct {
 	Extension SecurityCapabilitiesExtension2
 }
 
-// SecurityCapabilitiesExtension2 是 SecurityCapabilitiesExtension 的 Extension 字段
+// SecurityCapabilitiesExtension2 安全能力扩展
 type SecurityCapabilitiesExtension2 struct {
 	// 没有说明
 	Dot1X bool
@@ -258,10 +246,7 @@ type SecurityCapabilitiesExtension2 struct {
 	RemoteUserHandling bool
 }
 
-// DeviceCapabilitiesExtension 是 DeviceCapabilities 的 Extension 字段
-type DeviceCapabilitiesExtension string
-
-// EventCapabilities 时间能力
+// EventCapabilities 事件能力
 type EventCapabilities struct {
 	// 服务地址
 	XAddr string
@@ -284,12 +269,12 @@ type MediaCapabilities struct {
 	// 服务地址
 	XAddr string
 	// 媒体流能力
-	StreamingCapabilities RealTimeStreamingCapabilities
+	StreamingCapabilities *RealTimeStreamingCapabilities
 	// 没有说明
-	Extension MediaCapabilitiesExtension
+	Extension *MediaCapabilitiesExtension
 }
 
-// RealTimeStreamingCapabilities 是 MediaCapabilities 的 StreamingCapabilities 字段
+// RealTimeStreamingCapabilities 实时流能力
 type RealTimeStreamingCapabilities struct {
 	// rtp 多播
 	RTPMulticast bool
@@ -298,18 +283,15 @@ type RealTimeStreamingCapabilities struct {
 	// rtp/rtsp/tcp
 	RTPRTSPTCP bool `xml:"RTP_RTSP_TCP"`
 	// 没有说明
-	Extension RealTimeStreamingCapabilitiesExtension `xml:",chardata"`
+	Extension string `xml:",chardata"`
 }
-
-// RealTimeStreamingCapabilitiesExtension 是 RealTimeStreamingCapabilities 的 Extension 字段
-type RealTimeStreamingCapabilitiesExtension string
 
 // MediaCapabilitiesExtension 是 MediaCapabilities 的 Extension 字段
 type MediaCapabilitiesExtension struct {
 	ProfileCapabilities ProfileCapabilities
 }
 
-// ProfileCapabilities 是 MediaCapabilitiesExtension 的 ProfileCapabilities 字段
+// ProfileCapabilities 属性能力
 type ProfileCapabilities struct {
 	// profile 数量
 	MaximumNumberOfProfiles int
@@ -338,10 +320,10 @@ type CapabilitiesExtension struct {
 	// 没有说明
 	AnalyticsDevice *AnalyticsDeviceCapabilities
 	// 没有说明
-	Extensions CapabilitiesExtension2 `xml:",chardata"`
+	Extensions string `xml:",chardata"`
 }
 
-// DeviceIOCapabilities 是 CapabilitiesExtension 的 DeviceIO 字段
+// DeviceIOCapabilities 设备 io 能力
 type DeviceIOCapabilities struct {
 	// 没有说明
 	XAddr string
@@ -357,7 +339,7 @@ type DeviceIOCapabilities struct {
 	RelayOutputs int
 }
 
-// DisplayCapabilities 是 CapabilitiesExtension 的 Display 字段
+// DisplayCapabilities 显示能力
 type DisplayCapabilities struct {
 	// 没有说明
 	XAddr string
@@ -365,7 +347,7 @@ type DisplayCapabilities struct {
 	FixedLayout bool
 }
 
-// RecordingCapabilities 是 CapabilitiesExtension 的 Recording 字段
+// RecordingCapabilities 录像能力
 type RecordingCapabilities struct {
 	// 没有说明
 	XAddr string
@@ -381,7 +363,7 @@ type RecordingCapabilities struct {
 	MaxStringLength int
 }
 
-// SearchCapabilities 是 CapabilitiesExtension 的 Search 字段
+// SearchCapabilities 查询能力？
 type SearchCapabilities struct {
 	// 没有说明
 	XAddr string
@@ -389,13 +371,13 @@ type SearchCapabilities struct {
 	MetadataSearch bool
 }
 
-// ReplayCapabilities 是 CapabilitiesExtension 的 Replay 字段
+// ReplayCapabilities 转发能力
 type ReplayCapabilities struct {
 	// 服务地址
 	XAddr string
 }
 
-// ReceiverCapabilities 是 CapabilitiesExtension 的 Receiver 字段
+// ReceiverCapabilities 接收能力
 type ReceiverCapabilities struct {
 	// 服务地址
 	XAddr string
@@ -411,22 +393,17 @@ type ReceiverCapabilities struct {
 	MaximumRTSPURILength int
 }
 
-// AnalyticsDeviceCapabilities 是 CapabilitiesExtension 的 AnalyticsDevice 字段
+// AnalyticsDeviceCapabilities 分析能力
 type AnalyticsDeviceCapabilities struct {
 	// 没有说明
 	XAddr string
 	// 过时的
 	RuleSupport bool
 	// 没有说明
-	Extension AnalyticsDeviceExtension `xml:",chardata"`
+	Extension string `xml:",chardata"`
 }
 
-// AnalyticsDeviceExtension 是 AnalyticsDeviceCapabilities 的 Extension 字段
-type AnalyticsDeviceExtension string
-
-// CapabilitiesExtension2 是 CapabilitiesExtension 的 Extensions 字段
-type CapabilitiesExtension2 string
-
+// IntRectangle 由左下角位置和大小定义的矩形，单位是像素
 type IntRectangle struct {
 	X      int `xml:"x,attr"`
 	Y      int `xml:"y,attr"`
@@ -434,140 +411,222 @@ type IntRectangle struct {
 	Height int `xml:"height,attr"`
 }
 
+// Profile 表示一个媒体属性的集合
 type Profile struct {
-	Name                        string
-	VideoSourceConfiguration    *VideoSourceConfiguration
-	AudioSourceConfiguration    *AudioSourceConfiguration
-	VideoEncoderConfiguration   *VideoEncoderConfiguration
-	AudioEncoderConfiguration   *AudioEncoderConfiguration
+	// 可读性名称
+	Name string
+	// 唯一标识
+	Token string `xml:"token,attr"`
+	// 是否可以删除
+	Fixed bool `xml:"fixed,attr"`
+	// 视频输入可选配置
+	VideoSourceConfiguration *VideoSourceConfiguration
+	// 音频输入可选配置
+	AudioSourceConfiguration *AudioSourceConfiguration
+	// 视频编码器可选配置
+	VideoEncoderConfiguration *VideoEncoderConfiguration
+	// 音频编码器可选配置
+	AudioEncoderConfiguration *AudioEncoderConfiguration
+	// 视频分析模块和规则引擎
 	VideoAnalyticsConfiguration *VideoAnalyticsConfiguration
-	PTZConfiguration            *PTZConfiguration
-	MetadataConfiguration       *MetadataConfiguration
-	Extension                   *ProfileExtension
-	Token                       string `xml:"token,attr"`
-	Fixed                       bool   `xml:"fixed,attr"`
+	// 平移-倾斜-缩放单元
+	PTZConfiguration *PTZConfiguration
+	// 元数据流可选配置
+	MetadataConfiguration *MetadataConfiguration
+	// 没有说明
+	Extension *ProfileExtension
 }
 
+// ConfigurationEntity 是公共字段
+type ConfigurationEntity struct {
+	// 引用该配置的唯一标识
+	Token string `xml:"token,attr"`
+	// 可读性行名称
+	Name string
+	// 使用该配置的内部引用数量
+	UseCount int
+}
+
+// VideoSourceConfiguration 视频源配置
 type VideoSourceConfiguration struct {
 	ConfigurationEntity
-	ViewMode    string `xml:",attr"`
+	// 用于支持不同视图模式的设备
+	ViewMode string `xml:",attr"`
+	// 物理输入的引用？？
 	SourceToken string
-	Bounds      IntRectangle
-	Extension   *VideoSourceConfigurationExtension
+	// 视频拍摄的区域
+	Bounds IntRectangle
+	// 没有说明
+	Extension *VideoSourceConfigurationExtension
 }
 
-type ConfigurationEntity struct {
-	Name     string
-	UseCount int
-	Token    string `xml:"token,attr"`
-}
-
+// VideoSourceConfigurationExtension 视频源配置扩展
 type VideoSourceConfigurationExtension struct {
-	Rotate    Rotate
-	Extension VideoSourceConfigurationExtension2
+	// 用于配置捕获图像旋转的可选元素
+	// 设备支持的分辨率不受影响
+	Rotate *Rotate
+	// 没有说明
+	Extension *VideoSourceConfigurationExtension2
 }
 
+// VideoSourceConfigurationExtension2 视频源配置扩展
 type VideoSourceConfigurationExtension2 struct {
-	LensDescription  LensDescription
-	SceneOrientation SceneOrientation
+	// 描述几何透镜畸变
+	LensDescription []*LensDescription
+	// 描述摄影机视野中场景方向
+	SceneOrientation *SceneOrientation
 }
 
+// LensDescription 镜头描述
 type LensDescription struct {
-	Offset      LensOffset
-	Projection  LensProjection
-	XFactor     float64
+	// 光学系统的可选焦距
 	FocalLength float64 `xml:",attr"`
+	// 在归一化坐标中，透镜中心到成像器中心的偏移
+	Offset *LensOffset
+	// 投影特性的径向描述
+	Projection []*LensProjection
+	// ONVIF标准化坐标系所需x坐标的补偿
+	XFactor float64
 }
 
+// LensOffset 镜头偏移
 type LensOffset struct {
+	// 标准化坐标中透镜中心的可选水平偏移
 	X float64 `xml:"x,attr"`
+	// 标准化坐标中透镜中心的可选垂直偏移
 	Y float64 `xml:"y,attr"`
 }
 
+// LensProjection 镜头投影
 type LensProjection struct {
-	Angle         float64
-	Radius        float64
+	// 入射角度
+	Angle float64
+	// 出射角度的映射半径
+	Radius float64
+	// 在给定角度下，由于渐晕的光线吸收
+	// 值为 1 表示没有吸收
 	Transmittance float64
 }
 
+// SceneOrientationMode 场景方向枚举
 type SceneOrientationMode string
 
+// SceneOrientationMode 场景方向枚举
 const (
 	SceneOrientationModeMANUAL SceneOrientationMode = "MANUAL"
 	SceneOrientationModeAUTO   SceneOrientationMode = "AUTO"
 )
 
+// SceneOrientation 场景方向
 type SceneOrientation struct {
-	Mode        SceneOrientationMode
+	// 用于指定摄影机确定场景方向的方式的参数
+	Mode *SceneOrientationMode
+	// 基于 Mode 指定或确定的场景方向
+	// 将模式指定为 AUTO 时，此字段是可选的，将被设备忽略
+	// 将模式指定为 MANUAL 时，此字段是必需的
+	// 如果丢失，设备将返回InvalidArgs错误
 	Orientation string
 }
 
+// RotateMode 旋转枚举
 type RotateMode string
 
+// RotateMode 旋转枚举
 const (
 	RotateModeON   RotateMode = "ON"
 	RotateModeOFF  RotateMode = "OFF"
 	RotateModeAUTO RotateMode = "AUTO"
 )
 
+// Rotate 旋转
 type Rotate struct {
-	Mode      RotateMode
-	Degree    int
-	Extension RotateExtension `xml:",chardata"`
+	// 启用/禁用旋转功能的参数
+	Mode RotateMode
+	// 用于配置 ON 模式下图像顺时针旋转的度数
+	// 在 ON 模式中省略此参数意味着旋转180度
+	Degree int
+	// 没有说明
+	Extension string `xml:",chardata"`
 }
 
-type RotateExtension string
-
+// AudioSourceConfiguration 音频源配置
 type AudioSourceConfiguration struct {
 	ConfigurationEntity
+	// 应用该配置的 token
 	SourceToken string
 }
 
+// VideoEncoding 视频编码类型枚举
 type VideoEncoding string
 
+// VideoEncoding 视频编码类型枚举
 const (
 	VideoEncodingJPEG  VideoEncoding = "JPEG"
 	VideoEncodingMPEG4 VideoEncoding = "MPEG4"
 	VideoEncodingH264  VideoEncoding = "H264"
 )
 
+// VideoEncoderConfiguration 视频编码配置
 type VideoEncoderConfiguration struct {
 	ConfigurationEntity
-	Encoding       VideoEncoding
-	Resolution     VideoResolution
-	Quality        float64
-	RateControl    *VideoRateControl
-	MPEG4          *Mpeg4Configuration
-	H264           *H264Configuration
-	Multicast      MulticastConfiguration
+	// 使用的视频编码
+	Encoding VideoEncoding
+	// 视频的分辨率
+	Resolution VideoResolution
+	// 视频量化器和视频质量的相对值
+	// 支持的质量范围内的高值意味着更高的质量
+	Quality float64
+	// 配置速率控制相关参数
+	RateControl *VideoRateControl
+	// 用于配置 mpeg4 相关参数
+	MPEG4 *Mpeg4Configuration
+	// 用于配置 H.264 相关参数
+	H264 *H264Configuration
+	// 可用于视频流的多播设置
+	Multicast MulticastConfiguration
+	// rtsp 视频流的会话超时
 	SessionTimeout string
 }
 
+// VideoResolution 视频分辨率
 type VideoResolution struct {
-	Width  int
+	// 宽
+	Width int
+	// 高
 	Height int
 }
 
+// VideoRateControl 视频输出率控制
 type VideoRateControl struct {
-	FrameRateLimit   int
+	// 最大输出帧速率，fps
+	FrameRateLimit int
+	// 对图像进行编码和传输的间隔
 	EncodingInterval int
-	BitrateLimit     int
+	// 最大输出比特率，单位 kbps
+	BitrateLimit int
 }
 
+// Mpeg4Profile mpeg4 属性枚举
 type Mpeg4Profile string
 
+// Mpeg4Profile mpeg4 属性枚举
 const (
 	Mpeg4ProfileSP  Mpeg4Profile = "SP"
 	Mpeg4ProfileASP Mpeg4Profile = "ASP"
 )
 
+// Mpeg4Configuration mpeg4 配置
 type Mpeg4Configuration struct {
-	GovLength    int
+	// 确定 I 帧的编码间隔
+	GovLength int
+	// 属性文件名称
 	Mpeg4Profile Mpeg4Profile
 }
 
+// H264Profile h264 属性枚举
 type H264Profile string
 
+// H264Profile h264 属性枚举
 const (
 	H264ProfileBaseline H264Profile = "Baseline"
 	H264ProfileMain     H264Profile = "Main"
@@ -575,177 +634,264 @@ const (
 	H264ProfileHigh     H264Profile = "High"
 )
 
+// H264Configuration h264 配置
 type H264Configuration struct {
-	GovLength   int
+	// 确定 I 帧的编码间隔
+	GovLength int
+	// 属性文件名称
 	H264Profile H264Profile
 }
 
+// MulticastConfiguration 媒体流多播配置
 type MulticastConfiguration struct {
-	Address   IPAddress
-	Port      int
-	TTL       int
+	// 多播地址
+	Address IPAddress
+	// rtp 多播的端口
+	Port int
+	// ipv6 下的 ttl 次数
+	TTL int
+	// 流是否持久的
 	AutoStart bool
 }
 
+// IPType ip 类型枚举
 type IPType string
 
+// IPType ip 类型枚举
 const (
 	IPTypeIPv4 IPType = "IPv4"
 	IPTypeIPv6 IPType = "IPv6"
 )
 
+// IPAddress 地址
 type IPAddress struct {
-	Type        IPType
+	// 类型
+	Type IPType
+	// ipv4 地址
 	IPv4Address string
+	// ipv6 地址
 	IPv6Address string
 }
 
+// AudioEncoding 音频编码类型枚举
 type AudioEncoding string
 
+// AudioEncoding 音频编码类型枚举
 const (
 	AudioEncodingG711 AudioEncoding = "G711"
 	AudioEncodingG726 AudioEncoding = "G726"
 	AudioEncodingACC  AudioEncoding = "ACC"
 )
 
+// AudioEncoderConfiguration 音频编码配置
 type AudioEncoderConfiguration struct {
 	ConfigurationEntity
-	Encoding       AudioEncoding
-	Bitrate        int
-	SampleRate     int
-	Multicast      MulticastConfiguration
+	// 编码类型
+	Encoding AudioEncoding
+	// 输出的比特率，单位 kbps
+	Bitrate int
+	// 输出的采样率，单位 kHz
+	SampleRate int
+	// 多播设置
+	Multicast *MulticastConfiguration
+	// rtsp 音频流的会话超时
 	SessionTimeout string
 }
 
+// VideoAnalyticsConfiguration 视频分析配置
 type VideoAnalyticsConfiguration struct {
 	ConfigurationEntity
-	AnalyticsEngineConfiguration AnalyticsEngineConfiguration
-	RuleEngineConfiguration      RuleEngineConfiguration
+	// 没有说明
+	AnalyticsEngineConfiguration *AnalyticsEngineConfiguration
+	// 没有说明
+	RuleEngineConfiguration *RuleEngineConfiguration
 }
 
+// AnalyticsEngineConfiguration 分析引擎配置
 type AnalyticsEngineConfiguration struct {
-	AnalyticsModule Config
-	Extension       AnalyticsEngineConfigurationExtension `xml:",chardata"`
+	// 没有说明
+	AnalyticsModule *Config
+	// 没有说明
+	Extension string `xml:",chardata"`
 }
 
+// Config 没有说明
 type Config struct {
-	Parameters ItemList
-	Name       string `xml:",attr"`
-	Type       string `xml:",attr"`
+	// 没有说明
+	Parameters *ItemList
+	// 配置名称
+	Name string `xml:",attr"`
+	// 指定规则的类型
+	// 并且应等于 GetSupportedRules 和 GetSupportedAnalyticsModules 命令返回的
+	// ConfigDescription 元素的 Name 属性之一的值
+	Type string `xml:",attr"`
 }
 
+// ItemList 数组
 type ItemList struct {
-	SimpleItem  []SimpleItem
-	ElementItem []ElementItem
-	Extension   ItemListExtension `xml:",chardata"`
+	// 没有说明
+	SimpleItem []*SimpleItem
+	// 没有说明
+	ElementItem []*ElementItem
+	// 没有说明
+	Extension string `xml:",chardata"`
 }
 
+// SimpleItem name-value 的键值对
 type SimpleItem struct {
 	Name  string `xml:",attr"`
 	Value string `xml:",attr"`
 }
 
+// ElementItem name-value 的键值对
 type ElementItem struct {
-	// Item name.
 	Name  string `xml:",attr"`
 	Value string `xml:",chardata"`
 }
 
-type ItemListExtension string
-
-type AnalyticsEngineConfigurationExtension string
-
+// RuleEngineConfiguration 规则引擎
 type RuleEngineConfiguration struct {
-	Rule      Config
-	Extension RuleEngineConfigurationExtension `xml:",chardata"`
+	// 没有说明
+	Rule *Config
+	// 没有说明
+	Extension string `xml:",chardata"`
 }
 
-type RuleEngineConfigurationExtension string
-
+// PTZConfiguration 云台控制配置
 type PTZConfiguration struct {
 	ConfigurationEntity
-	NodeToken                              string
-	DefaultAbsolutePantTiltPositionSpace   string
-	DefaultAbsoluteZoomPositionSpace       string
+	// 改配置所属的 ptz 节点的强制性引用
+	NodeToken string
+	// 绝对的水平/倾斜的默认值
+	DefaultAbsolutePantTiltPositionSpace string
+	// 绝对的缩放的默认值
+	DefaultAbsoluteZoomPositionSpace string
+	// 相对的水平/倾斜的默认值
 	DefaultRelativePanTiltTranslationSpace string
-	DefaultRelativeZoomTranslationSpace    string
-	DefaultContinuousPanTiltVelocitySpace  string
-	DefaultContinuousZoomVelocitySpace     string
-	DefaultPTZSpeed                        PTZSpeed
-	DefaultPTZTimeout                      string
-	PanTiltLimits                          PanTiltLimits
-	ZoomLimits                             ZoomLimits
-	Extension                              PTZConfigurationExtension
-	MoveRamp                               int `xml:",attr"`
-	PresetRamp                             int `xml:",attr"`
-	PresetTourRamp                         int `xml:",attr"`
+	// 相对的缩放的默认值
+	DefaultRelativeZoomTranslationSpace string
+	// 连续的水平/倾斜的默认值
+	DefaultContinuousPanTiltVelocitySpace string
+	// 连续的缩放的默认值
+	DefaultContinuousZoomVelocitySpace string
+	// 绝对/相对的速度的默认值
+	DefaultPTZSpeed *PTZSpeed
+	// 连续的操作，超时后停止
+	DefaultPTZTimeout string
+	// 水平/倾斜限制
+	PanTiltLimits *PanTiltLimits
+	// 缩放限制
+	ZoomLimits *ZoomLimits
+	// 没有说明
+	Extension *PTZConfigurationExtension
+	// 设备移动的加速？？
+	MoveRamp int `xml:",attr"`
+	// 在调用 presets 的加速
+	PresetRamp int `xml:",attr"`
+	// 执行 PresetTours 的加速
+	PresetTourRamp int `xml:",attr"`
 }
 
+// PTZSpeed 速度
 type PTZSpeed struct {
+	// 水平/倾斜速度
 	PanTilt Vector2D
-	Zoom    Vector1D
+	// 缩放速度
+	Zoom Vector1D
 }
 
+// Vector2D ptz 的相关类型
 type Vector2D struct {
-	X     float64 `xml:"x,attr"`
-	Y     float64 `xml:"y,attr"`
-	Space string  `xml:"space,attr"`
+	// 没有说明
+	X float64 `xml:"x,attr"`
+	// 没有说明
+	Y float64 `xml:"y,attr"`
+	// 没有说明
+	Space string `xml:"space,attr"`
 }
 
+// Vector1D ptz 的相关类型
 type Vector1D struct {
-	X     float64 `xml:"x,attr"`
-	Space string  `xml:"space,attr"`
+	// 没有说明
+	X float64 `xml:"x,attr"`
+	// 没有说明
+	Space string `xml:"space,attr"`
 }
 
+// PanTiltLimits 水平/倾斜限制
 type PanTiltLimits struct {
-	Range Space2DDescription
+	Range *Space2DDescription
 }
 
+// Space2DDescription 坐标系描述
 type Space2DDescription struct {
-	URI    string
-	XRange FloatRange
-	YRange FloatRange
+	// 坐标系地址？
+	URI string
+	// x 轴范围
+	XRange *FloatRange
+	// y 轴范围
+	YRange *FloatRange
 }
 
+// FloatRange 范围
 type FloatRange struct {
+	// 最小值
 	Min float64
+	// 最大值
 	Max float64
 }
 
+// ZoomLimits 缩放限制
 type ZoomLimits struct {
-	Range Space1DDescription
+	Range *Space1DDescription
 }
 
+// Space1DDescription 坐标系描述
 type Space1DDescription struct {
-	URI    string
-	XRange FloatRange
+	// 坐标系地址？
+	URI string
+	// x 轴范围
+	XRange *FloatRange
 }
 
+// PTZConfigurationExtension 云台扩展
 type PTZConfigurationExtension struct {
-	PTControlDirection PTControlDirection
-	Extension          PTZConfigurationExtension2 `xml:",chardata"`
+	// 方向控制
+	PTControlDirection *PTControlDirection
+	// 没有说明
+	Extension string `xml:",chardata"`
 }
 
+// PTControlDirection 方向控制配置
 type PTControlDirection struct {
-	EFlip     EFlip
-	Reverse   Reverse
-	Extension PTControlDirectionExtension `xml:",chardata"`
+	// e-flip 陪孩子
+	EFlip *EFlip
+	// 方向反转
+	Reverse *Reverse
+	// 没有说明
+	Extension string `xml:",chardata"`
 }
 
+// EFlipMode E-Flip 特性枚举
 type EFlipMode string
 
+// EFlipMode E-Flip 特性枚举
 const (
 	EFlipModeOFF      EFlipMode = "OFF"
 	EFlipModeON       EFlipMode = "ON"
 	EFlipModeExtended EFlipMode = "Extended"
 )
 
+// EFlip E-Flip 选项
 type EFlip struct {
+	// 启用/禁用 E-Flip 的特性
 	Mode EFlipMode
 }
 
+// ReverseMode 控制方向反转枚举
 type ReverseMode string
 
+// EFlipMode 控制方向反转枚举
 const (
 	ReverseModeOFF      ReverseMode = "OFF"
 	ReverseModeON       ReverseMode = "ON"
@@ -753,171 +899,245 @@ const (
 	ReverseModeExtended ReverseMode = "Extended"
 )
 
+// Reverse ptz 控制方向反转控制
 type Reverse struct {
 	Mode ReverseMode
 }
 
-type PTControlDirectionExtension string
-
-type PTZConfigurationExtension2 string
-
+// MetadataConfiguration 元数据流
 type MetadataConfiguration struct {
 	ConfigurationEntity
-	PTZStatus                    *PTZFilter
-	Events                       *EventSubscription
-	Analytics                    bool
-	Multicast                    MulticastConfiguration
-	SessionTimeout               string
+	// 用于配置元数据流中包含的 ptz 数据
+	PTZStatus *PTZFilter
+	// 用于配置事件流
+	Events *EventSubscription
+	// 是否包含来自分析引擎的元数据
+	Analytics bool
+	// 视频流的多播设置
+	Multicast *MulticastConfiguration
+	// rtsp 会话超时，Media2 忽略
+	SessionTimeout string
+	// 指示哪些分析模块应输出元数据
 	AnalyticsEngineConfiguration *AnalyticsEngineConfiguration
-	Extension                    *MetadataConfigurationExtension `xml:",chardata"`
-	CompressionType              string                          `xml:",attr"`
-	GeoLocation                  bool                            `xml:",attr"`
-	ShapePolygon                 bool                            `xml:",attr"`
+	// 没有说明
+	Extension string `xml:",chardata"`
+	// 用于配置元数据负载的压缩类型
+	CompressionType string `xml:",attr"`
+	// 用于配置元数据流是否应包含每个目标的地理位置坐标
+	GeoLocation bool `xml:",attr"`
+	// 用于配置生成的元数据流是否应包含多边形形状信息
+	ShapePolygon bool `xml:",attr"`
 }
 
+// PTZFilter 没有说明
 type PTZFilter struct {
-	Status   bool
+	// 是否包含 ptz 状态
+	Status bool
+	// 是否包含 ptz 位置
 	Position bool
 }
 
+// EventSubscription 订阅
 type EventSubscription struct {
-	Filter             FilterType
-	SubscriptionPolicy SubscriptionPolicy `xml:",chardata"`
+	// 没有说明
+	Filter string
+	// 没有说明
+	SubscriptionPolicy string `xml:",chardata"`
 }
 
-type FilterType string
-
-type SubscriptionPolicy string
-
-type MetadataConfigurationExtension string
-
+// ProfileExtension 属性扩展
 type ProfileExtension struct {
-	AudioOutputConfiguration  *AudioOutputConfiguration
+	// 音频输出配置
+	AudioOutputConfiguration *AudioOutputConfiguration
+	// 音频解码器配置
 	AudioDecoderConfiguration *AudioDecoderConfiguration
-	Extension                 *ProfileExtension2 `xml:",chardata"`
+	// 没有说明
+	Extension string `xml:",chardata"`
 }
 
+// AudioOutputConfiguration 音频输出配置
 type AudioOutputConfiguration struct {
 	ConfigurationEntity
+	// 物理音频输出 token
 	OutputToken string
+	// 指定音频流的方向，c->s / s->c
 	SendPrimacy string
+	// 输出的音量
 	OutputLevel int
 }
 
+// AudioDecoderConfiguration 音频解码器配置
 type AudioDecoderConfiguration struct {
 	ConfigurationEntity
 }
 
-type ProfileExtension2 string
-
+// IntRectangleRange 矩形的范围
 type IntRectangleRange struct {
-	XRange      IntRange
-	YRange      IntRange
-	WidthRange  IntRange
+	// x 轴范围
+	XRange IntRange
+	// y 轴范围
+	YRange IntRange
+	// 宽度范围
+	WidthRange IntRange
+	// 高度范围
 	HeightRange IntRange
 }
 
+// VideoSourceConfigurationOptions 音频源配置
 type VideoSourceConfigurationOptions struct {
-	BoundsRange                IntRectangleRange
-	VideoSourceTokensAvailable string
-	Extension                  VideoSourceConfigurationOptionsExtension
-	MaximumNumberOfProfiles    int `xml:",attr"`
+	// 捕获区域支持的范围
+	BoundsRange *IntRectangleRange
+	// 物理输入的列表
+	VideoSourceTokensAvailable []string
+	// 没有说明
+	Extension *VideoSourceConfigurationOptionsExtension
+	// Profile 最大数量
+	MaximumNumberOfProfiles int `xml:",attr"`
 }
 
+// VideoSourceConfigurationOptionsExtension 扩展
 type VideoSourceConfigurationOptionsExtension struct {
-	Rotate    RotateOptions
-	Extension VideoSourceConfigurationOptionsExtension2
+	Rotate    *RotateOptions
+	Extension *VideoSourceConfigurationOptionsExtension2
 }
 
+// VideoSourceConfigurationOptionsExtension2 扩展
 type VideoSourceConfigurationOptionsExtension2 struct {
-	SceneOrientationMode SceneOrientationMode
+	SceneOrientationMode []SceneOrientationMode
 }
 
+// RotateOptions 旋转选项
 type RotateOptions struct {
-	Mode       RotateMode
-	DegreeList IntList
-	Extension  RotateOptionsExtension `xml:",chardata"`
-	Reboot     bool                   `xml:",attr"`
+	Mode []RotateMode
+	// 支持的旋转度数值列表
+	DegreeList *IntList
+	// 没有说明
+	Extension string `xml:",chardata"`
+	// 如果设备在更改旋转后，是否需要重新启动
+	Reboot bool `xml:",attr"`
 }
 
+// IntList int 数组
 type IntList struct {
 	Items []int
 }
 
-type RotateOptionsExtension string
-
+// IntRange 范围
 type IntRange struct {
+	// 最小值
 	Min int
+	// 最大值
 	Max int
 }
 
+// VideoEncoderConfigurationOptions 视频编码器配置选项
 type VideoEncoderConfigurationOptions struct {
-	QualityRange IntRange
-	JPEG         JpegOptions
-	MPEG4        Mpeg4Options
-	H264         H264Options
-	Extension    VideoEncoderOptionsExtension
+	// 质量范围
+	QualityRange *IntRange
+	// jpeg 选项
+	JPEG *JpegOptions
+	// mpeg4 选项
+	MPEG4 *Mpeg4Options
+	// h264 选项
+	H264 *H264Options
+	// 没有说明
+	Extension *VideoEncoderOptionsExtension
+	// 是否支持 GuarantineedFrameRate
+	// GuarantineedFrameRate 没有找到
+	GuaranteedFrameRateSupported bool `xml:",attr"`
 }
 
+// JpegOptions jpeg 选项
 type JpegOptions struct {
-	ResolutionsAvailable  VideoResolution
-	FrameRateRange        IntRange
-	EncodingIntervalRange IntRange
+	// 图像大小的支持列表
+	ResolutionsAvailable []*VideoResolution
+	// 支持的帧率，fps
+	FrameRateRange *IntRange
+	// 支持的编码间隔的范围
+	EncodingIntervalRange *IntRange
 }
 
+// Mpeg4Options mpeg4 选项
 type Mpeg4Options struct {
-	ResolutionsAvailable   VideoResolution
-	GovLengthRange         IntRange
-	FrameRateRange         IntRange
-	EncodingIntervalRange  IntRange
-	Mpeg4ProfilesSupported Mpeg4Profile
+	// 图像大小的支持列表
+	ResolutionsAvailable []*VideoResolution
+	// 支持的视频帧长度组，通常是 I 帧的距离
+	GovLengthRange *IntRange
+	// 支持的帧率，fps
+	FrameRateRange *IntRange
+	// 支持的编码间隔的范围
+	EncodingIntervalRange *IntRange
+	// 属性的支持列表
+	Mpeg4ProfilesSupported []Mpeg4Profile
 }
 
+// H264Options h264 选项
 type H264Options struct {
-	ResolutionsAvailable  VideoResolution
-	GovLengthRange        IntRange
-	FrameRateRange        IntRange
-	EncodingIntervalRange IntRange
-	H264ProfilesSupported H264Profile
+	// 图像大小的支持列表
+	ResolutionsAvailable []*VideoResolution
+	// 支持的视频帧长度组，通常是 I 帧的距离
+	GovLengthRange *IntRange
+	// 支持的帧率，fps
+	FrameRateRange *IntRange
+	// 支持的编码间隔的范围
+	EncodingIntervalRange *IntRange
+	// 属性的支持列表
+	H264ProfilesSupported []H264Profile
 }
 
+// VideoEncoderOptionsExtension 视频编码器配置选项扩展
 type VideoEncoderOptionsExtension struct {
-	JPEG      JpegOptions2
-	MPEG4     Mpeg4Options2
-	H264      H264Options2
-	Extension VideoEncoderOptionsExtension2
+	// jpeg 编码器设置范围
+	JPEG []*JpegOptions2
+	// mpeg4 编码器设置范围
+	MPEG4 []*Mpeg4Options2
+	// h264 编码器设置范围
+	H264 []*H264Options2
+	// 没有说明
+	Extension string `xml:",chardata"`
 }
 
+// JpegOptions2 jpeg 选项
 type JpegOptions2 struct {
 	JpegOptions
-	BitrateRange IntRange
+	// 编码比特率的支持范围
+	BitrateRange *IntRange
 }
 
+// Mpeg4Options2 mpeg4 选项
 type Mpeg4Options2 struct {
 	Mpeg4Options
-	BitrateRange IntRange
+	// 编码比特率的支持范围
+	BitrateRange *IntRange
 }
 
+// H264Options2 h264 选项
 type H264Options2 struct {
 	H264Options
-	BitrateRange IntRange
+	// 编码比特率的支持范围
+	BitrateRange *IntRange
 }
 
-type VideoEncoderOptionsExtension2 string
-
+// AudioSourceConfigurationOptions 音频源配置选项
 type AudioSourceConfigurationOptions struct {
-	InputTokensAvailable string
-	Extension            AudioSourceOptionsExtension
+	// 音频源配置的 token
+	InputTokensAvailable []string
+	// 没有说明
+	Extension string `xml:",chardata"`
 }
 
-type AudioSourceOptionsExtension string
-
+// AudioEncoderConfigurationOptions 音频编码器配置选项
 type AudioEncoderConfigurationOptions struct {
-	Options AudioEncoderConfigurationOption
+	// 配置的支持列表
+	Options []*AudioEncoderConfigurationOption
 }
 
+// AudioEncoderConfigurationOption 音频编码器配置选项
 type AudioEncoderConfigurationOption struct {
-	Encoding       AudioEncoding
-	BitrateList    IntList
+	// 编码类型
+	Encoding AudioEncoding
+	// 支持的编码率
+	BitrateList IntList
+	// 支持的样本率
 	SampleRateList IntList
 }
