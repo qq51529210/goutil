@@ -1,9 +1,7 @@
 package device
 
 import (
-	"context"
 	"encoding/xml"
-	"fmt"
 	"goutil/soap"
 )
 
@@ -27,21 +25,4 @@ func NewNamespaceAttr() *xml.Attr {
 		},
 		Value: Namespace,
 	}
-}
-
-// Device 设备
-type Device struct {
-	url      string
-	security *soap.Security
-}
-
-// NewDevice 返回新的设备，同时获取 all 设备能力
-func NewDevice(ctx context.Context, host, username, password string) *Device {
-	// 初始化
-	d := new(Device)
-	d.url = fmt.Sprintf("http://%s/onvif/device_service", host)
-	d.security = new(soap.Security)
-	d.security.Init(username, password)
-	// 返回
-	return d
 }

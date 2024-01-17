@@ -8,7 +8,7 @@ import (
 )
 
 // GetSystemDateAndTime 获取时间日期
-func (d *Device) GetSystemDateAndTime(ctx context.Context) (*schema.SystemDateTime, error) {
+func GetSystemDateAndTime(ctx context.Context, url string) (*schema.SystemDateTime, error) {
 	// 请求体
 	var req soap.Envelope[any, struct {
 		XMLName xml.Name `xml:"tds:GetSystemDateAndTime"`
@@ -21,7 +21,7 @@ func (d *Device) GetSystemDateAndTime(ctx context.Context) (*schema.SystemDateTi
 		SystemDateAndTime schema.SystemDateTime
 	}]
 	// 发送
-	err := soap.Do(ctx, d.url, &req, &res)
+	err := soap.Do(ctx, url, &req, &res)
 	if err != nil {
 		return nil, err
 	}

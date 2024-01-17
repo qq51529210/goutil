@@ -16,21 +16,21 @@ type Information struct {
 }
 
 // GetDeviceInformation 获取设备基本信息
-func (d *Device) GetDeviceInformation(ctx context.Context) (*Information, error) {
+func GetDeviceInformation(ctx context.Context, url string, security *soap.Security) (*Information, error) {
 	// 请求体
 	var req soap.Envelope[*soap.Security, struct {
 		XMLName xml.Name `xml:"tds:GetDeviceInformation"`
 	}]
 	req.SetSoapTag()
 	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
-	req.Header.Data = d.security
+	req.Header.Data = security
 	// 响应体
 	var res soap.Envelope[any, struct {
 		XMLName xml.Name `xml:"GetDeviceInformationResponse"`
 		Information
 	}]
 	// 发送
-	err := soap.Do(ctx, d.url, &req, &res)
+	err := soap.Do(ctx, url, &req, &res)
 	if err != nil {
 		return nil, err
 	}

@@ -21,8 +21,8 @@ const (
 	CapabilityCategoryPTZ       CapabilityCategory = "PTZ"
 )
 
-// GetCapabilities 获取设备能力，NewDevice 自动调用过一次了，all
-func (d *Device) GetCapabilities(ctx context.Context, categories ...CapabilityCategory) (*schema.Capabilities, error) {
+// GetCapabilities 获取设备能力
+func GetCapabilities(ctx context.Context, url string, security *soap.Security, categories ...CapabilityCategory) (*schema.Capabilities, error) {
 	// 请求体
 	var req soap.Envelope[*soap.Security, struct {
 		XMLName  xml.Name             `xml:"tds:GetCapabilities"`
@@ -30,7 +30,7 @@ func (d *Device) GetCapabilities(ctx context.Context, categories ...CapabilityCa
 	}]
 	req.SetSoapTag()
 	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
-	req.Header.Data = d.security
+	req.Header.Data = security
 	// 不传就获取所有
 	if len(categories) < 1 {
 		req.Body.Data.Category = append(req.Body.Data.Category, CapabilityCategoryAll)
@@ -41,7 +41,7 @@ func (d *Device) GetCapabilities(ctx context.Context, categories ...CapabilityCa
 		Capabilities schema.Capabilities
 	}]
 	// 发送
-	err := soap.Do(ctx, d.url, &req, &res)
+	err := soap.Do(ctx, url, &req, &res)
 	if err != nil {
 		return nil, err
 	}

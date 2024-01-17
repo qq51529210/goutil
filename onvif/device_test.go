@@ -1,9 +1,11 @@
-package device
+package onvif
 
 import (
 	"context"
 	"fmt"
 	"testing"
+
+	owvd "goutil/onvif/wsdl/ver10/device"
 )
 
 const (
@@ -19,7 +21,7 @@ const (
 
 func Test_GetSystemDateAndTime(t *testing.T) {
 	d := NewDevice(context.Background(), host, username, password)
-	m, err := d.GetSystemDateAndTime(context.Background())
+	m, err := owvd.GetSystemDateAndTime(context.Background(), d.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +31,7 @@ func Test_GetSystemDateAndTime(t *testing.T) {
 
 func Test_GetGetCapabilities(t *testing.T) {
 	d := NewDevice(context.Background(), host, username, password)
-	m, err := d.GetCapabilities(context.Background())
+	m, err := owvd.GetCapabilities(context.Background(), d.URL, d.Security, owvd.CapabilityCategoryAll)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +40,7 @@ func Test_GetGetCapabilities(t *testing.T) {
 
 func Test_GetDeviceInformation(t *testing.T) {
 	d := NewDevice(context.Background(), host, username, password)
-	m, err := d.GetDeviceInformation(context.Background())
+	m, err := owvd.GetDeviceInformation(context.Background(), d.URL, d.Security)
 	if err != nil {
 		t.Fatal(err)
 	}
