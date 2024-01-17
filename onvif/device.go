@@ -143,3 +143,10 @@ func (d *Device[Data]) GetStreamURL(ctx context.Context, profileToken string) (*
 	return owvm.GetStreamURL(ctx, d.Capabilities.Media.XAddr, soap.NewSecurity(d.username, d.password),
 		profileToken, owvm.StreamProtocolRTSP, owvm.StreamTypeRTPUnicast)
 }
+
+// AuthStreamURL 给 streamURL 加上用户名密码
+func (d *Device[Data]) AuthStreamURL(streamURL string) string {
+	u, _ := url.Parse(streamURL)
+	u.User = url.UserPassword(d.username, d.password)
+	return u.String()
+}

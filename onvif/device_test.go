@@ -111,6 +111,7 @@ func Test_GetStreamURL(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		m.URL = d.AuthStreamURL(m.URL)
 		fmt.Println(*m)
 	}
 }
