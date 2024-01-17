@@ -11,7 +11,12 @@ import (
 
 const (
 	// SecurityNamespace 命名空间
-	SecurityNamespace = "http://schemas.xmlsoap.org/ws/2002/12/secext"
+	SecurityNamespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"
+)
+
+var (
+	// NamespaceAttr 命名空间属性
+	NamespaceAttr = NewSecurityNamespaceAttr()
 )
 
 var (

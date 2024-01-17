@@ -10,18 +10,14 @@ import (
 )
 
 // Do 发送请求, 格式化 req , 判断 status code 200 , 然后解析到 res
-func Do[reqData, resData any](ctx context.Context, url string, rqd *reqData, rsd *resData) error {
+func Do[rqBody, rsHeader, rsBody any](ctx context.Context, url string, rqb rqBody, rsb *Envelope[rsHeader, rsBody]) error {
 	// 格式化
 	var body bytes.Buffer
-	// err := xml.NewEncoder(&body).Encode(rqd)
-	// for test
-	enc := xml.NewEncoder(&body)
-	enc.Indent("", " ")
-	err := enc.Encode(rqd)
+	err := xml.NewEncoder(&body).Encode(rqb)
 	if err != nil {
 		return fmt.Errorf("encode xml %v", err)
 	}
-	// for test
+	// test
 	fmt.Println(body.String())
 	// 请求
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &body)
@@ -35,18 +31,23 @@ func Do[reqData, resData any](ctx context.Context, url string, rqd *reqData, rsd
 		return fmt.Errorf("do request %v", err)
 	}
 	defer res.Body.Close()
-	// for test
+	// 先读取
 	io.Copy(&body, res.Body)
-	fmt.Println(string(body.Bytes()))
+	if body.Len() > 0 {
+		// test
+		fmt.Println(body.String())
+		// 解析
+		err = xml.NewDecoder(&body).Decode(rsb)
+		if err != nil {
+			return fmt.Errorf("decode response %v", err)
+		}
+		if rsb.Body.Fault != nil {
+			return rsb.Body.Fault
+		}
+	}
 	// 状态码
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("error status code %d", res.StatusCode)
-	}
-	// 解析
-	// err = xml.NewDecoder(res.Body).Decode(rsd)
-	err = xml.NewDecoder(&body).Decode(rsd)
-	if err != nil {
-		return fmt.Errorf("decode response %v", err)
 	}
 	//
 	return nil

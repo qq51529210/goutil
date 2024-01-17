@@ -7,17 +7,15 @@ import (
 )
 
 const (
-	host     = "192.168.31.3"
+	host     = "192.168.31.66"
 	username = "admin"
-	// password = "hwonvif66"
-	password = "dhonvif3"
+	password = "hwonvif66"
+	// username = "onvif"
+	// password = "dhonvif3"
 )
 
 func Test_GetSystemDateAndTime(t *testing.T) {
-	d, err := NewDevice(context.Background(), host, username, password)
-	if err != nil {
-		t.Fatal(err)
-	}
+	d := NewDevice(context.Background(), host, username, password)
 	m, err := d.GetSystemDateAndTime(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -26,11 +24,17 @@ func Test_GetSystemDateAndTime(t *testing.T) {
 	fmt.Println(m.Local())
 }
 
-func Test_GetDeviceInformation(t *testing.T) {
-	d, err := NewDevice(context.Background(), host, username, password)
+func Test_GetGetCapabilities(t *testing.T) {
+	d := NewDevice(context.Background(), host, username, password)
+	m, err := d.GetCapabilities(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Println(m)
+}
+
+func Test_GetDeviceInformation(t *testing.T) {
+	d := NewDevice(context.Background(), host, username, password)
 	m, err := d.GetDeviceInformation(context.Background())
 	if err != nil {
 		t.Fatal(err)

@@ -50,6 +50,5 @@ func (d *Device) GetCapabilities(ctx context.Context, categories ...CapabilityCa
 		return nil, res.Body.Fault
 	}
 	// 成功
-	d.capabilities = &res.Body.Data.Capabilities
 	return &res.Body.Data.Capabilities, nil
 }
