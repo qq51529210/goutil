@@ -22,7 +22,7 @@ func GetDeviceInformation(ctx context.Context, url string, security *soap.Securi
 		XMLName xml.Name `xml:"tds:GetDeviceInformation"`
 	}]
 	req.SetSoapTag()
-	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
+	req.Attr = append(envelopeAttr, soap.NamespaceAttr)
 	req.Header.Data = security
 	// 响应体
 	var res soap.Envelope[any, struct {

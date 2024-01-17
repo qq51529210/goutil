@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"goutil/soap"
 	"net/url"
 
 	owvd "goutil/onvif/wsdl/ver10/device"
 	owvm "goutil/onvif/wsdl/ver10/media"
 	owvs "goutil/onvif/wsdl/ver10/schema"
+	"goutil/soap"
 )
 
 // 错误
@@ -20,13 +20,16 @@ var (
 // Device 表示设备
 type Device[Data any] struct {
 	URL string
-	*soap.Security
 	// 需要主动调用赋值
 	*owvs.Capabilities
 	// 自定义数据
 	Data Data
 	// 设备地址
 	host string
+	// 用户名
+	username string
+	// 密码
+	password string
 }
 
 // NewDevice 初始化字段
@@ -34,8 +37,8 @@ func NewDevice[Data any](host, username, password string, data Data) *Device[Dat
 	// 初始化
 	d := new(Device[Data])
 	d.URL = fmt.Sprintf("http://%s/onvif/device_service", host)
-	d.Security = new(soap.Security)
-	d.Security.Init(username, password)
+	d.username = username
+	d.password = password
 	d.Data = data
 	d.host = host
 	// 返回
@@ -44,13 +47,7 @@ func NewDevice[Data any](host, username, password string, data Data) *Device[Dat
 
 // NewDeviceWithCapabilities 初始化字段，同时获取能力
 func NewDeviceWithCapabilities[Data any](ctx context.Context, host, username, password string, data Data) (*Device[Data], error) {
-	// 初始化
-	d := new(Device[Data])
-	d.URL = fmt.Sprintf("http://%s/onvif/device_service", host)
-	d.Security = new(soap.Security)
-	d.Security.Init(username, password)
-	d.Data = data
-	d.host = host
+	d := NewDevice(host, username, password, data)
 	// 获取能力
 	c, err := d.GetCapabilities(ctx)
 	if err != nil {
@@ -117,18 +114,32 @@ func (d *Device[Data]) GetSystemDateAndTime(ctx context.Context) (*owvs.SystemDa
 
 // GetCapabilities 查询能力
 func (d *Device[Data]) GetCapabilities(ctx context.Context, categories ...owvd.CapabilityCategory) (*owvs.Capabilities, error) {
-	return owvd.GetCapabilities(ctx, d.URL, d.Security)
+	return owvd.GetCapabilities(ctx, d.URL, soap.NewSecurity(d.username, d.password))
 }
 
 // GetDeviceInformation 查询信息
 func (d *Device[Data]) GetDeviceInformation(ctx context.Context) (*owvd.Information, error) {
-	return owvd.GetDeviceInformation(ctx, d.URL, d.Security)
+	return owvd.GetDeviceInformation(ctx, d.URL, soap.NewSecurity(d.username, d.password))
+}
+
+// IsMediaServiceOK 媒体服务是否支持
+func (d *Device[Data]) IsMediaServiceOK() bool {
+	return d.Capabilities != nil && d.Capabilities.Media != nil && d.Capabilities.Media.XAddr != ""
 }
 
 // GetProfiles 查询媒体属性
 func (d *Device[Data]) GetProfiles(ctx context.Context) ([]*owvs.Profile, error) {
-	if d.Capabilities == nil || d.Capabilities.Media == nil || d.Capabilities.Media.XAddr == "" {
+	if !d.IsMediaServiceOK() {
 		return nil, ErrMediaCapabilityUnsupported
 	}
-	return owvm.GetProfiles(ctx, d.Capabilities.Media.XAddr, d.Security)
+	return owvm.GetProfiles(ctx, d.Capabilities.Media.XAddr, soap.NewSecurity(d.username, d.password))
+}
+
+// GetProfiles 查询媒体属性
+func (d *Device[Data]) GetStreamURL(ctx context.Context, profileToken string) (*owvs.MediaURL, error) {
+	if !d.IsMediaServiceOK() {
+		return nil, ErrMediaCapabilityUnsupported
+	}
+	return owvm.GetStreamURL(ctx, d.Capabilities.Media.XAddr, soap.NewSecurity(d.username, d.password),
+		profileToken, owvm.StreamProtocolRTSP, owvm.StreamTypeRTPUnicast)
 }

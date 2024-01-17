@@ -570,9 +570,9 @@ const (
 type VideoEncoderConfiguration struct {
 	ConfigurationEntity
 	// 使用的视频编码
-	Encoding VideoEncoding
+	Encoding *VideoEncoding
 	// 视频的分辨率
-	Resolution VideoResolution
+	Resolution *VideoResolution
 	// 视频量化器和视频质量的相对值
 	// 支持的质量范围内的高值意味着更高的质量
 	Quality float64
@@ -583,7 +583,7 @@ type VideoEncoderConfiguration struct {
 	// 用于配置 H.264 相关参数
 	H264 *H264Configuration
 	// 可用于视频流的多播设置
-	Multicast MulticastConfiguration
+	Multicast *MulticastConfiguration
 	// rtsp 视频流的会话超时
 	SessionTimeout string
 }
@@ -940,7 +940,7 @@ type PTZFilter struct {
 // EventSubscription 订阅
 type EventSubscription struct {
 	// 没有说明
-	Filter string
+	Filter string `xml:",chardata"`
 	// 没有说明
 	SubscriptionPolicy string `xml:",chardata"`
 }
@@ -1140,4 +1140,16 @@ type AudioEncoderConfigurationOption struct {
 	BitrateList IntList
 	// 支持的样本率
 	SampleRateList IntList
+}
+
+// MediaURL 媒体流地址
+type MediaURL struct {
+	// 用于请求媒体流的地址
+	URL string `xml:"Uri"`
+	// 在建立连接之前是否有效
+	InvalidAfterConnect bool
+	// 设备重启后是否无效
+	InvalidAfterReboot bool
+	// 有效的时间，PT0S 表示永久有效
+	Timeout string
 }

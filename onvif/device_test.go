@@ -14,7 +14,7 @@ const (
 	// password = "hwonvif66"
 	host     = "192.168.31.3"
 	username = "ovfs"
-	password = "aa123123"
+	password = "aaa123123"
 )
 
 func Test_GetSystemDateAndTime(t *testing.T) {
@@ -95,4 +95,22 @@ func Test_GetProfiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Println(m)
+}
+
+func Test_GetStreamURL(t *testing.T) {
+	d, err := NewDeviceWithCapabilities(context.Background(), host, username, password, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ps, err := d.GetProfiles(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range ps {
+		m, err := d.GetStreamURL(context.Background(), p.Token)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fmt.Println(*m)
+	}
 }

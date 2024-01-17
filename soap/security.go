@@ -29,7 +29,14 @@ type Security struct {
 	UsernameToken UsernameToken
 }
 
-// Init 初始化 s
+// NewSecurity 返回初始化好的
+func NewSecurity(username, password string) *Security {
+	s := new(Security)
+	s.Init(username, password)
+	return s
+}
+
+// Init 初始化
 func (s *Security) Init(username, password string) {
 	//
 	s.UsernameToken.Username = username

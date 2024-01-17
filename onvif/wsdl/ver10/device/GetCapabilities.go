@@ -29,7 +29,7 @@ func GetCapabilities(ctx context.Context, url string, security *soap.Security, c
 		Category []CapabilityCategory `xml:"tds:Category"`
 	}]
 	req.SetSoapTag()
-	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
+	req.Attr = append(envelopeAttr, soap.NamespaceAttr)
 	req.Header.Data = security
 	// 不传就获取所有
 	if len(categories) < 1 {
