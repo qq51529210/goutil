@@ -296,7 +296,7 @@ type RealTimeStreamingCapabilities struct {
 	// rtp over tcp
 	RTPOverTCP bool `xml:"RTP_TCP"`
 	// rtp/rtsp/tcp
-	RTPRTSPTCP bool
+	RTPRTSPTCP bool `xml:"RTP_RTSP_TCP"`
 	// 没有说明
 	Extension RealTimeStreamingCapabilitiesExtension `xml:",chardata"`
 }

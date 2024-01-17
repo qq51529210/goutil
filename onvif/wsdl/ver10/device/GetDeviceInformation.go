@@ -2,20 +2,12 @@ package device
 
 import (
 	"context"
+	"encoding/xml"
+	"goutil/soap"
 )
 
-// type getDeviceInformationReq struct {
-// 	soap.Envelope[any, struct {
-// 		XMLName string `xml:"tds:GetDeviceInformation"`
-// 	}]
-// }
-
-// type getDeviceInformationRes struct {
-// 	soap.Envelope[any, DeviceInformation]
-// }
-
-// DeviceInformation -> GetDeviceInformationResponse
-type DeviceInformation struct {
+// Information 是 GetDeviceInformation 的返回值
+type Information struct {
 	Manufacturer    string
 	Model           string
 	FirmwareVersion string
@@ -23,23 +15,28 @@ type DeviceInformation struct {
 	HardwareID      string
 }
 
-// GetDeviceInformation
-// This operation gets basic device information from the device.
-func GetDeviceInformation(ctx context.Context, url string) (*DeviceInformation, error) {
-	// // 消息
-	// var _req getDeviceInformationReq
-	// _req.Envelope.Attr = envelopeAttr
-	// var _res getDeviceInformationRes
-	// // 请求
-	// err := soap.Do(ctx, url, &_req, &_res)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // 错误
-	// if _res.Body.Fault != nil {
-	// 	return nil, _res.Body.Fault
-	// }
-	// // 成功
-	// return &_res.Body.Data, nil
-	return nil, nil
+// GetDeviceInformation 获取设备基本信息
+func (d *Device) GetDeviceInformation(ctx context.Context) (*Information, error) {
+	// 请求体
+	var req soap.ReqEnvelope[*soap.Security, struct {
+		XMLName xml.Name `xml:"tds:GetDeviceInformation"`
+	}]
+	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
+	req.Header.Data = d.security
+	// 响应体
+	var res soap.ResEnvelope[any, struct {
+		XMLName xml.Name `xml:"GetDeviceInformationResponse"`
+		Information
+	}]
+	// 发送
+	err := soap.Do(ctx, d.url, &req, &res)
+	if err != nil {
+		return nil, err
+	}
+	// 错误
+	if res.Body.Fault != nil {
+		return nil, res.Body.Fault
+	}
+	// 成功
+	return &res.Body.Data.Information, nil
 }

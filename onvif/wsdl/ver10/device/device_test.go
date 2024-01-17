@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	host     = "192.168.31.66"
+	host     = "192.168.31.3"
 	username = "admin"
-	password = "hwonvif66"
+	// password = "hwonvif66"
+	password = "dhonvif3"
 )
 
 func Test_GetSystemDateAndTime(t *testing.T) {
@@ -26,9 +27,13 @@ func Test_GetSystemDateAndTime(t *testing.T) {
 }
 
 func Test_GetDeviceInformation(t *testing.T) {
-	// d, err := NewDevice(context.Background(), host, username, password)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// fmt.Println(m)
+	d, err := NewDevice(context.Background(), host, username, password)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := d.GetDeviceInformation(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(m)
 }

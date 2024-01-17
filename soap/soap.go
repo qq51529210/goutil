@@ -35,15 +35,15 @@ func Do[reqData, resData any](ctx context.Context, url string, rqd *reqData, rsd
 		return fmt.Errorf("do request %v", err)
 	}
 	defer res.Body.Close()
+	// for test
+	io.Copy(&body, res.Body)
+	fmt.Println(string(body.Bytes()))
 	// 状态码
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("error status code %d", res.StatusCode)
 	}
 	// 解析
 	// err = xml.NewDecoder(res.Body).Decode(rsd)
-	// for test
-	io.Copy(&body, res.Body)
-	fmt.Println(string(body.Bytes()))
 	err = xml.NewDecoder(&body).Decode(rsd)
 	if err != nil {
 		return fmt.Errorf("decode response %v", err)
