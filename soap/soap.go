@@ -22,7 +22,7 @@ func Do[reqData, resData any](ctx context.Context, url string, rqd *reqData, rsd
 		return fmt.Errorf("encode xml %v", err)
 	}
 	// for test
-	fmt.Println(string(body.Bytes()))
+	fmt.Println(body.String())
 	// 请求
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &body)
 	if err != nil {

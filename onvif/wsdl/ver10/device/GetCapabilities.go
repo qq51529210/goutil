@@ -24,10 +24,11 @@ const (
 // GetCapabilities 获取设备能力，NewDevice 自动调用过一次了，all
 func (d *Device) GetCapabilities(ctx context.Context, categories ...CapabilityCategory) (*schema.Capabilities, error) {
 	// 请求体
-	var req soap.ReqEnvelope[*soap.Security, struct {
+	var req soap.Envelope[*soap.Security, struct {
 		XMLName  xml.Name             `xml:"tds:GetCapabilities"`
 		Category []CapabilityCategory `xml:"tds:Category"`
 	}]
+	req.SetSoapTag()
 	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
 	req.Header.Data = d.security
 	// 不传就获取所有
@@ -35,7 +36,7 @@ func (d *Device) GetCapabilities(ctx context.Context, categories ...CapabilityCa
 		req.Body.Data.Category = append(req.Body.Data.Category, CapabilityCategoryAll)
 	}
 	// 响应体
-	var res soap.ResEnvelope[any, struct {
+	var res soap.Envelope[any, struct {
 		XMLName      xml.Name `xml:"GetCapabilitiesResponse"`
 		Capabilities schema.Capabilities
 	}]
