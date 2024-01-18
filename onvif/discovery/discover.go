@@ -32,7 +32,7 @@ const (
 )
 
 // Run 启动协程后台探测，通过 handle 回调
-func Run(iface, addr string, dur time.Duration, handle func(addr string)) (*Discover, error) {
+func Run(iface, addr string, dur time.Duration, logger *log.Logger, handle func(addr string)) (*Discover, error) {
 	d := new(Discover)
 	d.quit = make(chan struct{})
 	atomic.StoreInt32(&d.running, 1)
@@ -59,6 +59,8 @@ type Discover struct {
 	running int32
 	// 退出信号
 	quit chan struct{}
+	// 日志
+	logger *log.Logger
 }
 
 // initConn 初始化 conn
@@ -130,7 +132,7 @@ func (d *Discover) writeRoutine(conn *net.UDPConn, addr *net.UDPAddr, dur time.D
 	timer := time.NewTimer(0)
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		d.logger.Recover(recover())
 		// 关闭
 		conn.Close()
 		// 计时器
@@ -146,7 +148,7 @@ func (d *Discover) writeRoutine(conn *net.UDPConn, addr *net.UDPAddr, dur time.D
 			fmt.Fprintf(buf, msgFmt, uid.UUID1())
 			_, err := conn.WriteTo(buf.Bytes(), addr)
 			if err != nil {
-				log.Error(err)
+				d.logger.Error(err)
 			}
 			timer.Reset(dur)
 		}
@@ -169,21 +171,21 @@ type envelope struct {
 func (d *Discover) readRoutine(conn *net.UDPConn, fn func(addr string)) {
 	defer func() {
 		// 异常
-		log.Recover(recover())
+		d.logger.Recover(recover())
 	}()
 	buf := make([]byte, readBufLen)
 	for atomic.LoadInt32(&d.running) == 1 {
 		// 读取
 		n, _, err := conn.ReadFromUDP(buf)
 		if err != nil {
-			log.Error(err)
+			d.logger.Error(err)
 			continue
 		}
 		// 解析
 		var res envelope
 		err = xml.Unmarshal(buf[:n], &res)
 		if err != nil {
-			log.Error(err)
+			d.logger.Error(err)
 			continue
 		}
 		// 回调通知
