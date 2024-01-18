@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 
 	owvd "goutil/onvif/wsdl/ver10/device"
 	owvm "goutil/onvif/wsdl/ver10/media"
@@ -107,6 +108,20 @@ func (d *Device[Data]) ReplaceXAddrHost(xaddr string) string {
 	return u.String()
 }
 
+func (d *Device[Data]) replaceIP(host string) string {
+	n := strings.LastIndex(host, ":")
+	// host 是一个 ip
+	if n < 1 {
+		return host
+	}
+	// 提取 ip
+	ip := d.host
+	if i := strings.LastIndex(ip, ":"); i > 0 {
+		ip = ip[:i]
+	}
+	return ip + host[n:]
+}
+
 // GetSystemDateAndTime 查询日期时间
 func (d *Device[Data]) GetSystemDateAndTime(ctx context.Context) (*owvs.SystemDateTime, error) {
 	return owvd.GetSystemDateAndTime(ctx, d.URL)
@@ -135,18 +150,18 @@ func (d *Device[Data]) GetProfiles(ctx context.Context) ([]*owvs.Profile, error)
 	return owvm.GetProfiles(ctx, d.Capabilities.Media.XAddr, soap.NewSecurity(d.username, d.password))
 }
 
-// GetProfiles 查询媒体属性
-func (d *Device[Data]) GetStreamURL(ctx context.Context, profileToken string) (*owvs.MediaURL, error) {
+// GetRTSPStreamURL 返回 rtsp 地址
+func (d *Device[Data]) GetRTSPStreamURL(ctx context.Context, profileToken string) (string, error) {
 	if !d.IsMediaServiceOK() {
-		return nil, ErrMediaCapabilityUnsupported
+		return "", ErrMediaCapabilityUnsupported
 	}
-	return owvm.GetStreamURL(ctx, d.Capabilities.Media.XAddr, soap.NewSecurity(d.username, d.password),
+	m, err := owvm.GetStreamURL(ctx, d.Capabilities.Media.XAddr, soap.NewSecurity(d.username, d.password),
 		profileToken, owvm.StreamProtocolRTSP, owvm.StreamTypeRTPUnicast)
-}
-
-// AuthStreamURL 给 streamURL 加上用户名密码
-func (d *Device[Data]) AuthStreamURL(streamURL string) string {
-	u, _ := url.Parse(streamURL)
+	if err != nil {
+		return "", err
+	}
+	u, _ := url.Parse(m.URL)
 	u.User = url.UserPassword(d.username, d.password)
-	return u.String()
+	u.Host = d.replaceIP(u.Host)
+	return u.String(), nil
 }

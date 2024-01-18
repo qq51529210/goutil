@@ -107,11 +107,10 @@ func Test_GetStreamURL(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, p := range ps {
-		m, err := d.GetStreamURL(context.Background(), p.Token)
+		m, err := d.GetRTSPStreamURL(context.Background(), p.Token)
 		if err != nil {
 			t.Fatal(err)
 		}
-		m.URL = d.AuthStreamURL(m.URL)
-		fmt.Println(*m)
+		fmt.Println(m)
 	}
 }
