@@ -36,7 +36,7 @@ const (
 func GetServerConfig(ctx context.Context, req *GetServerConfigReq) (map[string]string, error) {
 	// 请求
 	var res getServerConfigRes
-	err := request[any](ctx, req.BaseURL, apiGetServerConfig, nil, &res)
+	err := request(ctx, req.BaseURL, apiGetServerConfig, req, &res)
 	if err != nil {
 		return nil, err
 	}

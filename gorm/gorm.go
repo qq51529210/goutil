@@ -21,7 +21,7 @@ type PageQuery struct {
 	// 排序，"column [desc]"
 	Order string `json:"order,omitempty" form:"order"`
 	// 是否需要返回总数
-	Total *int8 `json:"total,omitempty" form:"total" binding:"omitempty,oneof=0 1"`
+	Total string `json:"total,omitempty" form:"total" binding:"omitempty,oneof=0 1"`
 }
 
 // NextPage 下一页，n 是当前页的数据量
@@ -45,7 +45,7 @@ func (m *PageQuery) HasCount() bool {
 
 // HasTotal 是否有总数
 func (m *PageQuery) HasTotal() bool {
-	return m.Total != nil && *m.Total == 1
+	return m.Total == "1"
 }
 
 // PageResult 是 Page 的返回值
