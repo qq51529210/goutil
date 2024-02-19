@@ -570,7 +570,7 @@ const (
 type VideoEncoderConfiguration struct {
 	ConfigurationEntity
 	// 使用的视频编码
-	Encoding *VideoEncoding
+	Encoding VideoEncoding
 	// 视频的分辨率
 	Resolution *VideoResolution
 	// 视频量化器和视频质量的相对值
