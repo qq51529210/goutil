@@ -68,8 +68,7 @@ const (
 func AddStreamProxy(ctx context.Context, req *AddStreamProxyReq) (string, error) {
 	// 请求
 	var res addStreamProxyRes
-	err := request(ctx, req.BaseURL, apiAddStreamProxy, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiAddStreamProxy, req, &res); err != nil {
 		return "", err
 	}
 	if res.apiError.Code != codeTrue {

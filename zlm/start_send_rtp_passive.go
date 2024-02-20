@@ -50,8 +50,7 @@ const (
 func StartSendRTPPassive(ctx context.Context, req *StartSendRTPPassiveReq) (int, error) {
 	// 请求
 	var res startSendRTPPassiveRes
-	err := request(ctx, req.BaseURL, apiStartSendRtpPassive, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiStartSendRtpPassive, req, &res); err != nil {
 		return 0, err
 	}
 	if res.apiError.Code != codeTrue {

@@ -39,8 +39,7 @@ const (
 func GetMp4RecordFile(ctx context.Context, req *GetMp4RecordFileReq) error {
 	// 请求
 	var res getMp4RecordFileRes
-	err := request(ctx, req.BaseURL, apiGetMp4RecordFile, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiGetMp4RecordFile, req, &res); err != nil {
 		return err
 	}
 	if res.apiError.Code != codeTrue {

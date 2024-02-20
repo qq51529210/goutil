@@ -31,8 +31,7 @@ const (
 func SetRecordSpeed(ctx context.Context, req *SetRecordSpeedReq) error {
 	// 请求
 	var res setRecordSpeedRes
-	err := request(ctx, req.BaseURL, apiSetRecordSpeed, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiSetRecordSpeed, req, &res); err != nil {
 		return err
 	}
 	if res.apiError.Code != codeTrue {

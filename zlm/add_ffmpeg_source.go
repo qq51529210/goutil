@@ -49,8 +49,7 @@ const (
 func AddFFMPEGSource(ctx context.Context, req *AddFFMPEGSourceReq) (string, error) {
 	// 请求
 	var res addFFMPEGSourceRes
-	err := request(ctx, req.BaseURL, apiAddFFmpegSource, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiAddFFmpegSource, req, &res); err != nil {
 		return "", err
 	}
 	if res.apiError.Code != codeTrue {

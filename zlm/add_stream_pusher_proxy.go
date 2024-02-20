@@ -48,8 +48,7 @@ const (
 func AddStreamPusherProxy(ctx context.Context, req *AddStreamPusherProxyReq) (string, error) {
 	// 请求
 	var res addStreamPusherProxyRes
-	err := request(ctx, req.BaseURL, apiAddStreamPusherProxy, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiAddStreamPusherProxy, req, &res); err != nil {
 		return "", err
 	}
 	if res.apiError.Code != codeTrue {

@@ -33,8 +33,7 @@ const (
 // 停止 GB28181 rtp 推流。
 func StopSendRTP(ctx context.Context, req *StopSendRTPReq) error {
 	var res stopSendRTPRes
-	err := request(ctx, req.BaseURL, apiStopSendRTP, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiStopSendRTP, req, &res); err != nil {
 		return err
 	}
 	// 经过测试，-500 是找不到流，-1 是已经停止

@@ -34,8 +34,7 @@ const (
 func ConnectRTPServer(ctx context.Context, req *ConnectRTPServerReq) error {
 	// 请求
 	var res connectRTPServerRes
-	err := request(ctx, req.BaseURL, apiConnectRTPServer, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiConnectRTPServer, req, &res); err != nil {
 		return err
 	}
 	if res.apiError.Code != codeTrue {

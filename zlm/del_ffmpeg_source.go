@@ -38,8 +38,7 @@ const (
 func DelFFmpegSource(ctx context.Context, req *DelFFMPEGSourceReq) (bool, error) {
 	// 请求
 	var res delFFMPEGSourceRes
-	err := request(ctx, req.BaseURL, apiDelFFmpegSource, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiDelFFmpegSource, req, &res); err != nil {
 		return false, err
 	}
 	if res.apiError.Code != codeTrue {

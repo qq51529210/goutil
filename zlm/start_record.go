@@ -41,8 +41,7 @@ const (
 func StartRecord(ctx context.Context, req *StartRecordReq) (bool, error) {
 	// 请求
 	var res startRecordRes
-	err := request(ctx, req.BaseURL, apiStartRecord, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiStartRecord, req, &res); err != nil {
 		return false, err
 	}
 	if res.apiError.Code != codeTrue {

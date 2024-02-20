@@ -33,8 +33,7 @@ const (
 func DeleteRecordDirectory(ctx context.Context, req *DeleteRecordDirectoryReq) error {
 	// 请求
 	var res deleteRecordDirectoryRes
-	err := request(ctx, req.BaseURL, apiDeleteRecordDirectory, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiDeleteRecordDirectory, req, &res); err != nil {
 		return err
 	}
 	if res.apiError.Code != codeTrue {

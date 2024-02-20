@@ -36,8 +36,7 @@ const (
 // 返回是否成功
 func StopRecord(ctx context.Context, req *StopRecordReq) (bool, error) {
 	var res stopRecordRes
-	err := request(ctx, req.BaseURL, apiStopRecord, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiStopRecord, req, &res); err != nil {
 		return false, err
 	}
 	// 经过测试，-500 是找不到流，-1 是已经停止

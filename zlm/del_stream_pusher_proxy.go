@@ -38,8 +38,7 @@ const (
 func DelStreamPusherProxy(ctx context.Context, req *DelStreamPusherProxyReq) (bool, error) {
 	// 请求
 	var res delStreamPusherProxyRes
-	err := request(ctx, req.BaseURL, apiDelStreamPusherProxy, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiDelStreamPusherProxy, req, &res); err != nil {
 		return false, err
 	}
 	if res.apiError.Code != codeTrue {

@@ -33,8 +33,7 @@ const (
 func CloseRTPServer(ctx context.Context, req *CloseRTPServerReq) (int, error) {
 	// 请求
 	var res closeRTPServerRes
-	err := request(ctx, req.BaseURL, apiCloseRtpServer, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiCloseRtpServer, req, &res); err != nil {
 		return 0, err
 	}
 	if res.apiError.Code != codeTrue {

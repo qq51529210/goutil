@@ -27,8 +27,7 @@ const (
 // 重启服务器,只有Daemon方式才能重启，否则是直接关闭！
 func RestartServer(ctx context.Context, req *RestartServerReq) error {
 	var res restartServerRes
-	err := request[any](ctx, req.BaseURL, apiRestartServer, nil, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiRestartServer, req, &res); err != nil {
 		return err
 	}
 	if res.apiError.Code != codeTrue {

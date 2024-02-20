@@ -36,8 +36,7 @@ const (
 func GetServerConfig(ctx context.Context, req *GetServerConfigReq) (map[string]string, error) {
 	// 请求
 	var res getServerConfigRes
-	err := request(ctx, req.BaseURL, apiGetServerConfig, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiGetServerConfig, req, &res); err != nil {
 		return nil, err
 	}
 	if res.apiError.Code != codeTrue {
@@ -64,8 +63,7 @@ type getServerConfigAndUnmarshalRes[M any] struct {
 func GetServerConfigAndUnmarshal[M any](ctx context.Context, req *GetServerConfigReq) ([]M, error) {
 	// 请求
 	var res getServerConfigAndUnmarshalRes[M]
-	err := request(ctx, req.BaseURL, apiGetServerConfig, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiGetServerConfig, req, &res); err != nil {
 		return nil, err
 	}
 	if res.apiError.Code != codeTrue {

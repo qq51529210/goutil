@@ -82,8 +82,7 @@ const (
 func GetMediaList(ctx context.Context, req *GetMediaListReq) ([]*MediaListData, error) {
 	// 请求
 	var res getMediaListRes
-	err := request(ctx, req.BaseURL, apiGetMediaList, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiGetMediaList, req, &res); err != nil {
 		return nil, err
 	}
 	if res.apiError.Code != codeTrue {

@@ -38,6 +38,7 @@ func SetServerConfig(ctx context.Context, req *SetServerConfigReq) error {
 	for k, v := range req.Data {
 		q.Add(k, v)
 	}
+	q = gh.Query(req, q)
 	url := fmt.Sprintf("%s?%s", requestURL[any](req.BaseURL, apiSetServerConfig, nil), q.Encode())
 	// 请求
 	var res setServerConfigRes
@@ -73,8 +74,7 @@ type setServerConfigAndUnmarshalRes[M any] struct {
 func SetServerConfigAndUnmarshal[M any](ctx context.Context, req *SetServerConfigReq) ([]M, error) {
 	// 请求
 	var res setServerConfigAndUnmarshalRes[M]
-	err := request(ctx, req.BaseURL, apiSetServerConfig, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiSetServerConfig, req, &res); err != nil {
 		return nil, err
 	}
 	if res.apiError.Code != codeTrue {

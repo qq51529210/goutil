@@ -58,8 +58,7 @@ const (
 func StartSendRTP(ctx context.Context, req *StartSendRTPReq) (int, error) {
 	// 请求
 	var res startSendRTPRes
-	err := request(ctx, req.BaseURL, apiStartSendRtp, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiStartSendRtp, req, &res); err != nil {
 		return 0, err
 	}
 	if res.apiError.Code != codeTrue {

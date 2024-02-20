@@ -46,8 +46,7 @@ func CloseStreams(ctx context.Context, req *CloseStreamsReq) (*CloseStreamsRes, 
 	// 请求
 	req.Force = True
 	var res closeStreamsRes
-	err := request(ctx, req.BaseURL, apiCloseStreams, req, &res)
-	if err != nil {
+	if err := request(ctx, req.BaseURL, apiCloseStreams, req, &res); err != nil {
 		return nil, err
 	}
 	// 经过测试，-500 应该是不存在的意思
