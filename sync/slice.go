@@ -2,7 +2,14 @@ package sync
 
 import "sync"
 
-// Slice 封装同步的 map
+// NewSlice 返回初始化的 Slice
+func NewSlice[K comparable]() *Slice[K] {
+	m := new(Slice[K])
+	m.Init()
+	return m
+}
+
+// Slice 封装同步的 slice
 type Slice[K comparable] struct {
 	sync.RWMutex
 	D []K
@@ -21,8 +28,8 @@ func (m *Slice[K]) Len() int {
 	return n
 }
 
-// Set 设置，存在返回 false
-func (m *Slice[K]) Set(k K) bool {
+// Slice 设置，存在返回 false
+func (m *Slice[K]) Slice(k K) bool {
 	ok := false
 	m.Lock()
 	for i := 0; i < len(m.D); i++ {

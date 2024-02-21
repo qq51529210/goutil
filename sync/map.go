@@ -2,6 +2,13 @@ package sync
 
 import "sync"
 
+// NewMap 返回初始化的 Map
+func NewMap[K comparable, V any]() *Map[K, V] {
+	m := new(Map[K, V])
+	m.Init()
+	return m
+}
+
 // Map 封装同步的 map
 type Map[K comparable, V any] struct {
 	// 同步锁

@@ -4,6 +4,13 @@ import (
 	"sync"
 )
 
+// NewMapSlice 返回初始化的 MapSlice
+func NewMapSlice[K comparable, V any]() *MapSlice[K, V] {
+	m := new(MapSlice[K, V])
+	m.Init()
+	return m
+}
+
 // MapSlice 封装同步的 map + slice
 type MapSlice[K comparable, V any] struct {
 	// 同步锁

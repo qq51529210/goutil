@@ -2,6 +2,13 @@ package sync
 
 import "sync"
 
+// NewSet 返回初始化的 set
+func NewSet[K comparable]() *Set[K] {
+	m := new(Set[K])
+	m.Init()
+	return m
+}
+
 // Set 封装同步的 map 表示集合
 type Set[K comparable] struct {
 	sync.RWMutex
