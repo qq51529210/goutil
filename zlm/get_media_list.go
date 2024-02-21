@@ -51,7 +51,7 @@ type MediaListData struct {
 }
 
 // InitMediaInfo 填充 m
-func (d *MediaListData) InitMediaInfo(m *MediaInfo) {
+func (d *MediaListData) InitMediaInfo(m *MediaInfo, sid string) {
 	m.App = d.App
 	m.Stream = d.Stream
 	m.Tracks = d.Tracks
@@ -62,6 +62,7 @@ func (d *MediaListData) InitMediaInfo(m *MediaInfo) {
 	m.OriginTypeStr = d.OriginTypeStr
 	m.OriginURL = d.OriginURL
 	m.Video, m.Audio = ParseTrack(d.Tracks)
+	m.Server = sid
 }
 
 // ParseTrack 区分出音/视频轨道
