@@ -3,82 +3,73 @@ package sync
 import "sync"
 
 // NewSlice 返回初始化的 Slice
-func NewSlice[K comparable]() *Slice[K] {
-	m := new(Slice[K])
+func NewSlice[V any]() *Slice[V] {
+	m := new(Slice[V])
 	m.Init()
 	return m
 }
 
 // Slice 封装同步的 slice
-type Slice[K comparable] struct {
+type Slice[V any] struct {
 	sync.RWMutex
-	D []K
+	D []V
 }
 
 // Init 初始化
-func (m *Slice[K]) Init() {
-	m.D = make([]K, 0)
+func (m *Slice[V]) Init() {
+	m.D = make([]V, 0)
 }
 
 // Len 返回数量
-func (m *Slice[K]) Len() int {
+func (m *Slice[V]) Len() int {
 	m.RLock()
 	n := len(m.D)
 	m.RUnlock()
 	return n
 }
 
-// Slice 设置，存在返回 false
-func (m *Slice[K]) Slice(k K) bool {
-	ok := false
+// Add 添加
+func (m *Slice[V]) Add(v V) {
 	m.Lock()
-	for i := 0; i < len(m.D); i++ {
-		if m.D[i] == k {
-			ok = true
-			break
-		}
-	}
+	m.D = append(m.D, v)
 	m.Unlock()
-	//
-	if !ok {
-		m.D = append(m.D, k)
-	}
-	return !ok
 }
 
-// Has 是否存在
-func (m *Slice[K]) Has(k K) bool {
-	ok := false
+// Add 添加
+func (m *Slice[V]) Get(i int) (v V) {
 	m.RLock()
-	for i := 0; i < len(m.D); i++ {
-		if m.D[i] == k {
-			ok = true
-			break
-		}
+	if i < len(m.D) {
+		v = m.D[i]
 	}
 	m.RUnlock()
-	return ok
+	return
 }
 
 // Del 移除
-func (m *Slice[K]) Del(k K) {
+func (m *Slice[V]) Del(i int) {
 	m.Lock()
-	for i := 0; i < len(m.D); i++ {
-		if m.D[i] == k {
-			m.D = append(m.D[:i], m.D[i+1:]...)
-			break
-		}
+	if i < len(m.D) {
+		m.D = append(m.D[:i], m.D[i+1:]...)
 	}
 	m.Unlock()
 }
 
 // Copy 返回拷贝
-func (m *Slice[K]) Copy() []K {
-	var k []K
+func (m *Slice[V]) Copy() []V {
+	var k []V
 	m.RLock()
 	for i := 0; i < len(m.D); i++ {
 		k = append(k, m.D[i])
 	}
 	m.RUnlock()
 	return k
+}
+
+// TakeAll 返回所有值，清除列表
+func (m *Slice[V]) TakeAll() (d []V) {
+	m.Lock()
+	d = m.D
+	m.D = make([]V, 0)
+	m.Unlock()
+	return
 }
