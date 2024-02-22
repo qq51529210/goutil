@@ -14,6 +14,25 @@ func GBTime() string {
 	return time.Now().Format(GBTimeForamt)
 }
 
+// IsGBTime 验证国标时间
+func IsGBTime(timeStr string) bool {
+	_, err := time.Parse(GBTimeForamt, timeStr)
+	return err == nil
+}
+
+// IsGBID 验证国标编号
+func IsGBID(id string) bool {
+	if len(id) != 20 {
+		return false
+	}
+	for _, n := range id {
+		if n < '0' || n > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 // GBTimestamp 解析并返回时间戳
 func GBTimestamp(t string) int64 {
 	_t, err := time.ParseInLocation(GBTimeForamt, t, time.Local)
