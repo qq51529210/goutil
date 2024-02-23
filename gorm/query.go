@@ -21,6 +21,14 @@ var (
 			}
 			return db
 		},
+		"nin": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+			if kind == reflect.Slice || kind == reflect.Array {
+				if !value.IsZero() {
+					return db.Where(fmt.Sprintf("`%s` NOT IN ?", field), value.Interface())
+				}
+			}
+			return db
+		},
 		"eq": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 			return db.Where(fmt.Sprintf("`%s`=?", field), value.Interface())
 		},
@@ -68,16 +76,19 @@ var (
 )
 
 // InitQuery 将 v 格式化到 where ，全部是 AND ，略过空值
+// 其他条件，自己添加 InitQueryFunc
 //
 //	type query struct {
-//	  A *int64 `gq:"eq"` db.Where("`A` = ?", A)
-//	  B string `gq:"like"` db.Where("`B` LiKE %%s%%", B)
-//	  C *int64 `gq:"gt=A"` db.Where("`A` < ?", C)
-//	  D *int64 `gq:"gte=A"` db.Where("`A` <= ?", D)
-//	  E *int64 `gq:"lt=A"` db.Where("`A` > ?", E)
-//	  F *int64 `gq:"let=A"` db.Where("`A` >= ?", F)
-//	  G *int64 `gq:"neq"` db.Where("`G` != ?", G)
-//	  H *int8 `gq:"null"` if H==0/1 db.Where("`H` IS NULL/IS NOT NULL")
+//	  F1 *int64 `gq:"eq"` db.Where("`F1`=?", F1)
+//	  F2 string `gq:"like"` db.Where("`F2` LiKE %%s%%", F2)
+//	  F3 *int64 `gq:"gt=F"` db.Where("`F`<?", F3)
+//	  F4 *int64 `gq:"gte=F"` db.Where("`F`<=?", F4)
+//	  F5 *int64 `gq:"lt=F"` db.Where("`F`>?", F5)
+//	  F6 *int64 `gq:"let=F"` db.Where("`F`>=?", F6)
+//	  F7 *int64 `gq:"neq"` db.Where("`F`!=?", F7)
+//	  F8 *int8 `gq:"null"` if F8==0/1 true/false db.Where("`F8` IS NULL/IS NOT NULL")
+//	  F9 []int64 `gq:"in=F"` db.Where("`F` IN ?", F9)
+//	  F10 []int64 `gq:"nin=F"` db.Where("`F` NOT IN ?", F10)
 //	}
 //
 // 先这样，以后遇到再加
