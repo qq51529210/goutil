@@ -58,8 +58,10 @@ var (
 		},
 		"null": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 			ok := false
-			if kind >= reflect.Int && kind <= reflect.Uint64 {
-				ok = value.Interface() == 1
+			if kind >= reflect.Int && kind <= reflect.Int64 {
+				ok = value.Int() == 1
+			} else if kind >= reflect.Uint && kind <= reflect.Uint64 {
+				ok = value.Uint() == 1
 			} else if kind == reflect.Bool {
 				ok = value.Interface().(bool)
 			} else if kind == reflect.String {
