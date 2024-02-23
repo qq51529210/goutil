@@ -68,9 +68,9 @@ var (
 				return db
 			}
 			if ok {
-				return db.Where(fmt.Sprintf("`%s` IS NULL", field))
+				return db.Where(fmt.Sprintf("`%s` IS NOT NULL", field))
 			}
-			return db.Where(fmt.Sprintf("`%s` IS NOT NULL", field))
+			return db.Where(fmt.Sprintf("`%s` IS NULL", field))
 		},
 	}
 )
