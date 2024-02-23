@@ -63,3 +63,19 @@ func Request(ctx context.Context, client *http.Client, method, url string, query
 	// 回调
 	return onResponse(res)
 }
+
+// HandleResponse 封装处理代码
+func HandleResponse[M any](res *http.Response, data *Result[M]) error {
+	// 状态码
+	if res.StatusCode != http.StatusOK {
+		return StatusError(res.StatusCode)
+	}
+	// 解析数据
+	if err := json.NewDecoder(res.Body).Decode(data); err != nil {
+		return err
+	}
+	if data.Code != 0 {
+		return data
+	}
+	return nil
+}
