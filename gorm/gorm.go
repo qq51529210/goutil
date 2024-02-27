@@ -59,6 +59,12 @@ type PageResult[M any] struct {
 // Page 用于分页查询
 func Page[M any](db *gorm.DB, page *PageQuery, res *PageResult[M]) error {
 	if page != nil {
+		// 总数
+		if page.HasTotal() {
+			if err := db.Count(&res.Total).Error; err != nil {
+				return err
+			}
+		}
 		// 分页
 		if page.Offset != nil {
 			db = db.Offset(*page.Offset)
@@ -66,12 +72,6 @@ func Page[M any](db *gorm.DB, page *PageQuery, res *PageResult[M]) error {
 		// 数量
 		if page.HasCount() {
 			db = db.Limit(*page.Count)
-		}
-		// 总数
-		if page.HasTotal() {
-			if err := db.Count(&res.Total).Error; err != nil {
-				return err
-			}
 		}
 		// 排序
 		if page.Order != "" {
