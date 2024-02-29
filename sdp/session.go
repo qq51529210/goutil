@@ -124,7 +124,6 @@ func (s *Session) parseM(scaner *bufio.Scanner, line string) error {
 	if err := m.Parse(line); err != nil {
 		return err
 	}
-	m.A = make(map[string][]string)
 	s.M = append(s.M, m)
 	// 其他
 	var value string
@@ -136,7 +135,7 @@ func (s *Session) parseM(scaner *bufio.Scanner, line string) error {
 		// a=
 		value = strings.TrimPrefix(line, "a=")
 		if value != line {
-			m.parseA(value)
+			m.AddA(value)
 			continue
 		}
 		// c=
@@ -148,17 +147,10 @@ func (s *Session) parseM(scaner *bufio.Scanner, line string) error {
 			}
 			continue
 		}
-		// y=
-		value = strings.TrimPrefix(line, "y=")
-		if value != line {
-			m.Y = value
-			return nil
-		}
-		// f=
-		value = strings.TrimPrefix(line, "f=")
-		if value != line {
-			m.F = value
-			return nil
+		// 其他
+		if i := strings.IndexByte(line, '='); i > 0 {
+			m.AddOther(line[:i], line[i+1:])
+			continue
 		}
 		return s.parse(scaner, line)
 	}

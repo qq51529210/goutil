@@ -40,70 +40,38 @@ type Media struct {
 	C *Connection
 	// 属性
 	// a=
-	A map[string][]string
-	// 国标视频格式
-	// f=
-	F string
-	// 国标 ssrc
-	// y=
-	Y string
-	// 简化查询
-	// a=sendonly / recvonly / sendrecv
-	SendRecv string
+	A []string
+	// 其他
+	Other map[string][]string
 }
 
-// AddAttr 添加
-func (m *Media) AddAttr(k, v string) {
-	if m.A == nil {
-		m.A = make(map[string][]string)
-	}
-	a, ok := m.A[k]
+// AddA 添加 a=
+func (m *Media) AddA(v string) {
+	m.A = append(m.A, v)
+}
+
+// ResetA 重置 a=
+func (m *Media) ResetA(k, v string) {
+	m.A = make([]string, 0)
+}
+
+// GetA 返回所有
+func (m *Media) GetA() []string {
+	return m.A
+}
+
+// AddOther 添加 k=v
+func (m *Media) AddOther(k, v string) {
+	a, ok := m.Other[k]
 	if !ok {
 		a = make([]string, 0)
 	}
-	m.A[k] = append(a, v)
+	m.Other[k] = append(a, v)
 }
 
-// SetAttr 设置
-func (m *Media) SetAttr(k string, v ...string) {
-	if m.A == nil {
-		m.A = make(map[string][]string)
-	}
-	if v == nil || len(v) < 1 {
-		m.A[k] = []string{}
-	} else {
-		m.A[k] = v
-	}
-}
-
-// GetAttr 返回第一个值
-func (m *Media) GetAttr(k string) string {
-	a, ok := m.A[k]
-	if !ok || len(a) < 1 {
-		return ""
-	}
-	return a[0]
-}
-
-func (m *Media) parseA(s string) {
-	// 简化
-	if s == SendRecv || s == SendOnly || s == RecvOnly {
-		m.SendRecv = s
-	}
-	//
-	var k, v string
-	i := strings.IndexByte(s, ':')
-	if i < 0 {
-		k = s
-	} else {
-		k = s[:i]
-		v = s[i+1:]
-	}
-	as, ok := m.A[k]
-	if !ok {
-		as = make([]string, 0)
-	}
-	m.A[k] = append(as, v)
+// GetOther 返回所有 k=v
+func (m *Media) GetOther(k string) []string {
+	return m.Other[k]
 }
 
 // Parse 从 line 中解析
@@ -146,25 +114,13 @@ func (m *Media) FormatTo(buf *bytes.Buffer) {
 		m.C.FormatTo(buf)
 	}
 	// a=
-	for k, as := range m.A {
-		if len(as) < 1 {
-			fmt.Fprintf(buf, "a=%s\r\n", k)
-			continue
-		}
-		for _, a := range as {
-			if a == "" {
-				fmt.Fprintf(buf, "a=%s\r\n", k)
-				continue
-			}
-			fmt.Fprintf(buf, "a=%s:%s\r\n", k, a)
-		}
+	for _, v := range m.A {
+		fmt.Fprintf(buf, "a=%s\r\n", v)
 	}
-	// f=
-	if m.F != "" {
-		fmt.Fprintf(buf, "f=%s\r\n", m.F)
-	}
-	// y=
-	if m.Y != "" {
-		fmt.Fprintf(buf, "y=%s\r\n", m.Y)
+	// 其他
+	for k, as := range m.Other {
+		for _, v := range as {
+			fmt.Fprintf(buf, "%s=%s\r\n", k, v)
+		}
 	}
 }
