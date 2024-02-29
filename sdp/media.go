@@ -45,33 +45,16 @@ type Media struct {
 	Other map[string][]string
 }
 
-// AddA 添加 a=
-func (m *Media) AddA(v string) {
-	m.A = append(m.A, v)
-}
-
-// ResetA 重置 a=
-func (m *Media) ResetA(k, v string) {
-	m.A = make([]string, 0)
-}
-
-// GetA 返回所有
-func (m *Media) GetA() []string {
-	return m.A
-}
-
 // AddOther 添加 k=v
 func (m *Media) AddOther(k, v string) {
+	if m.Other == nil {
+		m.Other = make(map[string][]string)
+	}
 	a, ok := m.Other[k]
 	if !ok {
 		a = make([]string, 0)
 	}
 	m.Other[k] = append(a, v)
-}
-
-// GetOther 返回所有 k=v
-func (m *Media) GetOther(k string) []string {
-	return m.Other[k]
 }
 
 // Parse 从 line 中解析

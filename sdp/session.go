@@ -135,7 +135,7 @@ func (s *Session) parseM(scaner *bufio.Scanner, line string) error {
 		// a=
 		value = strings.TrimPrefix(line, "a=")
 		if value != line {
-			m.AddA(value)
+			m.A = append(m.A, value)
 			continue
 		}
 		// c=
