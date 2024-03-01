@@ -35,7 +35,7 @@ func (m *Slice[V]) Add(v V) {
 	m.Unlock()
 }
 
-// Add 添加
+// Get 获取
 func (m *Slice[V]) Get(i int) (v V) {
 	m.RLock()
 	if i < len(m.D) {
@@ -55,14 +55,14 @@ func (m *Slice[V]) Del(i int) {
 }
 
 // Copy 返回拷贝
-func (m *Slice[V]) Copy() []V {
-	var k []V
+func (m *Slice[V]) Copy() (vs []V) {
 	m.RLock()
-	for i := 0; i < len(m.D); i++ {
-		k = append(k, m.D[i])
+	if len(m.D) > 0 {
+		vs = make([]V, len(m.D))
+		copy(vs, m.D)
 	}
 	m.RUnlock()
-	return k
+	return
 }
 
 // TakeAll 返回所有值，清除列表
