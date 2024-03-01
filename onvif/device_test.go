@@ -18,7 +18,7 @@ const (
 )
 
 func Test_GetSystemDateAndTime(t *testing.T) {
-	d := NewDevice(host, username, password, 0)
+	d := NewDevice(host, username, password)
 	m, err := d.GetSystemDateAndTime(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -28,7 +28,7 @@ func Test_GetSystemDateAndTime(t *testing.T) {
 }
 
 func Test_GetGetCapabilities(t *testing.T) {
-	d := NewDevice(host, username, password, 0)
+	d := NewDevice(host, username, password)
 	m, err := d.GetCapabilities(context.Background(), owvd.CapabilityCategoryAll)
 	if err != nil {
 		t.Fatal(err)
@@ -77,7 +77,7 @@ func Test_GetGetCapabilities(t *testing.T) {
 }
 
 func Test_GetDeviceInformation(t *testing.T) {
-	d := NewDevice(host, username, password, 0)
+	d := NewDevice(host, username, password)
 	m, err := d.GetDeviceInformation(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -86,7 +86,7 @@ func Test_GetDeviceInformation(t *testing.T) {
 }
 
 func Test_GetProfiles(t *testing.T) {
-	d, err := NewDeviceWithCapabilities(context.Background(), host, username, password, 0)
+	d, err := NewDeviceWithCapabilities(context.Background(), host, username, password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func Test_GetProfiles(t *testing.T) {
 }
 
 func Test_GetStreamURL(t *testing.T) {
-	d, err := NewDeviceWithCapabilities(context.Background(), host, username, password, 0)
+	d, err := NewDeviceWithCapabilities(context.Background(), host, username, password)
 	if err != nil {
 		t.Fatal(err)
 	}

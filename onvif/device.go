@@ -19,12 +19,10 @@ var (
 )
 
 // Device 表示设备
-type Device[Data any] struct {
+type Device struct {
 	URL string
 	// 需要主动调用赋值
 	*owvs.Capabilities
-	// 自定义数据
-	Data Data
 	// 设备地址
 	host string
 	// 用户名
@@ -34,21 +32,20 @@ type Device[Data any] struct {
 }
 
 // NewDevice 初始化字段
-func NewDevice[Data any](host, username, password string, data Data) *Device[Data] {
+func NewDevice(host, username, password string) *Device {
 	// 初始化
-	d := new(Device[Data])
+	d := new(Device)
 	d.URL = fmt.Sprintf("http://%s/onvif/device_service", host)
 	d.username = username
 	d.password = password
-	d.Data = data
 	d.host = host
 	// 返回
 	return d
 }
 
 // NewDeviceWithCapabilities 初始化字段，同时获取能力
-func NewDeviceWithCapabilities[Data any](ctx context.Context, host, username, password string, data Data) (*Device[Data], error) {
-	d := NewDevice(host, username, password, data)
+func NewDeviceWithCapabilities(ctx context.Context, host, username, password string) (*Device, error) {
+	d := NewDevice(host, username, password)
 	// 获取能力
 	c, err := d.GetCapabilities(ctx)
 	if err != nil {
@@ -102,13 +99,13 @@ func NewDeviceWithCapabilities[Data any](ctx context.Context, host, username, pa
 }
 
 // ReplaceXAddrHost 替换掉 xaddr url 中的 host
-func (d *Device[Data]) ReplaceXAddrHost(xaddr string) string {
+func (d *Device) ReplaceXAddrHost(xaddr string) string {
 	u, _ := url.Parse(xaddr)
 	u.Host = d.host
 	return u.String()
 }
 
-func (d *Device[Data]) replaceIP(host string) string {
+func (d *Device) replaceIP(host string) string {
 	n := strings.LastIndex(host, ":")
 	// host 是一个 ip
 	if n < 1 {
@@ -123,27 +120,27 @@ func (d *Device[Data]) replaceIP(host string) string {
 }
 
 // GetSystemDateAndTime 查询日期时间
-func (d *Device[Data]) GetSystemDateAndTime(ctx context.Context) (*owvs.SystemDateTime, error) {
+func (d *Device) GetSystemDateAndTime(ctx context.Context) (*owvs.SystemDateTime, error) {
 	return owvd.GetSystemDateAndTime(ctx, d.URL)
 }
 
 // GetCapabilities 查询能力
-func (d *Device[Data]) GetCapabilities(ctx context.Context, categories ...owvd.CapabilityCategory) (*owvs.Capabilities, error) {
+func (d *Device) GetCapabilities(ctx context.Context, categories ...owvd.CapabilityCategory) (*owvs.Capabilities, error) {
 	return owvd.GetCapabilities(ctx, d.URL, soap.NewSecurity(d.username, d.password))
 }
 
 // GetDeviceInformation 查询信息
-func (d *Device[Data]) GetDeviceInformation(ctx context.Context) (*owvd.Information, error) {
+func (d *Device) GetDeviceInformation(ctx context.Context) (*owvd.Information, error) {
 	return owvd.GetDeviceInformation(ctx, d.URL, soap.NewSecurity(d.username, d.password))
 }
 
 // IsMediaServiceOK 媒体服务是否支持
-func (d *Device[Data]) IsMediaServiceOK() bool {
+func (d *Device) IsMediaServiceOK() bool {
 	return d.Capabilities != nil && d.Capabilities.Media != nil && d.Capabilities.Media.XAddr != ""
 }
 
 // GetProfiles 查询媒体属性
-func (d *Device[Data]) GetProfiles(ctx context.Context) ([]*owvs.Profile, error) {
+func (d *Device) GetProfiles(ctx context.Context) ([]*owvs.Profile, error) {
 	if !d.IsMediaServiceOK() {
 		return nil, ErrMediaCapabilityUnsupported
 	}
@@ -151,7 +148,7 @@ func (d *Device[Data]) GetProfiles(ctx context.Context) ([]*owvs.Profile, error)
 }
 
 // GetRTSPStreamURL 返回 rtsp 地址
-func (d *Device[Data]) GetRTSPStreamURL(ctx context.Context, profileToken string) (string, error) {
+func (d *Device) GetRTSPStreamURL(ctx context.Context, profileToken string) (string, error) {
 	if !d.IsMediaServiceOK() {
 		return "", ErrMediaCapabilityUnsupported
 	}
