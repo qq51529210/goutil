@@ -39,7 +39,7 @@ const (
 
 // OpenRTPServer 调用 /index/api/openRtpServer
 // 创建GB28181 RTP接收端口，如果该端口接收数据超时，则会自动被回收(不用调用closeRtpServer接口)
-// 返回使用的端口
+// 返回使用的端口，如果返回端口为 0 但是没有错误，说明有流
 func OpenRTPServer(ctx context.Context, req *OpenRTPServerReq) (int, error) {
 	// 请求
 	var res openRTPServerRes
@@ -47,7 +47,7 @@ func OpenRTPServer(ctx context.Context, req *OpenRTPServerReq) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if res.apiError.Code != codeTrue {
+	if res.apiError.Code != codeTrue && res.apiError.Code != -300 {
 		res.apiError.Path = apiOpenRTPServer
 		return 0, &res.apiError
 	}
