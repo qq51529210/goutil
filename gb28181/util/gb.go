@@ -41,3 +41,8 @@ func GBTimestamp(t string) int64 {
 	}
 	return _t.Unix()
 }
+
+// GBTimeFromTimestamp 返回国标格式的时间字符串
+func GBTimeFromTimestamp(ts int64) string {
+	return time.Unix(ts, 0).Format(GBTimeForamt)
+}
