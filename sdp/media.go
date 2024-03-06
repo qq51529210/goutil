@@ -45,6 +45,29 @@ type Media struct {
 	Other map[string][]string
 }
 
+// SearchA 查找第一个 a=prefix ，返回剩下的部分
+func (m *Media) SearchA(prefix string) string {
+	for i := 0; i < len(m.A); i++ {
+		s := strings.TrimPrefix(m.A[i], prefix)
+		if s != m.A[i] {
+			return s
+		}
+	}
+	return ""
+}
+
+// SearchAllA 查找所有 a=prefix ，返回剩下的部分
+func (m *Media) SearchAllA(prefix string) []string {
+	var ss []string
+	for i := 0; i < len(m.A); i++ {
+		s := strings.TrimPrefix(m.A[i], prefix)
+		if s != m.A[i] {
+			ss = append(ss, s)
+		}
+	}
+	return ss
+}
+
 // AddOther 添加 k=v
 func (m *Media) AddOther(k, v string) {
 	if m.Other == nil {
