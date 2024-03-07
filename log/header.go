@@ -35,7 +35,10 @@ func FormatTime(log *Log) {
 // FormatHeader 用于格式化日志头
 type FormatHeader func(log *Log, name, module string, level, depth int)
 
-// DefaultHeader 输出 2006-01-02 15:04:05.000000000
+// FormatPanic 用于格式化 panic 日志头
+type FormatPanic func(log *Log, name, module string)
+
+// DefaultHeader 输出 [level] [2006-01-02 15:04:05.000000000] [name] [module]
 func DefaultHeader(log *Log, name, module string, level, depth int) {
 	// 级别
 	log.b = append(log.b, levels[level]...)
@@ -53,7 +56,7 @@ func DefaultHeader(log *Log, name, module string, level, depth int) {
 	}
 }
 
-// FileNameHeader 输出 2006-01-02 15:04:05.000000000 [fileName:fileLine]
+// FileNameHeader 输出 [level] [2006-01-02 15:04:05.000000000] [name] [module] [fileName:fileLine]
 func FileNameHeader(log *Log, name, module string, level, depth int) {
 	// 级别
 	log.b = append(log.b, levels[level]...)
@@ -90,7 +93,7 @@ func FileNameHeader(log *Log, name, module string, level, depth int) {
 	log.b = append(log.b, ']')
 }
 
-// FilePathHeader 输出 2006-01-02 15:04:05.000000 [filePath:fileLine]
+// FilePathHeader 输出 [level] [2006-01-02 15:04:05.000000000] [name] [module] [filePath:fileLine]
 func FilePathHeader(log *Log, name, module string, level, depth int) {
 	// 级别
 	log.b = append(log.b, levels[level]...)
@@ -118,4 +121,23 @@ func FilePathHeader(log *Log, name, module string, level, depth int) {
 	log.b = append(log.b, ':')
 	log.Int(line)
 	log.b = append(log.b, ']')
+}
+
+// PanicHeader 输出 [P] [2006-01-02 15:04:05.000000000] [name] [module]
+func PanicHeader(log *Log, name, module string) {
+	// 级别
+	log.b = append(log.b, levels[panicLevel]...)
+	// 时间
+	FormatTime(log)
+	log.b = append(log.b, ' ')
+	// 名称
+	if name != "" {
+		log.b = append(log.b, name...)
+		log.b = append(log.b, ' ')
+	}
+	// 模块
+	if module != "" {
+		log.b = append(log.b, module...)
+		log.b = append(log.b, ' ')
+	}
 }

@@ -24,6 +24,8 @@ type Logger struct {
 	DisableWarn bool
 	// 是否禁止 error
 	DisableError bool
+	// panic 头格式
+	PanicHeader FormatPanic
 	// 名称
 	name string
 	// 模块
@@ -32,10 +34,11 @@ type Logger struct {
 
 // NewLogger 返回默认的 Logger
 // 格式 "[name] [level] Header [tracID] text"
-func NewLogger(writer io.Writer, header FormatHeader, name, module string, disableLevels []string) *Logger {
+func NewLogger(writer io.Writer, header FormatHeader, panic FormatPanic, name, module string, disableLevels []string) *Logger {
 	lg := new(Logger)
 	lg.Writer = writer
 	lg.Header = header
+	lg.PanicHeader = panic
 	//
 	if name != "" {
 		lg.name = fmt.Sprintf("[%s]", name)
@@ -166,7 +169,7 @@ func (lg *Logger) Recover(recover any) bool {
 	if recover == nil {
 		return false
 	}
-	// get statck info l.line
+	// get stack info l.line
 	b := logPool.Get().(*Log)
 	b.b = b.b[:cap(b.b)]
 	for {
@@ -177,21 +180,14 @@ func (lg *Logger) Recover(recover any) bool {
 		}
 		b.b = make([]byte, len(b.b)+1024)
 	}
-	// log
+	// 缓存
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
-	// 名称
-	if lg.name != "" {
-		l.b = append(l.b, lg.name...)
-	}
-	// 级别
-	l.b = append(l.b, levels[panicLevel]...)
-	FormatTime(l)
-	// recover
-	fmt.Fprintf(l, " %v\n", recover)
-	// filter
-	p := b.b
+	lg.PanicHeader(l, lg.name, lg.module)
+	// stack
+	l.b = append(l.b, "\n[stack]\n"...)
 	// 找到 panic.go
+	p := b.b
 	found := false
 	for len(p) > 0 {
 		// find new line
@@ -223,12 +219,9 @@ func (lg *Logger) Recover(recover any) bool {
 			i--
 		}
 		// write
-		l.b = append(l.b, "[statck] "...)
 		l.b = append(l.b, line[1:]...)
 		l.b = append(l.b, '\n')
 	}
-	// 输出
-	lg.Writer.Write(l.b)
 	// 回收
 	logPool.Put(b)
 	logPool.Put(l)

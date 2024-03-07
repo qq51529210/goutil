@@ -86,7 +86,7 @@ var (
 //	  F3 *int64 `gq:"gt=F"` db.Where("`F`<?", F3)
 //	  F4 *int64 `gq:"gte=F"` db.Where("`F`<=?", F4)
 //	  F5 *int64 `gq:"lt=F"` db.Where("`F`>?", F5)
-//	  F6 *int64 `gq:"let=F"` db.Where("`F`>=?", F6)
+//	  F6 *int64 `gq:"lte=F"` db.Where("`F`>=?", F6)
 //	  F7 *int64 `gq:"neq"` db.Where("`F`!=?", F7)
 //	  F8 *int8 `gq:"null"` if F8==0/1 true/false db.Where("`F8` IS NULL/IS NOT NULL")
 //	  F9 []int64 `gq:"in=F"` db.Where("`F` IN ?", F9)
