@@ -158,8 +158,8 @@ func (p *MapSlice[K, V]) ResetSlice() {
 // Foreach 遍历
 func (p *MapSlice[K, V]) Foreach(f func(V)) {
 	// 同步锁
-	p.Lock()
-	defer p.Unlock()
+	p.RLock()
+	defer p.RUnlock()
 	for _, v := range p.D {
 		f(v)
 	}
@@ -168,8 +168,8 @@ func (p *MapSlice[K, V]) Foreach(f func(V)) {
 // SearchOne 查询第一个返回
 func (p *MapSlice[K, V]) SearchFirst(f func(V) bool) (v V) {
 	// 同步锁
-	p.Lock()
-	defer p.Unlock()
+	p.RLock()
+	defer p.RUnlock()
 	for _, d := range p.D {
 		if f(d) {
 			v = d
@@ -182,8 +182,8 @@ func (p *MapSlice[K, V]) SearchFirst(f func(V) bool) (v V) {
 // Search 查询返回所有
 func (p *MapSlice[K, V]) Search(f func(V) bool) (vs []V) {
 	// 同步锁
-	p.Lock()
-	defer p.Unlock()
+	p.RLock()
+	defer p.RUnlock()
 	for _, d := range p.D {
 		if f(d) {
 			vs = append(vs, d)
