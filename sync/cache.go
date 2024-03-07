@@ -1,24 +1,23 @@
-package goutil
+package sync
 
 import (
 	"context"
-	"goutil/sync"
 )
 
-// CacheLoadFunc 加载数据操作
-type CacheLoadFunc[K comparable, M any] func(context.Context, *Cache[K, M]) error
+// LoadDataFunc 加载数据操作
+type LoadDataFunc[K comparable, M any] func(context.Context, *Cache[K, M]) error
 
 // Cache 封装数据库缓存
 type Cache[K comparable, M any] struct {
-	D sync.Map[K, M]
+	D Map[K, M]
 	// 加载，被调用之前，已经加锁了
-	Load CacheLoadFunc[K, M]
+	Load LoadDataFunc[K, M]
 	// 缓存是否有效
 	ok bool
 }
 
 // Init 初始化
-func (c *Cache[K, M]) Init(loadFunc CacheLoadFunc[K, M]) {
+func (c *Cache[K, M]) Init(loadFunc LoadDataFunc[K, M]) {
 	c.D.Init()
 	c.Load = loadFunc
 }
