@@ -6,9 +6,9 @@ import (
 )
 
 func TestPrint(t *testing.T) {
-	print(NewLogger(os.Stderr, DefaultHeader, PanicHeader, "default", "a", nil))
-	print(NewLogger(os.Stderr, FileNameHeader, PanicHeader, "filename", "b", nil))
-	print(NewLogger(os.Stderr, FilePathHeader, PanicHeader, "filepath", "c", nil))
+	print(NewLogger(os.Stderr, DefaultHeader, "default", "a", nil))
+	print(NewLogger(os.Stderr, FileNameHeader, "filename", "b", nil))
+	print(NewLogger(os.Stderr, FilePathHeader, "filepath", "c", nil))
 }
 
 func print(lg *Logger) {
@@ -21,4 +21,13 @@ func print(lg *Logger) {
 	lg.DebugfTrace("d", "%d", 5)
 	lg.DebugfDepth(1, "%d", 6)
 	lg.DebugfDepthTrace(1, "e", "%d", 7)
+	//
+	printPanic(lg)
+}
+
+func printPanic(lg *Logger) {
+	defer func() {
+		lg.Recover(recover())
+	}()
+	panic("test panice")
 }

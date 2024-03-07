@@ -33,10 +33,8 @@ func FormatTime(log *Log) {
 }
 
 // FormatHeader 用于格式化日志头
+// depth < 0 用于表示没有堆栈，用于 panic 的
 type FormatHeader func(log *Log, name, module string, level, depth int)
-
-// FormatPanic 用于格式化 panic 日志头
-type FormatPanic func(log *Log, name, module string)
 
 // DefaultHeader 输出 [level] [2006-01-02 15:04:05.000000000] [name] [module]
 func DefaultHeader(log *Log, name, module string, level, depth int) {
@@ -71,7 +69,9 @@ func FileNameHeader(log *Log, name, module string, level, depth int) {
 	// 模块
 	if module != "" {
 		log.b = append(log.b, module...)
-		log.b = append(log.b, ' ')
+	}
+	if depth < 0 {
+		return
 	}
 	// [fileName:fileLine]
 	_, path, line, ok := runtime.Caller(depth)
@@ -86,6 +86,7 @@ func FileNameHeader(log *Log, name, module string, level, depth int) {
 			}
 		}
 	}
+	log.b = append(log.b, ' ')
 	log.b = append(log.b, '[')
 	log.b = append(log.b, path...)
 	log.b = append(log.b, ':')
@@ -108,7 +109,9 @@ func FilePathHeader(log *Log, name, module string, level, depth int) {
 	// 模块
 	if module != "" {
 		log.b = append(log.b, module...)
-		log.b = append(log.b, ' ')
+	}
+	if depth < 0 {
+		return
 	}
 	// [filePath:fileLine]
 	_, path, line, ok := runtime.Caller(depth)
@@ -116,28 +119,10 @@ func FilePathHeader(log *Log, name, module string, level, depth int) {
 		path = "???"
 		line = -1
 	}
+	log.b = append(log.b, ' ')
 	log.b = append(log.b, '[')
 	log.b = append(log.b, path...)
 	log.b = append(log.b, ':')
 	log.Int(line)
 	log.b = append(log.b, ']')
-}
-
-// PanicHeader 输出 [P] [2006-01-02 15:04:05.000000000] [name] [module]
-func PanicHeader(log *Log, name, module string) {
-	// 级别
-	log.b = append(log.b, levels[panicLevel]...)
-	// 时间
-	FormatTime(log)
-	log.b = append(log.b, ' ')
-	// 名称
-	if name != "" {
-		log.b = append(log.b, name...)
-		log.b = append(log.b, ' ')
-	}
-	// 模块
-	if module != "" {
-		log.b = append(log.b, module...)
-		log.b = append(log.b, ' ')
-	}
 }

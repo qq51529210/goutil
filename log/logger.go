@@ -24,8 +24,6 @@ type Logger struct {
 	DisableWarn bool
 	// 是否禁止 error
 	DisableError bool
-	// panic 头格式
-	PanicHeader FormatPanic
 	// 名称
 	name string
 	// 模块
@@ -34,11 +32,10 @@ type Logger struct {
 
 // NewLogger 返回默认的 Logger
 // 格式 "[name] [level] Header [tracID] text"
-func NewLogger(writer io.Writer, header FormatHeader, panic FormatPanic, name, module string, disableLevels []string) *Logger {
+func NewLogger(writer io.Writer, header FormatHeader, name, module string, disableLevels []string) *Logger {
 	lg := new(Logger)
 	lg.Writer = writer
 	lg.Header = header
-	lg.PanicHeader = panic
 	//
 	if name != "" {
 		lg.name = fmt.Sprintf("[%s]", name)
@@ -165,8 +162,8 @@ func (lg *Logger) printfTrace(depth, level int, trace, format string, args ...an
 }
 
 // Recover 如果 recover 不为 nil，输出堆栈
-func (lg *Logger) Recover(recover any) bool {
-	if recover == nil {
+func (lg *Logger) Recover(v any) bool {
+	if v == nil {
 		return false
 	}
 	// get stack info l.line
@@ -183,9 +180,15 @@ func (lg *Logger) Recover(recover any) bool {
 	// 缓存
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
-	lg.PanicHeader(l, lg.name, lg.module)
-	// stack
-	l.b = append(l.b, "\n[stack]\n"...)
+	// 头
+	lg.Header(l, lg.name, lg.module, panicLevel, -1)
+	l.b = append(l.b, ' ')
+	// 日志
+	fmt.Fprintf(l, "%v", v)
+	// 换行
+	l.b = append(l.b, '\n')
+	// lg.PanicHeader(l, lg.name, lg.module)
+	// l.b = append(l.b, '\n')
 	// 找到 panic.go
 	p := b.b
 	found := false
@@ -222,6 +225,8 @@ func (lg *Logger) Recover(recover any) bool {
 		l.b = append(l.b, line[1:]...)
 		l.b = append(l.b, '\n')
 	}
+	// 输出
+	lg.Writer.Write(l.b)
 	// 回收
 	logPool.Put(b)
 	logPool.Put(l)

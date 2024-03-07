@@ -60,7 +60,7 @@ const (
 )
 
 func init() {
-	SetLogger(NewLogger(os.Stdout, DefaultHeader, PanicHeader, "", "", nil))
+	SetLogger(NewLogger(os.Stdout, DefaultHeader, "", "", nil))
 }
 
 // SetLogger 设置默认的 Logger 和所有的包函数
