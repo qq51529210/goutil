@@ -114,8 +114,8 @@ func (m *Map[K, V]) TakeAll() (v []V) {
 // Foreach 遍历
 func (m *Map[K, V]) Foreach(f func(V)) {
 	// 同步锁
-	m.Lock()
-	defer m.Unlock()
+	m.RLock()
+	defer m.RUnlock()
 	for _, v := range m.D {
 		f(v)
 	}
@@ -124,8 +124,8 @@ func (m *Map[K, V]) Foreach(f func(V)) {
 // SearchFirst 查询第一个返回
 func (m *Map[K, V]) SearchFirst(f func(V) bool) (v V) {
 	// 同步锁
-	m.Lock()
-	defer m.Unlock()
+	m.RLock()
+	defer m.RUnlock()
 	for _, d := range m.D {
 		if f(d) {
 			v = d
@@ -138,8 +138,8 @@ func (m *Map[K, V]) SearchFirst(f func(V) bool) (v V) {
 // Search 查询返回所有
 func (m *Map[K, V]) Search(f func(V) bool) (vs []V) {
 	// 同步锁
-	m.Lock()
-	defer m.Unlock()
+	m.RLock()
+	defer m.RUnlock()
 	for _, d := range m.D {
 		if f(d) {
 			vs = append(vs, d)
