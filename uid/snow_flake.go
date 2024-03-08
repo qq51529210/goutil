@@ -54,12 +54,12 @@ func (m *snowflake) init() {
 
 // new 生成
 func (m *snowflake) new() uint64 {
-	// 当前时间
-	ts := time.Now().UnixMilli()
 	var sn uint16
 	var mid uint64
 	m.Lock()
-	// 相同
+	// 当前时间
+	ts := time.Now().UnixMilli() << 22
+	// 与上一次相同
 	if ts == m.ts {
 		// 序列号自增
 		m.sn++
@@ -70,17 +70,13 @@ func (m *snowflake) new() uint64 {
 			// 直接递增
 			ts++
 		}
-	} else {
-		// 序列号归零
-		m.sn = 0
 	}
-	// 这里假设时间不会回退
 	m.ts = ts
 	sn = m.sn
 	mid = m.mid
 	m.Unlock()
 	// 41 timestamp | 10 bit mechine id | 12 serial number
-	return uint64(ts)<<22 | mid | uint64(sn)
+	return uint64(ts) | mid | uint64(sn)
 }
 
 // setMID 设置机器编号
@@ -102,7 +98,7 @@ func SnowflakeID() uint64 {
 
 // SnowflakeIDString 返回压缩成 alpha+number 的字符串
 func SnowflakeIDString() string {
-	return SnowflakeIDFrom(SnowflakeID())
+	return SnowflakeIDFrom(_snowflake.new())
 }
 
 // SnowflakeIDFrom 返回压缩成 alpha+number 的字符串

@@ -79,10 +79,10 @@ func (m *uuid) init() {
 }
 
 func (m *uuid) time() (ts int64, sn uint16) {
+	m.Lock()
 	// 时间
 	ts = time.Now().UnixNano() / 100
-	// 序列号
-	m.Lock()
+	// 与上一次相同
 	if ts == m.ts {
 		// 序列号自增
 		m.sn++
@@ -93,11 +93,7 @@ func (m *uuid) time() (ts int64, sn uint16) {
 			// 直接递增
 			ts++
 		}
-	} else {
-		// 序列号归零
-		m.sn = 0
 	}
-	// 这里假设时间不会回退
 	m.ts = ts
 	sn = m.sn
 	m.Unlock()
