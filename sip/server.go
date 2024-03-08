@@ -14,13 +14,6 @@ import (
 	"time"
 )
 
-const (
-	// logTraceUDP = "sip udp"
-	// logTraceTCP = "sip tcp"
-	udp = "udp"
-	tcp = "tcp"
-)
-
 // Handler 是处理消息的接口
 type Handler interface {
 	// 返回 true 表示已经处理
@@ -61,23 +54,27 @@ func (p *udpReadData) Read(buf []byte) (int, error) {
 	return n, nil
 }
 
+// udpServer 包装 udp 相关的数据
 type udpServer struct {
-	w  sync.WaitGroup
-	c  *net.UDPConn
+	c *net.UDPConn
+	// 主动事务
 	at gosync.Map[string, *activeTx]
+	// 被动事务
 	pt gosync.Map[string, *passiveTx]
 }
 
 // tcpServer 包装 tcp 相关的数据
 type tcpServer struct {
-	l  *net.TCPListener
-	c  gosync.Map[connKey, *tcpConn]
+	l *net.TCPListener
+	c gosync.Map[connKey, *tcpConn]
+	// 主动事务
 	at gosync.Map[string, *activeTx]
+	// 被动事务
 	pt gosync.Map[string, *passiveTx]
 }
 
-// Server 表示一个服务
-type Server struct {
+// Option 用于初始化服务
+type Option struct {
 	// 回调函数
 	Handler
 	// 监听端口
@@ -94,6 +91,20 @@ type Server struct {
 	UserAgent string
 	// 日志
 	Logger *log.Logger
+}
+
+// NewServer 返回初始化好的 Server
+func NewServer(opt Option) *Server {
+	s := &Server{opt: opt}
+	// 日志
+	if s.opt.Logger == nil {
+		s.opt.Logger = log.DefaultLogger
+	}
+	return s
+}
+
+// Server 表示一个服务
+type Server struct {
 	// 用于同步等待协程退出
 	w sync.WaitGroup
 	// 状态
@@ -102,6 +113,8 @@ type Server struct {
 	udp udpServer
 	// tcp server
 	tcp tcpServer
+	// 参数
+	opt Option
 }
 
 func (s *Server) isOK() bool {
@@ -117,10 +130,6 @@ func (s *Server) Serve() error {
 	// tcp 启动
 	if err := s.serveTCP(); err != nil {
 		return err
-	}
-	// 日志
-	if s.Logger == nil {
-		s.Logger = log.DefaultLogger
 	}
 	//
 	return nil
@@ -140,20 +149,19 @@ func (s *Server) Close() error {
 
 // serveUDP 启动 udp 服务
 func (s *Server) serveUDP() error {
-	// 初始化地址
-	a, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", s.Port))
+	s.udp.at.Init()
+	s.udp.pt.Init()
+	// 地址
+	a, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", s.opt.Port))
 	if err != nil {
 		return err
 	}
-	// 初始化底层连接
+	// 底层连接
 	s.udp.c, err = net.ListenUDP(a.Network(), a)
 	if err != nil {
 		return err
 	}
-	s.Logger.Infof("listen udp %d", s.Port)
-	//
-	s.udp.at.Init()
-	s.udp.pt.Init()
+	s.opt.Logger.Infof("listen udp %d", s.opt.Port)
 	// 读取协程
 	n := runtime.NumCPU()
 	s.w.Add(n)
@@ -162,8 +170,8 @@ func (s *Server) serveUDP() error {
 	}
 	s.w.Add(3)
 	// 检查
-	go s.checkActiveTxTimeoutRoutine(udp, &s.udp.at)
-	go s.checkPassiveTxTimeoutRoutine(udp, &s.udp.pt)
+	go s.checkActiveTxTimeoutRoutine(a.Network(), &s.udp.at)
+	go s.checkPassiveTxTimeoutRoutine(a.Network(), &s.udp.pt)
 	// 消息重发
 	go s.checkWriteUDPRoutine()
 	//
@@ -175,24 +183,24 @@ func (s *Server) readUDPRoutine(i int) {
 	// 清理
 	defer func() {
 		// 异常
-		s.Logger.Recover(recover())
+		s.opt.Logger.Recover(recover())
 		// 日志
-		s.Logger.Warnf("udp read routine %d stop", i)
+		s.opt.Logger.Warnf("udp read routine %d stop", i)
 		// 结束
 		s.w.Done()
 	}()
 	// 日志
-	s.Logger.Debugf("udp read routine %d start", i)
+	s.opt.Logger.Debugf("udp read routine %d start", i)
 	// 开始
 	var err error
-	r := newReader(nil, s.MaxMessageLen)
-	d := &udpReadData{b: make([]byte, s.MaxMessageLen)}
+	r := newReader(nil, s.opt.MaxMessageLen)
+	d := &udpReadData{b: make([]byte, s.opt.MaxMessageLen)}
 	c := &udpConn{conn: s.udp.c}
 	for s.isOK() {
 		// 读取 udp 数据
 		d.n, d.a, err = s.udp.c.ReadFromUDP(d.b)
 		if err != nil {
-			s.Logger.Errorf("udp read data %v", err)
+			s.opt.Logger.Errorf("udp read data %v", err)
 			continue
 		}
 		d.i = 0
@@ -202,18 +210,18 @@ func (s *Server) readUDPRoutine(i int) {
 		// 一个数据包可能有多个消息，这里需要循环解析处理
 		for s.isOK() {
 			// 解析
-			m := new(message)
-			err = m.Dec(r, s.MaxMessageLen)
+			m := new(Message)
+			err = m.Dec(r, s.opt.MaxMessageLen)
 			if err != nil {
 				if err != io.EOF {
-					s.Logger.Errorf("udp dec message %v", err)
+					s.opt.Logger.Errorf("udp parse message %v", err)
 				}
 				break
 			}
 			// 处理
 			err = s.handleMsg(c, m, &s.udp.at, &s.udp.pt)
 			if err != nil {
-				s.Logger.Errorf("udp handle message %v", err)
+				s.opt.Logger.Errorf("udp handle message %v", err)
 				break
 			}
 		}
@@ -223,48 +231,42 @@ func (s *Server) readUDPRoutine(i int) {
 // checkWriteUDPRoutine 检查超时重发协程
 func (s *Server) checkWriteUDPRoutine() {
 	// 计时器
-	timer := time.NewTimer(s.MinRTO)
+	timer := time.NewTimer(s.opt.MinRTO)
 	defer func() {
 		// 异常
-		s.Logger.Recover(recover())
+		s.opt.Logger.Recover(recover())
 		// 日志
-		s.Logger.Warnf("udp check rto routine stop")
+		s.opt.Logger.Warnf("udp check rto routine stop")
 		// 计时器
 		timer.Stop()
 		// 结束
 		s.w.Done()
 	}()
 	// 日志
-	s.Logger.Debug("udp check rto routine start")
+	s.opt.Logger.Debug("udp check rto routine start")
 	// 开始
-	var ts []*activeTx
 	at := &s.udp.at
 	for s.isOK() {
 		// 时间到
 		now := <-timer.C
-		// 组装
-		ts = ts[:0]
-		at.RLock()
-		for _, t := range at.D {
-			ts = append(ts, t)
-		}
-		at.RUnlock()
+		// 副本
+		ts := at.Values()
 		// 并发计算
 		n := runtime.NumCPU()
 		for len(ts) > n {
 			m := len(ts) / n
-			s.udp.w.Add(1)
+			s.w.Add(1)
 			go s.writeUDPRoutine(ts[:m], now)
 			ts = ts[m:]
 		}
 		if len(ts) > 0 {
-			s.udp.w.Add(1)
+			s.w.Add(1)
 			go s.writeUDPRoutine(ts, now)
 		}
 		// 等待并发结束
-		s.udp.w.Wait()
+		s.w.Wait()
 		// 重置计时器
-		timer.Reset(s.MinRTO)
+		timer.Reset(s.opt.MinRTO)
 	}
 }
 
@@ -272,29 +274,32 @@ func (s *Server) checkWriteUDPRoutine() {
 func (s *Server) writeUDPRoutine(ts []*activeTx, now time.Time) {
 	defer func() {
 		// 异常
-		s.Logger.Recover(recover())
+		s.opt.Logger.Recover(recover())
 		// 结束
-		s.udp.w.Done()
+		s.w.Done()
 	}()
 	// 循环检查，然后发送，超时移除
 	for _, t := range ts {
+		// 停止发送，在收到 1xx 后设置
 		if t.stopRT {
 			continue
 		}
-		// 超时
+		// 是否应该超时重传
 		if now.Sub(t.writeTime) >= t.rto {
 			err := t.conn.write(t.writeData.Bytes())
 			if err != nil {
-				s.Logger.Errorf("udp write %v", err)
+				s.opt.Logger.Errorf("udp write %v", err)
 				continue
 			}
 			// 保存发送时间
 			t.writeTime = now
-			// rto 倍增
-			if t.rto < s.MaxRTO {
+			// 如果没有到达最大值
+			if t.rto < s.opt.MaxRTO {
+				// 翻倍
 				t.rto *= 2
-				if t.rto > s.MaxRTO {
-					t.rto = s.MaxRTO
+				// 但是不能比最大值
+				if t.rto > s.opt.MaxRTO {
+					t.rto = s.opt.MaxRTO
 				}
 			}
 		}
@@ -304,7 +309,6 @@ func (s *Server) writeUDPRoutine(ts []*activeTx, now time.Time) {
 // closeUDP 关闭 udp 端口
 func (s *Server) closeUDP() {
 	if s.udp.c != nil {
-		s.Logger.Info("udp close")
 		s.udp.c.Close()
 		s.udp.c = nil
 		//
@@ -314,32 +318,33 @@ func (s *Server) closeUDP() {
 		for _, t := range s.udp.pt.TakeAll() {
 			t.Finish(errServerClosed)
 		}
+		s.opt.Logger.Info("udp close")
 	}
 }
 
 // serveTCP 开始 tcp 服务
 func (s *Server) serveTCP() error {
-	// 初始化
-	a, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%d", s.Port))
+	s.tcp.c.Init()
+	s.tcp.at.Init()
+	s.tcp.pt.Init()
+	// 地址
+	a, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%d", s.opt.Port))
 	if err != nil {
 		return err
 	}
+	// 监听
 	s.tcp.l, err = net.ListenTCP(a.Network(), a)
 	if err != nil {
 		return err
 	}
-	s.Logger.Infof("tcp listen %d", s.Port)
-	//
-	s.tcp.c.Init()
-	s.tcp.at.Init()
-	s.tcp.pt.Init()
+	s.opt.Logger.Infof("tcp listen %d", s.opt.Port)
 	//
 	s.w.Add(3)
 	// 监听
 	go s.listenTCPRoutine()
 	// 检查
-	go s.checkActiveTxTimeoutRoutine(tcp, &s.tcp.at)
-	go s.checkPassiveTxTimeoutRoutine(tcp, &s.tcp.pt)
+	go s.checkActiveTxTimeoutRoutine(a.Network(), &s.tcp.at)
+	go s.checkPassiveTxTimeoutRoutine(a.Network(), &s.tcp.pt)
 	// 返回
 	return nil
 }
@@ -348,7 +353,7 @@ func (s *Server) serveTCP() error {
 func (s *Server) listenTCPRoutine() {
 	defer func() {
 		// 异常
-		s.Logger.Recover(recover())
+		s.opt.Logger.Recover(recover())
 		// 结束
 		s.w.Done()
 	}()
@@ -356,7 +361,7 @@ func (s *Server) listenTCPRoutine() {
 		// 监听
 		conn, err := s.tcp.l.AcceptTCP()
 		if err != nil {
-			s.Logger.Errorf("tcp accept %v", err)
+			s.opt.Logger.Errorf("tcp accept %v", err)
 			continue
 		}
 		// 处理
@@ -391,7 +396,7 @@ func (s *Server) getTCPConn(a *net.TCPAddr) *tcpConn {
 
 // dialTCPConn 创建连接
 func (s *Server) dialTCPConn(a *net.TCPAddr) (*tcpConn, error) {
-	conn, err := net.DialTimeout(a.Network(), a.String(), s.TxTimeout)
+	conn, err := net.DialTimeout(a.Network(), a.String(), s.opt.TxTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -402,26 +407,26 @@ func (s *Server) dialTCPConn(a *net.TCPAddr) (*tcpConn, error) {
 func (s *Server) handleTCPConnRoutine(c *tcpConn) {
 	defer func() {
 		// 异常
-		s.Logger.Recover(recover())
+		s.opt.Logger.Recover(recover())
 		// 移除
 		s.delTCPConn(c)
 		// 结束
 		s.w.Done()
 	}()
 	//
-	r := newReader(c.conn, s.MaxMessageLen)
+	r := newReader(c.conn, s.opt.MaxMessageLen)
 	for s.isOK() {
 		// 解析，错误直接返回关闭连接
-		m := new(message)
-		err := m.Dec(r, s.MaxMessageLen)
+		m := new(Message)
+		err := m.Dec(r, s.opt.MaxMessageLen)
 		if err != nil {
-			s.Logger.Errorf("tcp dec message %v", err)
+			s.opt.Logger.Errorf("tcp parse message %v", err)
 			return
 		}
 		// 处理
 		err = s.handleMsg(c, m, &s.tcp.at, &s.tcp.pt)
 		if err != nil {
-			s.Logger.Errorf("tcp handle message %v", err)
+			s.opt.Logger.Errorf("tcp handle message %v", err)
 			return
 		}
 	}
@@ -430,7 +435,6 @@ func (s *Server) handleTCPConnRoutine(c *tcpConn) {
 // closeTCP 停止监听，关闭所有的连接
 func (s *Server) closeTCP() {
 	if s.tcp.l != nil {
-		s.Logger.Info("tcp close")
 		s.tcp.l.Close()
 		s.tcp.l = nil
 		//
@@ -438,15 +442,16 @@ func (s *Server) closeTCP() {
 		for _, c := range cs {
 			c.conn.Close()
 		}
+		s.opt.Logger.Info("tcp close")
 	}
 }
 
 // handleMsg 处理消息
-func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx], pt *gosync.Map[string, *passiveTx]) error {
+func (s *Server) handleMsg(c conn, m *Message, at *gosync.Map[string, *activeTx], pt *gosync.Map[string, *passiveTx]) error {
 	// 请求消息
 	if m.isReq {
 		// 日志
-		s.Logger.DebugfTrace(m.txKey(), "request from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
+		s.opt.Logger.DebugfTrace(m.txKey(), "request from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
 		// 事务，返回一定不为 nil
 		t := s.newPassiveTx(c, m, pt)
 		if atomic.CompareAndSwapInt32(&t.handing, 0, 1) {
@@ -466,7 +471,7 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 		return nil
 	}
 	// 日志
-	s.Logger.DebugfTrace(m.txKey(), "response from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
+	s.opt.Logger.DebugfTrace(m.txKey(), "response from %s %s\n%v", c.Network(), c.RemoteAddrString(), m)
 	// 响应消息
 	if m.StartLine[1][0] == '1' {
 		t := at.Get(m.txKey())
@@ -479,6 +484,7 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 	// 事务，不一定有
 	t := s.delActiveTx(m.txKey(), at)
 	if t != nil {
+		t.stopRT = true
 		// 在协程中处理
 		s.w.Add(1)
 		go s.handleResponseRoutine(t, m)
@@ -488,20 +494,20 @@ func (s *Server) handleMsg(c conn, m *message, at *gosync.Map[string, *activeTx]
 }
 
 // handleRequestRoutine 在协程中处理请求消息
-func (s *Server) handleRequestRoutine(t *passiveTx, m *message) {
+func (s *Server) handleRequestRoutine(t *passiveTx, m *Message) {
 	old := time.Now()
 	defer func() {
 		// 异常
-		s.Logger.Recover(recover())
+		s.opt.Logger.Recover(recover())
 		// 日志
-		s.Logger.DebugfTrace(t.TxKey(), "[%v] handle request", time.Since(old))
+		s.opt.Logger.DebugfTrace(t.TxKey(), "[%v] handle request", time.Since(old))
 		// 结束
 		s.w.Done()
 	}()
 	// 回调
-	t.done = s.HandleRequest(&Request{
+	t.done = s.opt.HandleRequest(&Request{
 		Server:  s,
-		message: m,
+		Message: m,
 		tx:      t,
 	})
 	if !t.done {
@@ -511,23 +517,23 @@ func (s *Server) handleRequestRoutine(t *passiveTx, m *message) {
 }
 
 // handleResponseRoutine 在协程中处理响应消息
-func (s *Server) handleResponseRoutine(t *activeTx, m *message) {
+func (s *Server) handleResponseRoutine(t *activeTx, m *Message) {
 	old := time.Now()
 	defer func() {
 		// 异常
-		s.Logger.Recover(recover())
+		s.opt.Logger.Recover(recover())
 		// 日志
-		s.Logger.DebugfTrace(t.TxKey(), "[%v] handle response", time.Since(old))
+		s.opt.Logger.DebugfTrace(t.TxKey(), "[%v] handle response", time.Since(old))
 		// 无论回调有没有通知，这里都通知一下
 		t.Finish(nil)
 		// 结束
 		s.w.Done()
 	}()
 	// 回调处理
-	s.HandleResponse(&Response{
+	s.opt.HandleResponse(&Response{
 		Server:  s,
 		tx:      t,
-		message: m,
+		Message: m,
 	})
 }
 
@@ -566,15 +572,15 @@ func (s *Server) Request(ctx context.Context, r *Request, a net.Addr, d any) err
 
 // doRequest 封装 Request 的公共代码
 func (s *Server) doRequest(ctx context.Context, c conn, r *Request, d any, at *gosync.Map[string, *activeTx]) error {
-	r.Header.UserAgent = s.UserAgent
+	r.Header.UserAgent = s.opt.UserAgent
 	// 事务
-	t, err := s.newActiveTx(c, r.message, d, at)
+	t, err := s.newActiveTx(c, r.Message, d, at)
 	if err != nil {
 		return err
 	}
 	r.tx = t
 	// 日志
-	s.Logger.DebugfTrace(t.TxKey(), "request to %s %s\n%s", c.Network(), c.RemoteAddrString(), t.writeData.String())
+	s.opt.Logger.DebugfTrace(t.TxKey(), "request to %s %s\n%s", c.Network(), c.RemoteAddrString(), t.writeData.String())
 	// 立即发送
 	err = c.write(t.writeData.Bytes())
 	if err == nil {
@@ -588,14 +594,11 @@ func (s *Server) doRequest(ctx context.Context, c conn, r *Request, d any, at *g
 			t.Finish(err)
 		case <-t.exit:
 			err = t.err
-			// 要么是收到了响应的消息被调用
-			// 要么是检查超时被被调用
-			// 所以这里不需要调用
-			// s.delActiveTx(t.key, at)
 		}
 	}
+	s.delActiveTx(t.key, at)
 	// 日志
-	s.Logger.DebugfTrace(t.TxKey(), "[%v] do request", time.Since(t.time))
+	s.opt.Logger.DebugfTrace(t.TxKey(), "[%v] do request", time.Since(t.time))
 	//
 	return err
 }

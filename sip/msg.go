@@ -221,8 +221,8 @@ func (m *Via) Enc(w Writer) (err error) {
 	return
 }
 
-// header 表示消息的一些必需的头字段
-type header struct {
+// Header 表示消息的一些必需的头字段
+type Header struct {
 	Via           []*Via
 	From          Address
 	To            Address
@@ -237,12 +237,12 @@ type header struct {
 	contentLength int64
 }
 
-func (m *header) errorLine(line string) error {
+func (m *Header) errorLine(line string) error {
 	return fmt.Errorf("error header %s", line)
 }
 
 // Dec 解析
-func (m *header) Dec(r Reader, max int) (int, error) {
+func (m *Header) Dec(r Reader, max int) (int, error) {
 	m.others = make(map[string]string)
 	var from, to, cseq, contentLength bool
 	for {
@@ -343,7 +343,7 @@ func (m *header) Dec(r Reader, max int) (int, error) {
 }
 
 // Enc 格式化
-func (m *header) Enc(w Writer) (err error) {
+func (m *Header) Enc(w Writer) (err error) {
 	// Via
 	for i := 0; i < len(m.Via); i++ {
 		if err = m.Via[i].Enc(w); err != nil {
@@ -408,7 +408,7 @@ func (m *header) Enc(w Writer) (err error) {
 }
 
 // Reset 重置
-func (m *header) Reset() {
+func (m *Header) Reset() {
 	m.Via = m.Via[:0]
 	m.From.Reset()
 	m.To.Reset()
@@ -423,7 +423,7 @@ func (m *header) Reset() {
 }
 
 // Has 是否存在
-func (m *header) Has(key string) (ok bool) {
+func (m *Header) Has(key string) (ok bool) {
 	if m.others != nil {
 		_, ok = m.others[key]
 	}
@@ -431,7 +431,7 @@ func (m *header) Has(key string) (ok bool) {
 }
 
 // Get 返回
-func (m *header) Get(key string) (value string) {
+func (m *Header) Get(key string) (value string) {
 	if m.others != nil {
 		value = m.others[key]
 	}
@@ -439,7 +439,7 @@ func (m *header) Get(key string) (value string) {
 }
 
 // Set 设置
-func (m *header) Set(key, value string) {
+func (m *Header) Set(key, value string) {
 	if m.others == nil {
 		m.others = make(map[string]string)
 	}
@@ -447,41 +447,41 @@ func (m *header) Set(key, value string) {
 }
 
 // Del 删除
-func (m *header) Del(key string) {
+func (m *Header) Del(key string) {
 	if m.others != nil {
 		delete(m.others, key)
 	}
 }
 
 // ResetOther 重置 others
-func (m *header) ResetOther() {
+func (m *Header) ResetOther() {
 	m.others = make(map[string]string)
 }
 
 // KeepBasic 重置 contact、contentType、useragent、other
-func (m *header) KeepBasic() {
+func (m *Header) KeepBasic() {
 	m.Contact.Reset()
 	m.ContentType = ""
 	m.UserAgent = ""
 	m.others = make(map[string]string)
 }
 
-// message 表示 start line + header + body 的结构
-type message struct {
+// Message 表示 start line + header + body 的结构
+type Message struct {
 	StartLine [3]string
-	Header    header
+	Header    Header
 	Body      bytes.Buffer
 	isReq     bool
 }
 
 // txKey 返回事务的 key
-func (m *message) txKey() string {
+func (m *Message) txKey() string {
 	return m.Header.CSeq.Method + m.Header.CallID + m.Header.Via[0].Branch
 }
 
-// Dec 从 r 中读取并解析一个完整的 message
+// Dec 从 r 中读取并解析一个完整的 Message
 // 如果读取的字节数大于 max 返回错误
-func (m *message) Dec(r Reader, max int) (err error) {
+func (m *Message) Dec(r Reader, max int) (err error) {
 	// start line
 	max, err = m.DecStartLine(r, max)
 	if err != nil {
@@ -501,7 +501,7 @@ func (m *message) Dec(r Reader, max int) (err error) {
 
 // Enc 格式化 header 和 body（如果 body 不为空）到 w 中
 // Content-Length 字段是根据 body 的大小自动添加的
-func (m *message) Enc(w Writer) (err error) {
+func (m *Message) Enc(w Writer) (err error) {
 	// start line
 	fmt.Fprintf(w, "%s %s %s\r\n", m.StartLine[0], m.StartLine[1], m.StartLine[2])
 	// header
@@ -521,7 +521,7 @@ func (m *message) Enc(w Writer) (err error) {
 }
 
 // DecStartLine 解析 start line ，返回剩余的 max
-func (m *message) DecStartLine(reader Reader, max int) (int, error) {
+func (m *Message) DecStartLine(reader Reader, max int) (int, error) {
 	// 读取一行
 	line, err := reader.ReadLine()
 	if err != nil {
@@ -540,7 +540,7 @@ func (m *message) DecStartLine(reader Reader, max int) (int, error) {
 }
 
 // decStartLine 解析 start line
-func (m *message) decStartLine(line string) bool {
+func (m *Message) decStartLine(line string) bool {
 	// 一部分
 	line = strings.TrimSpace(line)
 	i := strings.Index(line, " ")
@@ -570,7 +570,7 @@ func (m *message) decStartLine(line string) bool {
 }
 
 // String 返回格式化后的字符串。
-func (m *message) String() string {
+func (m *Message) String() string {
 	var str strings.Builder
 	m.Enc(&str)
 	return str.String()
@@ -579,13 +579,13 @@ func (m *message) String() string {
 // Request 表示请求消息
 type Request struct {
 	*Server
-	*message
+	*Message
 	tx
 }
 
 // NewRequest 创建请求
 func NewRequest() *Request {
-	return &Request{message: new(message)}
+	return &Request{Message: new(Message)}
 }
 
 // Response 用于发送响应消息，在处理请求消息的时候使用
@@ -615,17 +615,17 @@ func (m *Request) ResponseWith(status, phrase string) {
 		m.Header.Via[0].RProt = m.RemotePort()
 	}
 	//
-	m.Header.UserAgent = m.Server.UserAgent
+	m.Header.UserAgent = m.Server.opt.UserAgent
 	// 格式化
 	buf := m.dataBuffer()
 	buf.Reset()
 	m.Enc(buf)
 	// 日志
-	m.Server.Logger.DebugfTrace(m.tx.TxKey(), "write response to %s %s\n%s", m.Network(), m.RemoteAddrString(), buf.String())
+	m.Server.opt.Logger.DebugfTrace(m.tx.TxKey(), "write response to %s %s\n%s", m.Network(), m.RemoteAddrString(), buf.String())
 	// 立刻发送
 	err := m.write(buf.Bytes())
 	if err != nil {
-		m.Server.Logger.ErrorDepthTrace(2, m.txKey(), err)
+		m.Server.opt.Logger.ErrorDepthTrace(2, m.txKey(), err)
 	}
 }
 
@@ -639,7 +639,7 @@ func (m *Request) NewResponse(status, phrase string) *Response {
 	r := new(Response)
 	r.Server = m.Server
 	r.tx = m.tx
-	r.message = new(message)
+	r.Message = new(Message)
 	// start line
 	r.StartLine[0] = SIPVersion
 	r.StartLine[1] = string(status)
@@ -666,7 +666,7 @@ func (m *Request) NewResponse(status, phrase string) *Response {
 	r.Header.CSeq = m.Header.CSeq
 	r.Header.MaxForwards = m.Header.MaxForwards
 	r.Header.Expires = m.Header.Expires
-	r.Header.UserAgent = m.Server.UserAgent
+	r.Header.UserAgent = m.Server.opt.UserAgent
 	r.Header.others = make(map[string]string)
 	//
 	return r
@@ -675,7 +675,7 @@ func (m *Request) NewResponse(status, phrase string) *Response {
 // Response 表示响应消息
 type Response struct {
 	*Server
-	*message
+	*Message
 	tx
 }
 

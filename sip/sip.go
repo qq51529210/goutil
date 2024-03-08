@@ -43,7 +43,6 @@ var (
 	errMissHeaderCallID        = errors.New("miss header call-id")
 	errMissHeaderContentLength = errors.New("miss header content-length")
 	errTransactionExists       = errors.New("transaction exists")
-	errTransactionTimeout      = errors.New("transaction timeout")
 	errUnknownAddress          = errors.New("unknown address")
 	errServerClosed            = errors.New("server closed")
 )

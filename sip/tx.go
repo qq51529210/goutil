@@ -89,15 +89,15 @@ func (m *activeTx) Value(any) any {
 }
 
 // newActiveTx 添加并返回，用于主动发送请求
-func (s *Server) newActiveTx(c conn, m *message, d any, at *gosync.Map[string, *activeTx]) (*activeTx, error) {
+func (s *Server) newActiveTx(c conn, m *Message, d any, at *gosync.Map[string, *activeTx]) (*activeTx, error) {
 	//
 	t := new(activeTx)
 	t.key = m.txKey()
 	t.time = time.Now()
-	t.deadline = t.time.Add(s.TxTimeout)
+	t.deadline = t.time.Add(s.opt.TxTimeout)
 	t.data = d
 	t.conn = c
-	t.rto = s.MinRTO
+	t.rto = s.opt.MinRTO
 	t.writeTime = t.time
 	t.writeData = bytes.NewBuffer(nil)
 	m.Enc(t.writeData)
@@ -130,32 +130,29 @@ func (s *Server) delActiveTx(k string, at *gosync.Map[string, *activeTx]) *activ
 // checkActiveTxTimeoutRoutine 检查主动事务的超时
 func (s *Server) checkActiveTxTimeoutRoutine(network string, at *gosync.Map[string, *activeTx]) {
 	// 计时器
-	dur := s.TxTimeout / 2
+	dur := s.opt.TxTimeout / 4
+	if dur < time.Second {
+		dur = time.Second
+	}
 	timer := time.NewTimer(dur)
 	defer func() {
 		// 异常
-		s.Logger.Recover(recover())
+		s.opt.Logger.Recover(recover())
 		// 日志
-		s.Logger.Warnf("%s check active tx routine stop", network)
+		s.opt.Logger.Warnf("%s check active tx routine stop", network)
 		// 计时器
 		timer.Stop()
 		// 结束
 		s.w.Done()
 	}()
 	// 日志
-	s.Logger.Debugf("%s check active tx routine start", network)
+	s.opt.Logger.Debugf("%s check active tx routine start", network)
 	// 开始
-	var ts []*activeTx
 	for s.isOK() {
 		// 时间
 		now := <-timer.C
 		// 组装
-		ts = ts[:0]
-		at.RLock()
-		for _, d := range at.D {
-			ts = append(ts, d)
-		}
-		at.RUnlock()
+		ts := at.Values()
 		// 检查
 		for _, t := range ts {
 			// 超时
@@ -185,7 +182,7 @@ func (m *passiveTx) Value(any) any {
 }
 
 // newPassiveTx 添加并返回，用于被动接收请求
-func (s *Server) newPassiveTx(c conn, m *message, pt *gosync.Map[string, *passiveTx]) *passiveTx {
+func (s *Server) newPassiveTx(c conn, m *Message, pt *gosync.Map[string, *passiveTx]) *passiveTx {
 	k := m.txKey()
 	// 添加
 	pt.Lock()
@@ -195,7 +192,7 @@ func (s *Server) newPassiveTx(c conn, m *message, pt *gosync.Map[string, *passiv
 		t.key = k
 		t.time = time.Now()
 		t.conn = c
-		t.deadline = t.time.Add(s.TxTimeout)
+		t.deadline = t.time.Add(s.opt.TxTimeout)
 		t.writeData = bytes.NewBuffer(nil)
 		t.exit = make(chan struct{})
 		pt.D[k] = t
@@ -205,44 +202,32 @@ func (s *Server) newPassiveTx(c conn, m *message, pt *gosync.Map[string, *passiv
 	return t
 }
 
-// getPassiveTx 获取
-func (s *Server) getPassiveTx(m *message, pt *gosync.Map[string, *passiveTx]) *passiveTx {
-	k := m.txKey()
-	pt.RLock()
-	t := pt.D[k]
-	pt.RUnlock()
-	return t
-}
-
 // checkPassiveTxTimeoutRoutine 检查被动事务的超时
 func (s *Server) checkPassiveTxTimeoutRoutine(network string, pt *gosync.Map[string, *passiveTx]) {
 	// 计时器
-	dur := s.TxTimeout / 2
+	dur := s.opt.TxTimeout / 4
+	if dur < time.Second {
+		dur = time.Second
+	}
 	timer := time.NewTimer(dur)
 	defer func() {
 		// 异常
-		s.Logger.Recover(recover())
+		s.opt.Logger.Recover(recover())
 		// 日志
-		s.Logger.Warnf("%s check passive tx routine stop", network)
+		s.opt.Logger.Warnf("%s check passive tx routine stop", network)
 		// 计时器
 		timer.Stop()
 		// 结束
 		s.w.Done()
 	}()
 	// 日志
-	s.Logger.Debugf("%s check passive tx routine start", network)
+	s.opt.Logger.Debugf("%s check passive tx routine start", network)
 	// 开始
-	var ts []*passiveTx
 	for s.isOK() {
 		// 时间
 		now := <-timer.C
 		// 组装
-		ts = ts[:0]
-		pt.RLock()
-		for _, d := range pt.D {
-			ts = append(ts, d)
-		}
-		pt.RUnlock()
+		ts := pt.Values()
 		// 检查
 		for _, t := range ts {
 			// 超时
