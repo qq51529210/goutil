@@ -17,7 +17,7 @@ import (
 // Handler 是处理消息的接口
 type Handler interface {
 	// 返回 true 表示已经处理
-	// 这样事务超时时间内就不会触发相同消息的回调
+	// 这样就不会触发相同消息的回调
 	// 而是直接回复第一次的响应消息数据
 	HandleRequest(*Request) bool
 	HandleResponse(*Response)
@@ -115,6 +115,11 @@ type Server struct {
 	tcp tcpServer
 	// 参数
 	opt Option
+}
+
+// GetTxTimeout 返回事务超时时间
+func (s *Server) GetTxTimeout() time.Duration {
+	return s.opt.TxTimeout
 }
 
 func (s *Server) isOK() bool {

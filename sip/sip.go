@@ -438,18 +438,12 @@ func (r *reader) checkEmpty() {
 
 var (
 	// CSeq 的递增 SN
-	sn32   = int64(0)
-	cseq32 = int64(0)
+	sn32 = int64(0)
 )
 
 // GetSN 返回全局递增的 sn
 func GetSN() int64 {
 	return atomic.AddInt64(&sn32, 1)
-}
-
-// GetCSeq 返回全局递增的 sn
-func GetCSeq() int64 {
-	return atomic.AddInt64(&cseq32, 1)
 }
 
 // GetSNString 返回字符串形式的全局递增的 sn
