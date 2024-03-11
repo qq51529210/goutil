@@ -250,6 +250,7 @@ func (s *Server) checkWriteUDPRoutine() {
 	// 日志
 	s.opt.Logger.Debug("udp check rto routine start")
 	// 开始
+	wg := new(sync.WaitGroup)
 	at := &s.udp.at
 	for s.isOK() {
 		// 时间到
@@ -260,28 +261,28 @@ func (s *Server) checkWriteUDPRoutine() {
 		n := runtime.NumCPU()
 		for len(ts) > n {
 			m := len(ts) / n
-			s.w.Add(1)
-			go s.writeUDPRoutine(ts[:m], now)
+			wg.Add(1)
+			go s.writeUDPRoutine(wg, ts[:m], now)
 			ts = ts[m:]
 		}
 		if len(ts) > 0 {
-			s.w.Add(1)
-			go s.writeUDPRoutine(ts, now)
+			wg.Add(1)
+			go s.writeUDPRoutine(wg, ts, now)
 		}
 		// 等待并发结束
-		s.w.Wait()
+		wg.Wait()
 		// 重置计时器
 		timer.Reset(s.opt.MinRTO)
 	}
 }
 
 // writeUDPRoutine 发送 udp 数据
-func (s *Server) writeUDPRoutine(ts []*activeTx, now time.Time) {
+func (s *Server) writeUDPRoutine(wg *sync.WaitGroup, ts []*activeTx, now time.Time) {
 	defer func() {
 		// 异常
 		s.opt.Logger.Recover(recover())
 		// 结束
-		s.w.Done()
+		wg.Done()
 	}()
 	// 循环检查，然后发送，超时移除
 	for _, t := range ts {

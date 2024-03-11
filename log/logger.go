@@ -187,8 +187,6 @@ func (lg *Logger) Recover(v any) bool {
 	fmt.Fprintf(l, "%v", v)
 	// 换行
 	l.b = append(l.b, '\n')
-	// lg.PanicHeader(l, lg.name, lg.module)
-	// l.b = append(l.b, '\n')
 	// 找到 panic.go
 	p := b.b
 	found := false
