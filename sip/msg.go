@@ -576,6 +576,12 @@ func (m *Message) String() string {
 	return str.String()
 }
 
+// KeepBasic 重置 contact、contentType、useragent、other、body
+func (m *Message) KeepBasic() {
+	m.Header.KeepBasic()
+	m.Body.Reset()
+}
+
 // Request 表示请求消息
 type Request struct {
 	*Server
