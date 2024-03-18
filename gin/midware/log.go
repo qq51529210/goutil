@@ -1,7 +1,6 @@
 package gin
 
 import (
-	"encoding/json"
 	"fmt"
 	"goutil/log"
 	"goutil/uid"
@@ -12,29 +11,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Log 上下文 key
-const (
-	LogCtxKeySubmitData     = "SubmitData"
-	LogCtxKeyResponseData   = "ResponseData"
-	LogCtxKeyError          = "Error"
-	LogCtxKeyTraceID        = "TraceID"
-	LogHeaderNameRemoteAddr = "X-Remote-Addr"
-)
-
 // Log 日志中间件
 type Log struct {
-	// CtxKeySubmitData 用于保存提交的 body 的数据
-	CtxKeySubmitData string
-	// CtxKeyResponseData 用于保存返回的 body 的数据
-	CtxKeyResponseData string
-	// CtxKeyError 用于保存处理中发生的错误
-	CtxKeyError string
-	// CtxKeyTraceID 用于追踪 id
-	CtxKeyTraceID string
-	// HeaderNameRemoteAddr 代理服务透传的客户端地址头名称
-	HeaderNameRemoteAddr string
 	// Logger 日志
 	Logger *log.Logger
+	// CtxKeyTraceID 用于追踪 id
+	CtxKeyTraceID string
+	// CtxKeyRequestData 用于保存请求的的数据
+	CtxKeyRequestData string
+	// CtxKeyResponseData 用于保存响应的数据
+	CtxKeyResponseData string
+	// CtxKeyError 用于保存处理中发生的错误
+	CtxKeyHandleError string
+	// HeaderNameRemoteAddr 代理服务透传的客户端地址头名称
+	HeaderNameRemoteAddr string
 }
 
 // 实现接口
@@ -63,27 +53,20 @@ func (h *Log) ServeHTTP(ctx *gin.Context) {
 	var str strings.Builder
 	fmt.Fprintf(&str, "[%v] %s %s %s", cost, remoteAddr, ctx.Request.Method, ctx.Request.URL.Path)
 	// 提交的数据
-	submitData := ctx.Value(h.CtxKeySubmitData)
-	if submitData != nil {
-		d, err := json.Marshal(submitData)
-		if err == nil {
-			str.WriteString("\nsubmit data: ")
-			str.Write(d)
-		}
+	if data, ok := ctx.Value(h.CtxKeyRequestData).(string); ok && data != "" {
+		str.WriteString("\nrequest data: ")
+		str.WriteString(data)
 	}
 	// 返回的数据
-	responseData := ctx.Value(h.CtxKeyResponseData)
-	if responseData != nil {
-		d, err := json.Marshal(responseData)
-		if err == nil {
-			str.WriteString("\nresponse data: ")
-			str.Write(d)
-		}
+	if data, ok := ctx.Value(h.CtxKeyResponseData).(string); ok && data != "" {
+		str.WriteString("\nresponse data: ")
+		str.WriteString(data)
 	}
 	// 如果有错误
-	errData := ctx.Value(h.CtxKeyError)
-	if errData != nil {
-		fmt.Fprintf(&str, "\nhandle error: %v", errData)
+	if data, ok := ctx.Value(h.CtxKeyHandleError).(string); ok && data != "" {
+		str.WriteString("\nhandle error:: ")
+		str.WriteString(data)
 	}
+	// 输出
 	h.Logger.DebugTrace(traceID, str.String())
 }
