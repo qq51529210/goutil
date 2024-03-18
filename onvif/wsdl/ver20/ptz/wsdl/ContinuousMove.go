@@ -14,12 +14,13 @@ func ContinuousMove(ctx context.Context, url string, security *soap.Security, pr
 	// 请求体
 	var req soap.Envelope[*soap.Security, struct {
 		XMLName      xml.Name        `xml:"tptz:ContinuousMove"`
-		ProfileToken string          `xml:"tt:ReferenceToken"`
-		Velocity     schema.PTZSpeed `xml:"tt:Velocity"`
-		Timeout      string          `xml:"xs:Timeout"`
+		ProfileToken string          `xml:"tptz:ReferenceToken"`
+		Velocity     schema.PTZSpeed `xml:"tptz:Velocity"`
+		Timeout      string          `xml:"tptz:Timeout"`
 	}]
 	req.SetSoapTag()
-	req.Attr = append(envelopeAttr, soap.NamespaceAttr)
+	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
+	req.Attr = append(req.Attr, xs.NewNamespaceAttr())
 	req.Header.Data = security
 	req.Body.Data.ProfileToken = profileToken
 	req.Body.Data.Velocity = schema.PTZSpeed{

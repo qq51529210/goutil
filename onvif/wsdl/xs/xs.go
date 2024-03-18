@@ -1,9 +1,24 @@
 package xs
 
 import (
+	"encoding/xml"
 	"strconv"
 	"time"
 )
+
+const (
+	Namespace = "http://www.w3.org/2001/XMLSchema"
+)
+
+// NewNamespaceAttr 返回命名空间属性
+func NewNamespaceAttr() *xml.Attr {
+	return &xml.Attr{
+		Name: xml.Name{
+			Local: "xmlns:xs",
+		},
+		Value: Namespace,
+	}
+}
 
 type Duration time.Duration
 

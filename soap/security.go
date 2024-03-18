@@ -15,11 +15,6 @@ const (
 )
 
 var (
-	// NamespaceAttr 命名空间属性
-	NamespaceAttr = NewSecurityNamespaceAttr()
-)
-
-var (
 	_rand = rand.New(rand.NewSource(time.Now().UnixMilli()))
 )
 

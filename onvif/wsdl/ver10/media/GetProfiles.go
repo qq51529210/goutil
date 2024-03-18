@@ -14,7 +14,7 @@ func GetProfiles(ctx context.Context, url string, security *soap.Security) ([]*s
 		XMLName xml.Name `xml:"trt:GetProfiles"`
 	}]
 	req.SetSoapTag()
-	req.Attr = append(envelopeAttr, soap.NamespaceAttr)
+	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
 	req.Header.Data = security
 	// 响应体
 	var res soap.Envelope[any, struct {

@@ -43,9 +43,7 @@ func GetStreamURL(ctx context.Context, url string, security *soap.Security, prof
 		ProfileToken string `xml:"trt:ProfileToken"`
 	}]
 	req.SetSoapTag()
-	req.Attr = append(req.Attr, envelopeAttr...)
-	req.Attr = append(req.Attr, schema.NamespaceAttr)
-	req.Attr = append(req.Attr, soap.NamespaceAttr)
+	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
 	req.Header.Data = security
 	req.Body.Data.ProfileToken = profileToken
 	req.Body.Data.StreamSetup.Stream = streamType

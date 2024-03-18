@@ -17,8 +17,6 @@ func Do[rqBody, rsHeader, rsBody any](ctx context.Context, url string, rqb rqBod
 	if err != nil {
 		return fmt.Errorf("encode xml %v", err)
 	}
-	// test
-	// fmt.Println(body.String())
 	// 请求
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &body)
 	if err != nil {
@@ -34,8 +32,6 @@ func Do[rqBody, rsHeader, rsBody any](ctx context.Context, url string, rqb rqBod
 	// 先读取
 	io.Copy(&body, res.Body)
 	if body.Len() > 0 {
-		// test
-		// fmt.Println(body.String())
 		// 解析
 		err = xml.NewDecoder(&body).Decode(rsb)
 		if err != nil {
