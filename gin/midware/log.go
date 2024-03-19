@@ -72,7 +72,7 @@ func (h *Log) ServeHTTP(ctx *gin.Context) {
 	}
 	// 如果有错误
 	if data, ok := ctx.Value(h.CtxKeyHandleError).(string); ok && data != "" {
-		str.WriteString("\nhandle error:: ")
+		str.WriteString("\nhandle error: ")
 		str.WriteString(data)
 	}
 	// 输出
