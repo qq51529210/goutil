@@ -25,6 +25,8 @@ type Log struct {
 	CtxKeyHandleError string
 	// HeaderNameRemoteAddr 代理服务透传的客户端地址头名称
 	HeaderNameRemoteAddr string
+	// HeaderNameTraceID 如果有则使用它
+	HeaderNameTraceID string
 }
 
 // 实现接口
@@ -37,7 +39,13 @@ func (h *Log) ServeHTTP(ctx *gin.Context) {
 		}
 	}()
 	// 追踪 id
-	traceID := uid.SnowflakeIDString()
+	var traceID string
+	if h.HeaderNameTraceID != "" {
+		traceID = ctx.GetHeader(h.HeaderNameTraceID)
+	}
+	if traceID == "" {
+		traceID = uid.SnowflakeIDString()
+	}
 	ctx.Set(h.CtxKeyTraceID, traceID)
 	old := time.Now()
 	// 执行
