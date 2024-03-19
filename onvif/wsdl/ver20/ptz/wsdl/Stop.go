@@ -7,23 +7,8 @@ import (
 	"goutil/soap"
 )
 
-// StopPanTilt 停止水平
-func StopPanTilt(ctx context.Context, url string, security *soap.Security, profileToken string) error {
-	return stop(ctx, url, security, profileToken, true, false)
-}
-
-// StopZoom 停止纵深
-func StopZoom(ctx context.Context, url string, security *soap.Security, profileToken string) error {
-	return stop(ctx, url, security, profileToken, false, true)
-}
-
-// StopPanTiltZoom 停止所有
-func StopPanTiltZoom(ctx context.Context, url string, security *soap.Security, profileToken string) error {
-	return stop(ctx, url, security, profileToken, true, true)
-}
-
-// stop 停止
-func stop(ctx context.Context, url string, security *soap.Security, profileToken string, panTilt, zoom bool) error {
+// Stop 停止
+func Stop(ctx context.Context, url string, security *soap.Security, profileToken string, panTilt, zoom bool) error {
 	// 请求体
 	var req soap.Envelope[*soap.Security, struct {
 		XMLName      xml.Name `xml:"tptz:Stop"`
