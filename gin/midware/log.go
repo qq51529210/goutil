@@ -1,6 +1,7 @@
 package gin
 
 import (
+	"encoding/json"
 	"fmt"
 	"goutil/log"
 	"goutil/uid"
@@ -77,4 +78,16 @@ func (h *Log) ServeHTTP(ctx *gin.Context) {
 	}
 	// 输出
 	h.Logger.DebugTrace(traceID, str.String())
+}
+
+// SetRequestData 将 data json 后，加入到上下文数据 CtxKeyRequestData
+func (h *Log) SetRequestData(ctx *gin.Context, data any) {
+	var str strings.Builder
+	json.NewEncoder(&str).Encode(data)
+	s := str.String()
+	n := len(s) - 1
+	if s[n] == '\n' {
+		s = s[:n]
+	}
+	ctx.Set(h.CtxKeyRequestData, s)
 }
