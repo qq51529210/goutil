@@ -34,16 +34,16 @@ func GetStreamURL(ctx context.Context, url string, security *soap.Security, prof
 	var req soap.Envelope[*soap.Security, struct {
 		XMLName     xml.Name `xml:"trt:GetStreamUri"`
 		StreamSetup struct {
-			XMLName   xml.Name   `xml:"trt:StreamSetup"`
 			Stream    StreamType `xml:"tt:Stream"`
 			Transport struct {
 				Protocol StreamProtocol `xml:"tt:Protocol"`
 			} `xml:"tt:Transport"`
-		}
+		} `xml:"trt:StreamSetup"`
 		ProfileToken string `xml:"trt:ProfileToken"`
 	}]
 	req.SetSoapTag()
 	req.Attr = append(envelopeAttr, soap.NewSecurityNamespaceAttr())
+	req.Attr = append(req.Attr, schema.NewNamespaceAttr())
 	req.Header.Data = security
 	req.Body.Data.ProfileToken = profileToken
 	req.Body.Data.StreamSetup.Stream = streamType
