@@ -186,10 +186,10 @@ func HGetPageFromSet[M any](ctx context.Context, db redis.UniversalClient, setKe
 }
 
 // HGetAllFromSet 使用 set 中的值作为 key 查询
-func HGetAllFromSet[M any](ctx context.Context, db redis.UniversalClient, setKey, prefixKey string, fields ...string) ([]*M, error) {
+func HGetAllFromSet[M any](ctx context.Context, db redis.UniversalClient, setKey, prefixKey string, count int64, fields ...string) ([]*M, error) {
 	var ms []*M
 	// 扫描
-	it := db.SScan(ctx, setKey, 0, "*", 0).Iterator()
+	it := db.SScan(ctx, setKey, 0, "*", count).Iterator()
 	for it.Next(ctx) {
 		m := new(M)
 		if err := HGet(ctx, db, prefixKey+it.Val(), m, fields...); err != nil {
