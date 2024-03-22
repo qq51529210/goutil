@@ -127,10 +127,10 @@ func HGetPage[M any](ctx context.Context, db redis.UniversalClient, scanKey stri
 }
 
 // HGetAll 查询全部
-func HGetAll[M any](ctx context.Context, db redis.UniversalClient, scanKey string, fields ...string) ([]*M, error) {
+func HGetAll[M any](ctx context.Context, db redis.UniversalClient, scanKey string, count int64, fields ...string) ([]*M, error) {
 	var ms []*M
 	// 用迭代器
-	it := db.Scan(ctx, 0, scanKey, 0).Iterator()
+	it := db.Scan(ctx, 0, scanKey, count).Iterator()
 	for it.Next(ctx) {
 		m := new(M)
 		err := HGet(ctx, db, it.Val(), m, fields...)
