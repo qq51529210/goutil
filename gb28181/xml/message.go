@@ -388,7 +388,7 @@ type MessageHomePosition struct {
 	// 自动归位时间间隔，开启看守位时使用，单位:秒
 	ResetTime int64 `xml:",omitempty" json:"resetTime,omitempty"`
 	// 调用预置位编号，开启看守位时使用，取值范围0~255
-	PresetIndex string `xml:",omitempty" json:"presetIndex"`
+	PresetIndex int64 `xml:",omitempty" json:"presetIndex"`
 }
 
 // MessageBasicParam 是 Message 的 BasicParam 字段
