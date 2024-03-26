@@ -44,6 +44,24 @@ var (
 			}
 			return db
 		},
+		"llike": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+			if kind == reflect.String {
+				s := value.String()
+				if s != "" {
+					return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%s", s))
+				}
+			}
+			return db
+		},
+		"rlike": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+			if kind == reflect.String {
+				s := value.String()
+				if s != "" {
+					return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%s%%", s))
+				}
+			}
+			return db
+		},
 		"gt": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 			return db.Where(fmt.Sprintf("`%s`<?", field), value.Interface())
 		},
