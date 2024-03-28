@@ -21,8 +21,12 @@ func NewModel[V any](db *gorm.DB, m V) *Model[V] {
 }
 
 // Get 单个
-func (m *Model[V]) Get(ctx context.Context, v V) error {
-	return m.D.WithContext(ctx).Take(v).Error
+func (m *Model[V]) Get(ctx context.Context, v V, fields ...string) error {
+	db := m.D.WithContext(ctx)
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
+	return db.Take(v).Error
 }
 
 // Add 添加
@@ -36,23 +40,25 @@ func (m *Model[V]) BatchAdd(ctx context.Context, vs []V) error {
 }
 
 // Update 更新
-func (m *Model[V]) Update(ctx context.Context, v V) (int64, error) {
-	db := m.D.WithContext(ctx).Updates(v)
-	return db.RowsAffected, db.Error
-}
-
-// UpdateFields 更新指定字段
-func (m *Model[V]) UpdateFields(ctx context.Context, v V, fs ...string) (int64, error) {
-	db := m.D.WithContext(ctx).Select(fs).Updates(v)
+func (m *Model[V]) Update(ctx context.Context, v V, fields ...string) (int64, error) {
+	db := m.D.WithContext(ctx)
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
+	db = db.Updates(v)
 	return db.RowsAffected, db.Error
 }
 
 // BatchUpdate 批量更新
-func (m *Model[V]) BatchUpdate(ctx context.Context, vs []V) (int64, error) {
+func (m *Model[V]) BatchUpdate(ctx context.Context, vs []V, fields ...string) (int64, error) {
 	var row int64
 	return row, m.D.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, v := range vs {
-			db := tx.Updates(v)
+			db := tx
+			if len(fields) > 0 {
+				db = db.Select(fields)
+			}
+			db = db.Updates(v)
 			if db.Error != nil {
 				return db.Error
 			}
