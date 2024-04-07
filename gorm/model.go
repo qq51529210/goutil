@@ -13,11 +13,9 @@ type Model[V any] struct {
 }
 
 // NewModel 构造
-func NewModel[V any](db *gorm.DB, m V) *Model[V] {
-	return &Model[V]{
-		D: db,
-		M: m,
-	}
+func NewModel[V any](db *gorm.DB, v V) (*Model[V], error) {
+	m := &Model[V]{D: db, M: v}
+	return m, db.AutoMigrate(v)
 }
 
 // Get 单个
