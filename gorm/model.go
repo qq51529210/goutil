@@ -29,6 +29,18 @@ func (m *Model[V]) Get(ctx context.Context, v V, fields ...string) error {
 	return db.Take(v).Error
 }
 
+// First 第一个
+func (m *Model[V]) First(ctx context.Context, v V, q any, fields ...string) error {
+	db := m.D.WithContext(ctx)
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
+	if q != nil {
+		db = InitQuery(db, q)
+	}
+	return db.First(v).Error
+}
+
 // Add 添加
 func (m *Model[V]) Add(ctx context.Context, v V) error {
 	return m.D.WithContext(ctx).Create(v).Error
