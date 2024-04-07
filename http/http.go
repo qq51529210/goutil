@@ -5,7 +5,7 @@ import "fmt"
 // Result 表示返回的结果
 type Result[T any] struct {
 	// 状态码
-	Code int `json:"code"`
+	Code int `json:"code,omitempty"`
 	// 正确时返回的数据
 	Data T `json:"data,omitempty"`
 	// 错误短语
