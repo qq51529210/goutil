@@ -51,7 +51,7 @@ func (m *PageQuery) HasTotal() bool {
 // PageResult 是 Page 的返回值
 type PageResult[M any] struct {
 	// 总数
-	Total int64 `json:"total,omitempty"`
+	Total int64 `json:"total"`
 	// 列表
 	Data []M `json:"data"`
 }
