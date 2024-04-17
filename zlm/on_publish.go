@@ -27,40 +27,33 @@ type OnPublishRes struct {
 	// 错误代码，0代表允许推流
 	Code int `json:"code"`
 	// 是否转换成hls协议
-	EnableHLS *bool `json:"enable_hls"`
+	EnableHLS bool `json:"enable_hls,omitempty"`
 	// 是否允许mp4录制
-	EnableMP4 *bool `json:"enable_mp4"`
+	EnableMP4 bool `json:"enable_mp4,omitempty"`
 	// 是否转rtsp协议
-	EnableRTSP *bool `json:"enable_rtsp"`
+	EnableRTSP bool `json:"enable_rtsp,omitempty"`
 	// 是否转rtmp/flv协议
-	EnableRTMP *bool `json:"enable_rtmp"`
+	EnableRTMP bool `json:"enable_rtmp,omitempty"`
 	// 是否转http-ts/ws-ts协议
-	EnableTS *bool `json:"enable_ts"`
+	EnableTS bool `json:"enable_ts,omitempty"`
 	// 是否转http-fmp4/ws-fmp4协议
-	EnableFMP4 *bool `json:"enable_fmp4"`
+	EnableFMP4 bool `json:"enable_fmp4,omitempty"`
 	// 转协议时是否开启音频
-	EnableAudio *bool `json:"enable_audio"`
+	EnableAudio bool `json:"enable_audio,omitempty"`
 	// 转协议时，无音频是否添加静音aac音频
-	EnableAddMuteAudio *bool `json:"add_mute_audio"`
+	EnableAddMuteAudio bool `json:"add_mute_audio,omitempty"`
 	// mp4录制文件保存根目录，置空使用默认
-	MP4SavePath *string `json:"mp4_save_path"`
+	MP4SavePath string `json:"mp4_save_path,omitempty"`
 	// hls文件保存保存根目录，置空使用默认
-	HLSSavePath *string `json:"hls_save_path"`
+	HLSSavePath string `json:"hls_save_path,omitempty"`
 	// 断连续推延时，单位毫秒，置空使用配置文件默认值
-	ContinuePushMS *bool `json:"continue_push_ms"`
+	ContinuePushMS bool `json:"continue_push_ms,omitempty"`
 	// MP4录制是否当作观看者参与播放人数计数
-	MP4AsPlayer *bool `json:"mp4_as_player"`
+	MP4AsPlayer bool `json:"mp4_as_player,omitempty"`
 	// 该流是否开启时间戳覆盖
-	ModifyStamp *bool `json:"modify_stamp"`
+	ModifyStamp bool `json:"modify_stamp,omitempty"`
 }
 
 // OnPublish 处理 zlm 的 on_publish 回调
 func OnPublish(ctx context.Context, req *OnPublishReq, res *OnPublishRes) {
-	res.Code = -1
-	_true := true
-	_false := false
-	res.EnableRTMP = &_true
-	res.EnableRTSP = &_true
-	res.MP4AsPlayer = &_true
-	res.EnableMP4 = &_false
 }
