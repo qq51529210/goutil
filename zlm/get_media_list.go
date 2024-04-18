@@ -4,6 +4,18 @@ import (
 	"context"
 )
 
+const (
+	OriginTypeUnknown = iota
+	OriginTypeRtmpPush
+	OriginTypeRtspPush
+	OriginTypeRtpPush
+	OriginTypePull
+	OriginTypeFfmpegPull
+	OriginTypeMp4Vod
+	OriginTypeDeviceChn
+	OriginTypeRtcPush
+)
+
 // GetMediaListReq 是 GetMediaList 的参数
 type GetMediaListReq struct {
 	// http://localhost:8080
@@ -47,6 +59,7 @@ type MediaListData struct {
 	// 观看总人数，包括hls/rtsp/rtmp/http-flv/ws-flv
 	TotalReaderCount int64  `json:"totalReaderCount"`
 	OriginTypeStr    string `json:"originTypeStr"`
+	OriginType       int    `json:"originType"`
 	OriginURL        string `json:"originUrl"`
 }
 

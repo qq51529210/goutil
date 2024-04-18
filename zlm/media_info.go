@@ -28,6 +28,7 @@ type MediaInfo struct {
 	// 观看总人数
 	TotalReaderCount int64  `json:"-"`
 	OriginTypeStr    string `json:"-"`
+	OriginType       int64  `json:"-"`
 	OriginURL        string `json:"-"`
 }
 
