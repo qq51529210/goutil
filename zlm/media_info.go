@@ -27,7 +27,6 @@ type MediaInfo struct {
 	Timestamp int64 `json:"-"`
 	// 观看总人数
 	TotalReaderCount int64  `json:"-"`
-	OriginTypeStr    string `json:"-"`
 	OriginType       int64  `json:"-"`
 	OriginURL        string `json:"-"`
 }

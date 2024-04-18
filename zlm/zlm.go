@@ -28,9 +28,6 @@ const (
 const (
 	// VHost 默认的 vhost
 	VHost = "__defaultVhost__"
-	// 查询参数的名称
-	queryVHost  = "vhost"
-	querySecret = "secret"
 )
 
 var (
