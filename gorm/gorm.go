@@ -18,7 +18,7 @@ type PageQuery struct {
 	Offset *int `json:"offset,omitempty" form:"offset" binding:"omitempty,min=0"`
 	// 条数，小于 1 不匹配
 	Count *int `json:"count,omitempty" form:"count" binding:"omitempty,min=1"`
-	// 排序，"column [desc]"
+	// 排序，"column1 [desc], column2..."
 	Order string `json:"order,omitempty" form:"order"`
 	// 是否需要返回总数
 	Total string `json:"total,omitempty" form:"total" binding:"omitempty,oneof=0 1"`
@@ -91,6 +91,21 @@ func All[M any](db *gorm.DB, query any) (ms []M, err error) {
 	// 查询条件
 	if query != nil {
 		db = InitQuery(db, query)
+	}
+	// 查询
+	err = db.Scan(&ms).Error
+	return
+}
+
+// AllOrder 用于查询全部
+func AllOrder[M any](db *gorm.DB, query any, order string) (ms []M, err error) {
+	// 查询条件
+	if query != nil {
+		db = InitQuery(db, query)
+	}
+	// 排序
+	if order != "" {
+		db = db.Order(order)
 	}
 	// 查询
 	err = db.Scan(&ms).Error
