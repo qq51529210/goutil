@@ -49,5 +49,5 @@ func (s *Server) Serve() error {
 	}
 	// 开始服务
 	s.Handler = g
-	return s.Serve()
+	return s.Server.Serve()
 }
