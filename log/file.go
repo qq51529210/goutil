@@ -102,6 +102,8 @@ type File struct {
 	dirNameFormat string
 	// 文件格式
 	fileNameFormat string
+	// 日期，用于检查日期更换
+	dateY, dateM, dateD int
 }
 
 // Write 是 io.Writer 接口
@@ -121,7 +123,6 @@ func (f *File) Write(b []byte) (int, error) {
 		// 保存
 		f.flushFile()
 		f.closeFile()
-		// 新文件
 		f.openFile()
 	}
 	f.lock.Unlock()
@@ -149,7 +150,9 @@ func (f *File) checkExpireRoutine(dur time.Duration) {
 		select {
 		case now := <-timer.C:
 			// 检查过期
-			f.checkFile(&now)
+			f.checkExpire(&now)
+			// 检查日期更换
+			f.checkDate(&now)
 			// 计时器
 			timer.Reset(dur)
 		case <-f.exit:
@@ -161,8 +164,6 @@ func (f *File) checkExpireRoutine(dur time.Duration) {
 
 // syncRoutine 输出磁盘
 func (f *File) syncRoutine(dur time.Duration) {
-	// 程序退出
-	osQuit := make(chan os.Signal, 1)
 	// 计时器
 	timer := time.NewTicker(dur)
 	defer func() {
@@ -170,8 +171,6 @@ func (f *File) syncRoutine(dur time.Duration) {
 		recover()
 		// 计时器
 		timer.Stop()
-		// 程序信号
-		close(osQuit)
 		// 剩余的数据
 		f.lock.Lock()
 		f.flushFile()
@@ -193,10 +192,6 @@ func (f *File) syncRoutine(dur time.Duration) {
 			timer.Reset(dur)
 		case <-f.exit:
 			// 退出信号
-			return
-		case <-osQuit:
-			// 系统信号，关闭
-			f.close()
 			return
 		}
 	}
@@ -230,8 +225,8 @@ func (f *File) Close() error {
 	return nil
 }
 
-// checkFile 检查过期文件
-func (f *File) checkFile(now *time.Time) {
+// checkExpire 检查过期文件
+func (f *File) checkExpire(now *time.Time) {
 	// 读取根目录下的所有文件
 	dirEntries, err := os.ReadDir(f.rootDir)
 	if nil != err {
@@ -256,6 +251,20 @@ func (f *File) checkFile(now *time.Time) {
 			}
 		}
 	}
+}
+
+// checkDate 检查日期更换
+func (f *File) checkDate(now *time.Time) {
+	y, m, d := now.Date()
+	if y != f.dateY || int(m) != f.dateM || d != f.dateD {
+		// 保存
+		f.lock.Lock()
+		f.flushFile()
+		f.closeFile()
+		f.openFile()
+		f.lock.Unlock()
+	}
+	f.dateY, f.dateM, f.dateD = y, int(m), d
 }
 
 // flush 将内存的数据保存到硬盘，如果写入失败，数据会丢弃
