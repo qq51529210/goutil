@@ -48,6 +48,23 @@ func (m *PageQuery) HasTotal() bool {
 	return m.Total == "1"
 }
 
+// InitDB 初始化
+func (m *PageQuery) InitDB(db *gorm.DB) *gorm.DB {
+	// 分页
+	if m.Offset != nil {
+		db = db.Offset(*m.Offset)
+	}
+	// 数量
+	if m.HasCount() {
+		db = db.Limit(*m.Count)
+	}
+	// 排序
+	if m.Order != "" {
+		db = db.Order(m.Order)
+	}
+	return db
+}
+
 // PageResult 是 Page 的返回值
 type PageResult[M any] struct {
 	// 总数
@@ -66,17 +83,7 @@ func Page[M any](db *gorm.DB, page *PageQuery, res *PageResult[M]) error {
 			}
 		}
 		// 分页
-		if page.Offset != nil {
-			db = db.Offset(*page.Offset)
-		}
-		// 数量
-		if page.HasCount() {
-			db = db.Limit(*page.Count)
-		}
-		// 排序
-		if page.Order != "" {
-			db = db.Order(page.Order)
-		}
+		db = page.InitDB(db)
 	}
 	// 查询
 	if err := db.Find(&res.Data).Error; err != nil {
