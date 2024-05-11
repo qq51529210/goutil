@@ -46,6 +46,7 @@ func (l *Locker) routine() {
 		// 日志
 		l.Logger.InfoTrace(l.Trace, "stop")
 	}()
+	defaultInterval := time.Second * 3
 	// 执行
 	l.Logger.InfoTrace(l.Trace, "start")
 	timer := time.NewTimer(0)
@@ -56,6 +57,8 @@ func (l *Locker) routine() {
 		// 休息
 		if l.Interval > 0 {
 			timer.Reset(l.Interval)
+		} else {
+			timer.Reset(defaultInterval)
 		}
 	}
 }
