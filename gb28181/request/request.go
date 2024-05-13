@@ -20,7 +20,8 @@ const (
 
 type request struct {
 	network     string
-	address     string
+	ip          string
+	port        int
 	method      string
 	contentType string
 	fromID      string
@@ -33,19 +34,33 @@ type request struct {
 	contact     string
 }
 
-// newAddr 返回请求消息，假设地址是对的
-func (r *request) newAddr(network, address string) (string, net.Addr) {
-	if network == "tcp" {
-		a, _ := net.ResolveTCPAddr(network, address)
-		return sip.TCP, a
-	}
-	a, _ := net.ResolveUDPAddr(network, address)
-	return sip.UDP, a
-}
+// // newAddr 返回请求消息，假设地址是对的
+// func (r *request) newAddr(network, address string) (string, net.Addr) {
+// 	if network == "tcp" {
+// 		a, _ := net.ResolveTCPAddr(network, address)
+// 		return sip.TCP, a
+// 	}
+// 	a, _ := net.ResolveUDPAddr(network, address)
+// 	return sip.UDP, a
+// }
 
 func (r *request) New() (*sip.Request, net.Addr) {
 	// 地址
-	proto, addr := r.newAddr(r.network, r.address)
+	var addr net.Addr
+	var proto string
+	if r.network == "tcp" {
+		addr = &net.TCPAddr{
+			IP:   net.ParseIP(r.ip),
+			Port: r.port,
+		}
+		proto = sip.TCP
+	} else {
+		addr = &net.UDPAddr{
+			IP:   net.ParseIP(r.ip),
+			Port: r.port,
+		}
+		proto = sip.UDP
+	}
 	// 请求
 	m := sip.NewRequest()
 	// start line
@@ -94,7 +109,8 @@ func (r *request) New() (*sip.Request, net.Addr) {
 // Device 用于 NewDeviceRequest
 type Device interface {
 	GetNetwork() string
-	GetIPAddress() string
+	GetIP() string
+	GetPort() int
 	GetDeviceID() string
 	GetCascadeID() string
 	GetDeviceDomain() string
@@ -107,7 +123,8 @@ type Device interface {
 func NewDeviceRequest(ser *sip.Server, device Device, deviceOrChannelID, method, contentType, fromTag, toTag, callID string) (*sip.Request, net.Addr) {
 	var req request
 	req.network = device.GetNetwork()
-	req.address = device.GetIPAddress()
+	req.ip = device.GetIP()
+	req.port = device.GetPort()
 	req.callID = callID
 	req.contentType = contentType
 	req.method = method
@@ -154,7 +171,8 @@ func SendDeviceMessageReplyRequest(ctx context.Context, ser *sip.Server, device 
 // Device 用于 NewDeviceRequest
 type Cascade interface {
 	GetNetwork() string
-	GetIPAddress() string
+	GetIP() string
+	GetPort() int
 	GetDeviceID() string
 	GetCascadeID() string
 	GetDeviceDomain() string
@@ -167,7 +185,8 @@ type Cascade interface {
 func NewCascadeRequest(ser *sip.Server, cascade Cascade, cascadeOrChannelID, method, contentType, fromTag, toTag, callID string) (*sip.Request, net.Addr) {
 	var req request
 	req.network = cascade.GetNetwork()
-	req.address = cascade.GetIPAddress()
+	req.ip = cascade.GetIP()
+	req.port = cascade.GetPort()
 	req.callID = callID
 	req.contentType = contentType
 	req.method = method

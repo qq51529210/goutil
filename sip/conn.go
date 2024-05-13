@@ -10,7 +10,7 @@ type conn interface {
 	RemoteAddr() net.Addr
 	Network() string
 	RemoteIP() string
-	RemotePort() string
+	RemotePort() int
 	RemoteAddrString() string
 	write([]byte) error
 	isUDP() bool
@@ -48,7 +48,7 @@ type tcpConn struct {
 	// ip
 	ip string
 	// 端口
-	port string
+	port int
 	// ip:port
 	ipport string
 }
@@ -58,8 +58,8 @@ func (c *tcpConn) init(conn *net.TCPConn) {
 	a := c.conn.RemoteAddr().(*net.TCPAddr)
 	c.key.Init(a.IP, a.Port)
 	c.ip = a.IP.String()
-	c.port = fmt.Sprintf("%d", a.Port)
-	c.ipport = c.ip + ":" + c.port
+	c.port = a.Port
+	c.ipport = fmt.Sprintf("%s:%d", c.ip, c.port)
 }
 
 func (c *tcpConn) write(b []byte) (err error) {
@@ -83,7 +83,7 @@ func (c *tcpConn) RemoteIP() string {
 	return c.ip
 }
 
-func (c *tcpConn) RemotePort() string {
+func (c *tcpConn) RemotePort() int {
 	return c.port
 }
 
@@ -100,7 +100,7 @@ type udpConn struct {
 	// ip
 	ip string
 	// 端口
-	port string
+	port int
 	// ip:port
 	ipport string
 }
@@ -108,8 +108,8 @@ type udpConn struct {
 func (c *udpConn) initAddr(a *net.UDPAddr) {
 	c.addr = a
 	c.ip = a.IP.String()
-	c.port = fmt.Sprintf("%d", a.Port)
-	c.ipport = c.ip + ":" + c.port
+	c.port = a.Port
+	c.ipport = fmt.Sprintf("%s:%d", c.ip, c.port)
 }
 
 func (c *udpConn) isUDP() bool {
@@ -133,7 +133,7 @@ func (c *udpConn) RemoteIP() string {
 	return c.ip
 }
 
-func (c *udpConn) RemotePort() string {
+func (c *udpConn) RemotePort() int {
 	return c.port
 }
 
