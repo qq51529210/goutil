@@ -112,10 +112,10 @@ type Device interface {
 	GetIP() string
 	GetPort() int
 	GetDeviceID() string
-	GetCascadeID() string
 	GetDeviceDomain() string
-	GetCascadeDomain() string
-	GetCascadeContact() string
+	GetServerID() string
+	GetServerDomain() string
+	GetContact() string
 	GetXMLEncoding() string
 }
 
@@ -131,10 +131,10 @@ func NewDeviceRequest(ser *sip.Server, device Device, deviceOrChannelID, method,
 	req.toID = deviceOrChannelID
 	req.toDomain = device.GetDeviceDomain()
 	req.toTag = toTag
-	req.fromID = device.GetCascadeID()
-	req.fromDomain = device.GetCascadeDomain()
+	req.fromID = device.GetServerID()
+	req.fromDomain = device.GetServerDomain()
 	req.fromTag = fromTag
-	req.contact = device.GetCascadeContact()
+	req.contact = device.GetContact()
 	return req.New()
 }
 
@@ -173,11 +173,11 @@ type Cascade interface {
 	GetNetwork() string
 	GetIP() string
 	GetPort() int
-	GetDeviceID() string
+	GetLocalID() string
+	GetLocalDomain() string
 	GetCascadeID() string
-	GetDeviceDomain() string
 	GetCascadeDomain() string
-	GetDeviceContact() string
+	GetContact() string
 	GetXMLEncoding() string
 }
 
@@ -193,9 +193,10 @@ func NewCascadeRequest(ser *sip.Server, cascade Cascade, cascadeOrChannelID, met
 	req.toID = cascadeOrChannelID
 	req.toTag = toTag
 	req.toDomain = cascade.GetCascadeDomain()
-	req.fromID = cascade.GetDeviceID()
-	req.fromDomain = cascade.GetDeviceDomain()
+	req.fromID = cascade.GetLocalID()
+	req.fromDomain = cascade.GetLocalDomain()
 	req.fromTag = fromTag
+	req.contact = cascade.GetContact()
 	return req.New()
 }
 
