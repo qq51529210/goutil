@@ -2,6 +2,7 @@ package request
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"goutil/gb28181/xml"
 	"goutil/sip"
@@ -16,6 +17,10 @@ const (
 	ContentTypeMANSRTSP = "Application/MANSRTSP"
 	//
 	MaxForwards = "70"
+)
+
+var (
+	errorIPAddress = errors.New("error ip address")
 )
 
 type request struct {
@@ -34,17 +39,11 @@ type request struct {
 	contact     string
 }
 
-// // newAddr 返回请求消息，假设地址是对的
-// func (r *request) newAddr(network, address string) (string, net.Addr) {
-// 	if network == "tcp" {
-// 		a, _ := net.ResolveTCPAddr(network, address)
-// 		return sip.TCP, a
-// 	}
-// 	a, _ := net.ResolveUDPAddr(network, address)
-// 	return sip.UDP, a
-// }
-
-func (r *request) New() (*sip.Request, net.Addr) {
+func (r *request) New() (*sip.Request, net.Addr, error) {
+	ip := net.ParseIP(r.ip)
+	if ip == nil {
+		return nil, nil, errorIPAddress
+	}
 	// 地址
 	var addr net.Addr
 	var proto string
@@ -103,7 +102,7 @@ func (r *request) New() (*sip.Request, net.Addr) {
 	m.Header.Contact.Name = r.fromID
 	m.Header.Contact.Domain = r.contact
 	//
-	return m, addr
+	return m, addr, nil
 }
 
 // Device 用于 NewDeviceRequest
@@ -120,7 +119,7 @@ type Device interface {
 }
 
 // NewDeviceRequest 创建新的设备请求
-func NewDeviceRequest(ser *sip.Server, device Device, deviceOrChannelID, method, contentType, fromTag, toTag, callID string) (*sip.Request, net.Addr) {
+func NewDeviceRequest(ser *sip.Server, device Device, deviceOrChannelID, method, contentType, fromTag, toTag, callID string) (*sip.Request, net.Addr, error) {
 	var req request
 	req.network = device.GetNetwork()
 	req.ip = device.GetIP()
@@ -140,7 +139,10 @@ func NewDeviceRequest(ser *sip.Server, device Device, deviceOrChannelID, method,
 
 // SendDeviceMessageRequest 向设备发送 message 类型的请求并等待结果
 func SendDeviceMessageRequest(ctx context.Context, ser *sip.Server, device Device, body *xml.Message, ctxData any) error {
-	m, addr := NewDeviceRequest(ser, device, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+	m, addr, err := NewDeviceRequest(ser, device, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+	if err != nil {
+		return err
+	}
 	xml.Encode(&m.Body, device.GetXMLEncoding(), body)
 	return ser.Request(ctx, m, addr, ctxData)
 }
@@ -148,7 +150,10 @@ func SendDeviceMessageRequest(ctx context.Context, ser *sip.Server, device Devic
 // SendDeviceMessageReplyRequest 向设备发送 message 类型的应答式请求并等待结果
 func SendDeviceMessageReplyRequest(ctx context.Context, ser *sip.Server, device Device, body *xml.Message, ctxData any) error {
 	// 消息
-	m, addr := NewDeviceRequest(ser, device, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+	m, addr, err := NewDeviceRequest(ser, device, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+	if err != nil {
+		return err
+	}
 	xml.Encode(&m.Body, device.GetXMLEncoding(), body)
 	// 有响应的请求
 	rep := AddReply(device.GetDeviceID(), body.SN, ctxData, ser.GetTxTimeout())
@@ -182,7 +187,7 @@ type Cascade interface {
 }
 
 // NewCascadeRequest 创建新的级联请求
-func NewCascadeRequest(ser *sip.Server, cascade Cascade, cascadeOrChannelID, method, contentType, fromTag, toTag, callID string) (*sip.Request, net.Addr) {
+func NewCascadeRequest(ser *sip.Server, cascade Cascade, cascadeOrChannelID, method, contentType, fromTag, toTag, callID string) (*sip.Request, net.Addr, error) {
 	var req request
 	req.network = cascade.GetNetwork()
 	req.ip = cascade.GetIP()
@@ -202,14 +207,20 @@ func NewCascadeRequest(ser *sip.Server, cascade Cascade, cascadeOrChannelID, met
 
 // SendCascadeMessageRequest 向级联发送 message 类型的请求并等待结果
 func SendCascadeMessageRequest(ctx context.Context, ser *sip.Server, cascade Cascade, body *xml.Message, ctxData any) error {
-	m, addr := NewCascadeRequest(ser, cascade, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+	m, addr, err := NewCascadeRequest(ser, cascade, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+	if err != nil {
+		return err
+	}
 	xml.Encode(&m.Body, cascade.GetXMLEncoding(), body)
 	return ser.Request(ctx, m, addr, ctxData)
 }
 
 // SendCascadeRegisterRequest 向级联发送 register 类型的请求并等待结果
 func SendCascadeRegisterRequest(ctx context.Context, ser *sip.Server, cascade Cascade, body *xml.Message, ctxData any) error {
-	m, addr := NewCascadeRequest(ser, cascade, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+	m, addr, err := NewCascadeRequest(ser, cascade, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+	if err != nil {
+		return err
+	}
 	xml.Encode(&m.Body, cascade.GetXMLEncoding(), body)
 	// 这两个是一样的
 	m.Header.To.URI = m.Header.From.URI
