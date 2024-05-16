@@ -366,17 +366,17 @@ type MessageInfoAlarmTypeParam struct {
 // MessageDragZoom 是 Message 的 DragZoomOut/DragZoomIn 字段
 type MessageDragZoom struct {
 	// 播放窗口长度像素值
-	Length string `xml:",omitempty"`
+	Length int64 `xml:",omitempty"`
 	// 播放窗口宽度像素值
-	Width string `xml:",omitempty"`
+	Width int64 `xml:",omitempty"`
 	// 拉框中心的横轴坐标像素值
-	MidPointX string `xml:",omitempty"`
+	MidPointX int64 `xml:",omitempty"`
 	// 拉框中心的纵轴坐标像素值
-	MidPointY string `xml:",omitempty"`
+	MidPointY int64 `xml:",omitempty"`
 	// 拉框长度像素值
-	LengthX string `xml:",omitempty"`
+	LengthX int64 `xml:",omitempty"`
 	// 拉框宽度像素值
-	LengthY string `xml:",omitempty"`
+	LengthY int64 `xml:",omitempty"`
 }
 
 // MessageHomePosition 是 Message 的 HomePosition 字段
