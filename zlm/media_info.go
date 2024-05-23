@@ -134,5 +134,7 @@ type PlayInfo struct {
 	WssFMP4 string `json:"wssFMP4,omitempty"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// http://ip:port/index/api/webrtc?app=live&stream=test&type=play
-	WebRTC string `json:"webRTC,omitempty"`
+	HTTPWebRTC string `json:"httpWebRTC,omitempty"`
+	// https://ip:port/index/api/webrtc?app=live&stream=test&type=play
+	HTTPsWebRTC string `json:"httpsWebRTC,omitempty"`
 }
