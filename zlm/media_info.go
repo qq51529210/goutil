@@ -87,28 +87,28 @@ type PlayInfo struct {
 	RTMPs string `json:"rtmps,omitempty"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// http://ip:port/app/stream.live.flv
-	Flv string `json:"flv,omitempty"`
+	HTTPFlv string `json:"httpFLV,omitempty"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// https://ip:port/app/stream.live.flv
-	Flvs string `json:"flvs,omitempty"`
+	HTTPsFlv string `json:"httpsFLV,omitempty"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// http://ip:port/app/stream/hls.m3u8
-	HLS string `json:"hls,omitempty"`
+	HTTPHLS string `json:"httpHLS,omitempty"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// https://ip:port/app/stream/hls.m3u8
-	HLSs string `json:"hlss,omitempty"`
+	HTTPsHLS string `json:"httpsHLS,omitempty"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// http://ip:port/app/stream.live.ts
-	TS string `json:"ts,omitempty"`
+	HTTPTS string `json:"httpTS,omitempty"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// https://ip:port/app/stream.live.ts
-	TSs string `json:"tss,omitempty"`
+	HTTPsTS string `json:"httpsTS,omitempty"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// http://ip:port/app/stream.live.mp4
-	FMP4 string `json:"fmp4,omitempty"`
+	HTTPFMP4 string `json:"httpFMP4,omitempty"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// https://ip:port/app/stream.live.mp4
-	FMP4s string `json:"fmp4s,omitempty"`
+	HTTPsFMP4 string `json:"httpsFMP4,omitempty"`
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// ws://ip:port/app/stream.live.flv
 	WsFlv string `json:"wsFlv,omitempty"`
@@ -132,4 +132,7 @@ type PlayInfo struct {
 	// 播放地址，可能为空(主要看是否开启了服务端口)
 	// wss://ip:port/app/stream.live.mp4
 	WssFMP4 string `json:"wssFMP4,omitempty"`
+	// 播放地址，可能为空(主要看是否开启了服务端口)
+	// http://ip:port/index/api/webrtc?app=live&stream=test&type=play
+	WebRTC string `json:"webRTC,omitempty"`
 }
