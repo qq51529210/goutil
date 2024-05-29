@@ -215,7 +215,11 @@ func QueryNULL(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind
 	} else if kind == reflect.Bool {
 		ok = value.Interface().(bool)
 	} else if kind == reflect.String {
-		ok = value.String() == "true"
+		v := value.String()
+		if v == "" {
+			return db
+		}
+		ok = v == "true"
 	} else {
 		return db
 	}
