@@ -196,8 +196,8 @@ func NewCascadeRequest(ser *sip.Server, cascade Cascade, cascadeOrChannelID, met
 	req.contentType = contentType
 	req.method = method
 	req.toID = cascadeOrChannelID
-	req.toTag = toTag
 	req.toDomain = cascade.GetCascadeDomain()
+	req.toTag = toTag
 	req.fromID = cascade.GetLocalID()
 	req.fromDomain = cascade.GetLocalDomain()
 	req.fromTag = fromTag
@@ -207,7 +207,7 @@ func NewCascadeRequest(ser *sip.Server, cascade Cascade, cascadeOrChannelID, met
 
 // SendCascadeMessageRequest 向级联发送 message 类型的请求并等待结果
 func SendCascadeMessageRequest(ctx context.Context, ser *sip.Server, cascade Cascade, body *xml.Message, ctxData any) error {
-	m, addr, err := NewCascadeRequest(ser, cascade, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+	m, addr, err := NewCascadeRequest(ser, cascade, cascade.GetCascadeID(), sip.MethodMessage, ContentTypeXML, "", "", "")
 	if err != nil {
 		return err
 	}
