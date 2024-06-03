@@ -259,15 +259,15 @@ type Message struct {
 // MessagePresetList 是 Message 的 PresetList 字段
 type MessagePresetList struct {
 	Num  int64                    `xml:"Num,attr"`
-	Item []*MessagePresetListItem `json:"item"`
+	Item []*MessagePresetListItem `xml:",omitempty" json:"item"`
 }
 
 // MessagePresetListItem 是 MessagePresetList 的 Item 字段
 type MessagePresetListItem struct {
 	// 预置位编码
-	PresetID string `xml:",omitempty"`
+	PresetID string `xml:",omitempty" json:"presetID"`
 	// 预置位名称
-	PresetName string `xml:",omitempty"`
+	PresetName string `xml:",omitempty" json:"presetName"`
 }
 
 // MessageVideoParamOpt 是 Message 的 VideoParamOpt 字段

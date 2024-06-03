@@ -19,6 +19,9 @@ func Query(v any, q url.Values) url.Values {
 
 // QueryWithTag 指定 tag
 func QueryWithTag(v any, q url.Values, tag string) url.Values {
+	if v == nil {
+		return q
+	}
 	if q == nil {
 		q = make(url.Values)
 	}
