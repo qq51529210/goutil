@@ -26,6 +26,9 @@ type Session struct {
 	// 会话创建者
 	// o=
 	O *Origin
+	// URL
+	// u=
+	U string
 	// 名称
 	// s=
 	S string
@@ -90,6 +93,12 @@ func (s *Session) parse(scaner *bufio.Scanner, line string) error {
 	if value != line {
 		s.O = new(Origin)
 		return s.O.Parse(value)
+	}
+	// u=
+	value = strings.TrimPrefix(line, "u=")
+	if value != line {
+		s.U = value
+		return nil
 	}
 	// s=
 	value = strings.TrimPrefix(line, "s=")
@@ -161,7 +170,7 @@ func (s *Session) parseM(scaner *bufio.Scanner, line string) error {
 // FormatTo 格式化
 func (s *Session) FormatTo(buf *bytes.Buffer) {
 	// v=
-	fmt.Fprint(buf, "v=0\r\n")
+	buf.WriteString("v=0\r\n")
 	// o=
 	if s.O != nil {
 		s.O.FormatTo(buf)
@@ -169,6 +178,10 @@ func (s *Session) FormatTo(buf *bytes.Buffer) {
 	// s=
 	if s.S != "" {
 		fmt.Fprintf(buf, "s=%s\r\n", s.S)
+	}
+	// u=
+	if s.U != "" {
+		fmt.Fprintf(buf, "u=%s\r\n", s.U)
 	}
 	// c=
 	if s.C != nil {
