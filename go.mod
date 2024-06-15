@@ -1,4 +1,4 @@
-module goutil
+module gitee.com/qq51529210/goutil
 
 go 1.20
 
