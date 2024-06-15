@@ -12,29 +12,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Log 上下文 key
-const (
-	LogCtxKeySubmitData     = "SubmitData"
-	LogCtxKeyResponseData   = "ResponseData"
-	LogCtxKeyError          = "Error"
-	LogCtxKeyTraceID        = "TraceID"
-	LogHeaderNameRemoteAddr = "X-Remote-Addr"
-)
-
 // Log 日志中间件
 type Log struct {
-	// CtxKeySubmitData 用于保存提交的 body 的数据
-	CtxKeySubmitData string
-	// CtxKeyResponseData 用于保存返回的 body 的数据
-	CtxKeyResponseData string
-	// CtxKeyError 用于保存处理中发生的错误
-	CtxKeyError string
-	// CtxKeyTraceID 用于追踪 id
-	CtxKeyTraceID string
-	// HeaderNameRemoteAddr 代理服务透传的客户端地址头名称
-	HeaderNameRemoteAddr string
 	// Logger 日志
 	Logger *log.Logger
+	// CtxKeyTraceID 用于追踪 id
+	CtxKeyTraceID string
+	// CtxKeyRequestData 用于保存请求的的数据
+	CtxKeyRequestData string
+	// CtxKeyResponseData 用于保存响应的数据
+	CtxKeyResponseData string
+	// CtxKeyError 用于保存处理中发生的错误
+	CtxKeyHandleError string
+	// HeaderNameRemoteAddr 代理服务透传的客户端地址头名称
+	HeaderNameRemoteAddr string
+	// HeaderNameTraceID 如果有则使用它
+	HeaderNameTraceID string
 }
 
 // 实现接口
@@ -47,7 +40,13 @@ func (h *Log) ServeHTTP(ctx *gin.Context) {
 		}
 	}()
 	// 追踪 id
-	traceID := uid.SnowflakeIDString()
+	var traceID string
+	if h.HeaderNameTraceID != "" {
+		traceID = ctx.GetHeader(h.HeaderNameTraceID)
+	}
+	if traceID == "" {
+		traceID = uid.SnowflakeIDString()
+	}
 	ctx.Set(h.CtxKeyTraceID, traceID)
 	old := time.Now()
 	// 执行
@@ -63,27 +62,32 @@ func (h *Log) ServeHTTP(ctx *gin.Context) {
 	var str strings.Builder
 	fmt.Fprintf(&str, "[%v] %s %s %s", cost, remoteAddr, ctx.Request.Method, ctx.Request.URL.Path)
 	// 提交的数据
-	submitData := ctx.Value(h.CtxKeySubmitData)
-	if submitData != nil {
-		d, err := json.Marshal(submitData)
-		if err == nil {
-			str.WriteString("\nsubmit data: ")
-			str.Write(d)
-		}
+	if data, ok := ctx.Value(h.CtxKeyRequestData).(string); ok && data != "" {
+		str.WriteString("\nrequest data: ")
+		str.WriteString(data)
 	}
 	// 返回的数据
-	responseData := ctx.Value(h.CtxKeyResponseData)
-	if responseData != nil {
-		d, err := json.Marshal(responseData)
-		if err == nil {
-			str.WriteString("\nresponse data: ")
-			str.Write(d)
-		}
+	if data, ok := ctx.Value(h.CtxKeyResponseData).(string); ok && data != "" {
+		str.WriteString("\nresponse data: ")
+		str.WriteString(data)
 	}
 	// 如果有错误
-	errData := ctx.Value(h.CtxKeyError)
-	if errData != nil {
-		fmt.Fprintf(&str, "\nhandle error: %v", errData)
+	if data, ok := ctx.Value(h.CtxKeyHandleError).(string); ok && data != "" {
+		str.WriteString("\nhandle error: ")
+		str.WriteString(data)
 	}
+	// 输出
 	h.Logger.DebugTrace(traceID, str.String())
+}
+
+// SetRequestData 将 data json 后，加入到上下文数据 CtxKeyRequestData
+func (h *Log) SetRequestData(ctx *gin.Context, data any) {
+	var str strings.Builder
+	json.NewEncoder(&str).Encode(data)
+	s := str.String()
+	n := len(s) - 1
+	if s[n] == '\n' {
+		s = s[:n]
+	}
+	ctx.Set(h.CtxKeyRequestData, s)
 }

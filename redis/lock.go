@@ -12,19 +12,22 @@ func Lock(ctx context.Context, db redis.UniversalClient, key, value string, expi
 	cmd := redis.NewScript(`
 -- 参数
 local key, value, expire = KEYS[1], ARGV[1], ARGV[2]
--- 返回值
-local result = 0
--- 设置锁
-if not redis.call("SET", key, value, "NX", "EX", expire) then
-	-- 失败，检查是否自己
-	if value == redis.call("GET", key) then
-		result = 1
-		-- 更新过期时间
-		redis.call("EXPIRE", key, expire)
-	end
+-- 抢锁
+local result = redis.call("SET", key, value, "NX", "EX", expire)
+-- 抢到返回
+if result then
+	return 1
 end
--- 返回
-return result
+-- 没抢到
+result = redis.call("GET", key)
+-- 检查是否自己
+if result == value then
+	-- 更新过期时间
+	redis.call("EXPIRE", key, expire)
+	return 1
+end
+-- 不是自己
+return 0
 `).Run(ctx, db, []string{key}, value, expire/time.Second)
 	err := cmd.Err()
 	if err != nil {

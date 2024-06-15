@@ -42,14 +42,14 @@ func DefaultHeader(log *Log, name, module string, level, depth int) {
 	log.b = append(log.b, levels[level]...)
 	// 时间
 	FormatTime(log)
-	log.b = append(log.b, ' ')
 	// 名称
 	if name != "" {
-		log.b = append(log.b, name...)
 		log.b = append(log.b, ' ')
+		log.b = append(log.b, name...)
 	}
 	// 模块
 	if module != "" {
+		log.b = append(log.b, ' ')
 		log.b = append(log.b, module...)
 	}
 }
@@ -60,14 +60,14 @@ func FileNameHeader(log *Log, name, module string, level, depth int) {
 	log.b = append(log.b, levels[level]...)
 	// 时间
 	FormatTime(log)
-	log.b = append(log.b, ' ')
 	// 名称
 	if name != "" {
-		log.b = append(log.b, name...)
 		log.b = append(log.b, ' ')
+		log.b = append(log.b, name...)
 	}
 	// 模块
 	if module != "" {
+		log.b = append(log.b, ' ')
 		log.b = append(log.b, module...)
 	}
 	if depth < 0 {
@@ -100,14 +100,14 @@ func FilePathHeader(log *Log, name, module string, level, depth int) {
 	log.b = append(log.b, levels[level]...)
 	// 时间
 	FormatTime(log)
-	log.b = append(log.b, ' ')
 	// 名称
 	if name != "" {
-		log.b = append(log.b, name...)
 		log.b = append(log.b, ' ')
+		log.b = append(log.b, name...)
 	}
 	// 模块
 	if module != "" {
+		log.b = append(log.b, ' ')
 		log.b = append(log.b, module...)
 	}
 	if depth < 0 {

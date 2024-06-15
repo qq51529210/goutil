@@ -4,6 +4,18 @@ import (
 	"context"
 )
 
+const (
+	OriginTypeUnknown = iota
+	OriginTypeRtmpPush
+	OriginTypeRtspPush
+	OriginTypeRtpPush
+	OriginTypePull
+	OriginTypeFFmpegPull
+	OriginTypeMp4Vod
+	OriginTypeDeviceChn
+	OriginTypeRtcPush
+)
+
 // GetMediaListReq 是 GetMediaList 的参数
 type GetMediaListReq struct {
 	// http://localhost:8080
@@ -46,7 +58,7 @@ type MediaListData struct {
 	Tracks []map[string]any `json:"tracks"`
 	// 观看总人数，包括hls/rtsp/rtmp/http-flv/ws-flv
 	TotalReaderCount int64  `json:"totalReaderCount"`
-	OriginTypeStr    string `json:"originTypeStr"`
+	OriginType       int64  `json:"originType"`
 	OriginURL        string `json:"originUrl"`
 }
 
@@ -59,7 +71,7 @@ func (d *MediaListData) InitMediaInfo(m *MediaInfo, sid string) {
 	m.IsRecordingMP4 = d.IsRecordingMP4
 	m.Timestamp = d.CreateStamp
 	m.TotalReaderCount = d.TotalReaderCount
-	m.OriginTypeStr = d.OriginTypeStr
+	m.OriginType = d.OriginType
 	m.OriginURL = d.OriginURL
 	m.Video, m.Audio = ParseTrack(d.Tracks)
 	m.Server = sid

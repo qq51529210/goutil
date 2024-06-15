@@ -3,6 +3,7 @@ package log
 import (
 	"errors"
 	"fmt"
+	gstr "goutil/strings"
 	"io"
 	"os"
 	"path/filepath"
@@ -27,8 +28,8 @@ type FileConfig struct {
 	DirNameFormat string `json:"dirNameFormat" yaml:"dirNameFormat"`
 	// 文件名称格式，默认是 150405.000000
 	FileNameFormat string `json:"fileNameFormat" yaml:"fileNameFormat"`
-	// 每一份日志文件的最大字节
-	FileMaxSize int64 `json:"fileMaxSize" yaml:"fileMaxSize" validate:"required,min=1"`
+	// 每一份日志文件的最大字节，单位，k/m/g/t
+	FileMaxSize string `json:"fileMaxSize" yaml:"fileMaxSize" validate:"required"`
 	// 保存的最大天数，最小是 1 天
 	MaxKeepDay int `json:"maxKeepDay" yaml:"maxKeepDay" validate:"required,min=1"`
 	// 内存输出到磁盘的间隔，最小是 1 毫秒，设置太小没有意义
@@ -42,10 +43,14 @@ type FileConfig struct {
 
 // NewFile 返回一个 File 实例
 func NewFile(conf *FileConfig) (*File, error) {
+	fileMaxSize, err := gstr.StringToByte(conf.FileMaxSize)
+	if err != nil {
+		return nil, errors.New("error file max size format")
+	}
 	// 实例
 	f := new(File)
 	f.rootDir = conf.RootDir
-	f.maxFileSize = conf.FileMaxSize
+	f.maxFileSize = int64(fileMaxSize)
 	f.exit = make(chan struct{})
 	f.maxKeepDuraion = time.Duration(conf.MaxKeepDay) * minKeepDay
 	switch conf.Std {
@@ -62,6 +67,8 @@ func NewFile(conf *FileConfig) (*File, error) {
 	if f.fileNameFormat == "" {
 		f.fileNameFormat = "20060102150405.999999"
 	}
+	y, m, d := time.Now().Date()
+	f.dateY, f.dateM, f.dateD = y, int(m), d
 	// 输出协程
 	f.wait.Add(1)
 	go f.syncRoutine(conf.FlushInterval)
@@ -102,6 +109,8 @@ type File struct {
 	dirNameFormat string
 	// 文件格式
 	fileNameFormat string
+	// 日期，用于检查日期更换
+	dateY, dateM, dateD int
 }
 
 // Write 是 io.Writer 接口
@@ -121,7 +130,6 @@ func (f *File) Write(b []byte) (int, error) {
 		// 保存
 		f.flushFile()
 		f.closeFile()
-		// 新文件
 		f.openFile()
 	}
 	f.lock.Unlock()
@@ -149,7 +157,9 @@ func (f *File) checkExpireRoutine(dur time.Duration) {
 		select {
 		case now := <-timer.C:
 			// 检查过期
-			f.checkFile(&now)
+			f.checkExpire(&now)
+			// 检查日期更换
+			f.checkDate(&now)
 			// 计时器
 			timer.Reset(dur)
 		case <-f.exit:
@@ -161,8 +171,6 @@ func (f *File) checkExpireRoutine(dur time.Duration) {
 
 // syncRoutine 输出磁盘
 func (f *File) syncRoutine(dur time.Duration) {
-	// 程序退出
-	osQuit := make(chan os.Signal, 1)
 	// 计时器
 	timer := time.NewTicker(dur)
 	defer func() {
@@ -170,8 +178,6 @@ func (f *File) syncRoutine(dur time.Duration) {
 		recover()
 		// 计时器
 		timer.Stop()
-		// 程序信号
-		close(osQuit)
 		// 剩余的数据
 		f.lock.Lock()
 		f.flushFile()
@@ -193,10 +199,6 @@ func (f *File) syncRoutine(dur time.Duration) {
 			timer.Reset(dur)
 		case <-f.exit:
 			// 退出信号
-			return
-		case <-osQuit:
-			// 系统信号，关闭
-			f.close()
 			return
 		}
 	}
@@ -230,8 +232,8 @@ func (f *File) Close() error {
 	return nil
 }
 
-// checkFile 检查过期文件
-func (f *File) checkFile(now *time.Time) {
+// checkExpire 检查过期文件
+func (f *File) checkExpire(now *time.Time) {
 	// 读取根目录下的所有文件
 	dirEntries, err := os.ReadDir(f.rootDir)
 	if nil != err {
@@ -256,6 +258,20 @@ func (f *File) checkFile(now *time.Time) {
 			}
 		}
 	}
+}
+
+// checkDate 检查日期更换
+func (f *File) checkDate(now *time.Time) {
+	y, m, d := now.Date()
+	if y != f.dateY || int(m) != f.dateM || d != f.dateD {
+		// 保存
+		f.lock.Lock()
+		f.flushFile()
+		f.closeFile()
+		f.openFile()
+		f.lock.Unlock()
+	}
+	f.dateY, f.dateM, f.dateD = y, int(m), d
 }
 
 // flush 将内存的数据保存到硬盘，如果写入失败，数据会丢弃

@@ -259,15 +259,15 @@ type Message struct {
 // MessagePresetList 是 Message 的 PresetList 字段
 type MessagePresetList struct {
 	Num  int64                    `xml:"Num,attr"`
-	Item []*MessagePresetListItem `json:"item"`
+	Item []*MessagePresetListItem `xml:",omitempty" json:"item"`
 }
 
 // MessagePresetListItem 是 MessagePresetList 的 Item 字段
 type MessagePresetListItem struct {
 	// 预置位编码
-	PresetID string `xml:",omitempty"`
+	PresetID string `xml:",omitempty" json:"presetID"`
 	// 预置位名称
-	PresetName string `xml:",omitempty"`
+	PresetName string `xml:",omitempty" json:"presetName"`
 }
 
 // MessageVideoParamOpt 是 Message 的 VideoParamOpt 字段
@@ -366,17 +366,17 @@ type MessageInfoAlarmTypeParam struct {
 // MessageDragZoom 是 Message 的 DragZoomOut/DragZoomIn 字段
 type MessageDragZoom struct {
 	// 播放窗口长度像素值
-	Length string `xml:",omitempty"`
+	Length int64 `xml:",omitempty"`
 	// 播放窗口宽度像素值
-	Width string `xml:",omitempty"`
+	Width int64 `xml:",omitempty"`
 	// 拉框中心的横轴坐标像素值
-	MidPointX string `xml:",omitempty"`
+	MidPointX int64 `xml:",omitempty"`
 	// 拉框中心的纵轴坐标像素值
-	MidPointY string `xml:",omitempty"`
+	MidPointY int64 `xml:",omitempty"`
 	// 拉框长度像素值
-	LengthX string `xml:",omitempty"`
+	LengthX int64 `xml:",omitempty"`
 	// 拉框宽度像素值
-	LengthY string `xml:",omitempty"`
+	LengthY int64 `xml:",omitempty"`
 }
 
 // MessageHomePosition 是 Message 的 HomePosition 字段
@@ -388,7 +388,7 @@ type MessageHomePosition struct {
 	// 自动归位时间间隔，开启看守位时使用，单位:秒
 	ResetTime int64 `xml:",omitempty" json:"resetTime,omitempty"`
 	// 调用预置位编号，开启看守位时使用，取值范围0~255
-	PresetIndex string `xml:",omitempty" json:"presetIndex"`
+	PresetIndex int64 `xml:",omitempty" json:"presetIndex"`
 }
 
 // MessageBasicParam 是 Message 的 BasicParam 字段

@@ -13,67 +13,20 @@ var (
 	InitQueryTag = "gq"
 	// InitQueryFunc 是 InitQuery 处理函数
 	InitQueryFunc = map[string]func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB{
-		"in": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-			if kind == reflect.Slice || kind == reflect.Array {
-				if !value.IsZero() {
-					return db.Where(fmt.Sprintf("`%s` IN ?", field), value.Interface())
-				}
-			}
-			return db
-		},
-		"nin": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-			if kind == reflect.Slice || kind == reflect.Array {
-				if !value.IsZero() {
-					return db.Where(fmt.Sprintf("`%s` NOT IN ?", field), value.Interface())
-				}
-			}
-			return db
-		},
-		"eq": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`=?", field), value.Interface())
-		},
-		"neq": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`!=?", field), value.Interface())
-		},
-		"like": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-			if kind == reflect.String {
-				s := value.String()
-				if s != "" {
-					return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%s%%", s))
-				}
-			}
-			return db
-		},
-		"gt": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`<?", field), value.Interface())
-		},
-		"gte": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`<=?", field), value.Interface())
-		},
-		"lt": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`>?", field), value.Interface())
-		},
-		"lte": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-			return db.Where(fmt.Sprintf("`%s`>=?", field), value.Interface())
-		},
-		"null": func(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-			ok := false
-			if kind >= reflect.Int && kind <= reflect.Int64 {
-				ok = value.Int() == 1
-			} else if kind >= reflect.Uint && kind <= reflect.Uint64 {
-				ok = value.Uint() == 1
-			} else if kind == reflect.Bool {
-				ok = value.Interface().(bool)
-			} else if kind == reflect.String {
-				ok = value.String() == "true"
-			} else {
-				return db
-			}
-			if ok {
-				return db.Where(fmt.Sprintf("`%s` IS NOT NULL", field))
-			}
-			return db.Where(fmt.Sprintf("`%s` IS NULL", field))
-		},
+		"in":     QueryIN,
+		"nin":    QueryNIN,
+		"eq":     QueryEQ,
+		"neq":    QueryNEQ,
+		"like":   QueryLIKE,
+		"llike":  QueryLLIKE,
+		"rlike":  QueryRLIKE,
+		"gt":     QueryGT,
+		"gte":    QueryGTE,
+		"lt":     QueryLT,
+		"lte":    QueryLTE,
+		"null":   QueryNULL,
+		"select": QuerySelect,
+		"omit":   QueryOmit,
 	}
 )
 
@@ -166,5 +119,132 @@ func initQuery(db *gorm.DB, v reflect.Value, tag string) *gorm.DB {
 		db = fun(db, name, fv, fk)
 	}
 	//
+	return db
+}
+
+// QueryIN field in ?
+func QueryIN(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	if kind == reflect.Slice || kind == reflect.Array {
+		if !value.IsZero() {
+			return db.Where(fmt.Sprintf("`%s` IN ?", field), value.Interface())
+		}
+	}
+	return db
+}
+
+// QueryNIN field not in ?
+func QueryNIN(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	if kind == reflect.Slice || kind == reflect.Array {
+		if !value.IsZero() {
+			return db.Where(fmt.Sprintf("`%s` NOT IN ?", field), value.Interface())
+		}
+	}
+	return db
+}
+
+// QueryEQ field = ?
+func QueryEQ(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	return db.Where(fmt.Sprintf("`%s` = ?", field), value.Interface())
+}
+
+// QueryNEQ field != ?
+func QueryNEQ(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	return db.Where(fmt.Sprintf("`%s` != ?", field), value.Interface())
+}
+
+// QueryLIKE field like %?%
+func QueryLIKE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	if kind == reflect.String {
+		s := value.String()
+		if s != "" {
+			return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%s%%", s))
+		}
+	}
+	return db
+}
+
+// QueryLLIKE field like %?
+func QueryLLIKE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	if kind == reflect.String {
+		s := value.String()
+		if s != "" {
+			return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%s", s))
+		}
+	}
+	return db
+}
+
+// QueryRLIKE field like ?%
+func QueryRLIKE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	if kind == reflect.String {
+		s := value.String()
+		if s != "" {
+			return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%s%%", s))
+		}
+	}
+	return db
+}
+
+// QueryGT field > ?
+func QueryGT(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	return db.Where(fmt.Sprintf("`%s` > ?", field), value.Interface())
+}
+
+// QueryGTE field >= ?
+func QueryGTE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	return db.Where(fmt.Sprintf("`%s` >= ?", field), value.Interface())
+}
+
+// QueryLT field < ?
+func QueryLT(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	return db.Where(fmt.Sprintf("`%s` < ?", field), value.Interface())
+}
+
+// QueryLTE field <= ?
+func QueryLTE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	return db.Where(fmt.Sprintf("`%s` <= ?", field), value.Interface())
+}
+
+// QueryNULL field IS [NOT]NULL
+func QueryNULL(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	ok := false
+	if kind >= reflect.Int && kind <= reflect.Int64 {
+		ok = value.Int() == 1
+	} else if kind >= reflect.Uint && kind <= reflect.Uint64 {
+		ok = value.Uint() == 1
+	} else if kind == reflect.Bool {
+		ok = value.Interface().(bool)
+	} else if kind == reflect.String {
+		v := value.String()
+		if v == "" {
+			return db
+		}
+		ok = v == "true"
+	} else {
+		return db
+	}
+	if ok {
+		return db.Where(fmt.Sprintf("`%s` IS NOT NULL", field))
+	}
+	return db.Where(fmt.Sprintf("`%s` IS NULL", field))
+}
+
+// QuerySelect select fields
+func QuerySelect(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	if kind == reflect.Array {
+		if vs, ok := value.Interface().([]string); ok {
+			return db.Select(vs)
+		}
+	}
+	return db
+}
+
+// QueryOmit omit fields
+func QueryOmit(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	if kind == reflect.Array {
+		if vs, ok := value.Interface().([]string); ok {
+			return db.Omit(vs...)
+		}
+	}
 	return db
 }

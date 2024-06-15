@@ -64,3 +64,16 @@ func openSqlite(dsn string, cfg *gorm.Config) (*gorm.DB, error) {
 	//
 	return db, nil
 }
+
+// IsDataNotFound 是否没有数据
+func IsDataNotFound(err error) bool {
+	return err == gorm.ErrRecordNotFound
+}
+
+// IsDuplicateError 判断是否重复 key
+func IsDuplicateError(err error) bool {
+	if e, ok := err.(*mysql.MySQLError); ok {
+		return e.Number == 1062
+	}
+	return false
+}

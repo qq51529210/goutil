@@ -7,37 +7,18 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// HSetNxEx 存在才设置
-func HSetNxEx(ctx context.Context, db redis.UniversalClient, key string, expire time.Duration, field string, value any) (bool, error) {
-	res, err := redis.NewScript(`
-local result = redis.call("EXISTS", KEYS[1])
--- 存在
-if result == 1 then
-	-- 更新
-	redis.call("HSET", KEYS[1], ARGV[1], ARGV[2])
-	redis.call("EXPIRE", KEYS[1], ARGV[3])
-end
--- 返回
-return result
-`).Run(ctx, db, []string{key}, field, value, expire/time.Second).Result()
-	if err != nil {
-		return false, err
-	}
-	return res.(int64) == 1, nil
-}
-
 // HSetNx 存在才设置
-func HSetNx(ctx context.Context, db redis.UniversalClient, key, field string, value any) (bool, error) {
+func HSetNx(ctx context.Context, db redis.UniversalClient, key string, value ...any) (bool, error) {
+	//
 	res, err := redis.NewScript(`
 local result = redis.call("EXISTS", KEYS[1])
 -- 存在
 if result == 1 then
 	-- 更新
-	redis.call("HSET", KEYS[1], ARGV[1], ARGV[2])
+	redis.call("HMSET", KEYS[1], unpack(ARGV))
 end
 -- 返回
-return result
-`).Run(ctx, db, []string{key}, field, value).Result()
+return result`).Run(ctx, db, []string{key}, value...).Result()
 	if err != nil {
 		return false, err
 	}
@@ -45,22 +26,21 @@ return result
 }
 
 // HMSetNxEx 存在才设置
-func HMSetNxEx(ctx context.Context, db redis.UniversalClient, key string, expire time.Duration, args ...any) (bool, error) {
-	var values []any
-	values = append(values, expire/time.Second)
-	values = append(values, args...)
+func HSetNxEx(ctx context.Context, db redis.UniversalClient, key string, expire time.Duration, values ...any) (bool, error) {
+	var args []any
+	args = append(args, expire/time.Second)
+	args = append(args, values...)
 	//
 	res, err := redis.NewScript(`
 local result = redis.call("EXISTS", KEYS[1])
 -- 存在
 if result == 1 then
 	-- 更新
-	redis.call("HSET", KEYS[1], ARGV[2], ARGV[3])
+	redis.call("HMSET", KEYS[1], unpack(ARGV, 2))
 	redis.call("EXPIRE", KEYS[1], ARGV[1])
 end
 -- 返回
-return result
-`).Run(ctx, db, []string{key}, values...).Result()
+return result`).Run(ctx, db, []string{key}, args...).Result()
 	if err != nil {
 		return false, err
 	}
@@ -127,10 +107,10 @@ func HGetPage[M any](ctx context.Context, db redis.UniversalClient, scanKey stri
 }
 
 // HGetAll 查询全部
-func HGetAll[M any](ctx context.Context, db redis.UniversalClient, scanKey string, fields ...string) ([]*M, error) {
+func HGetAll[M any](ctx context.Context, db redis.UniversalClient, scanKey string, count int64, fields ...string) ([]*M, error) {
 	var ms []*M
 	// 用迭代器
-	it := db.Scan(ctx, 0, scanKey, 0).Iterator()
+	it := db.Scan(ctx, 0, scanKey, count).Iterator()
 	for it.Next(ctx) {
 		m := new(M)
 		err := HGet(ctx, db, it.Val(), m, fields...)
@@ -186,10 +166,10 @@ func HGetPageFromSet[M any](ctx context.Context, db redis.UniversalClient, setKe
 }
 
 // HGetAllFromSet 使用 set 中的值作为 key 查询
-func HGetAllFromSet[M any](ctx context.Context, db redis.UniversalClient, setKey, prefixKey string, fields ...string) ([]*M, error) {
+func HGetAllFromSet[M any](ctx context.Context, db redis.UniversalClient, setKey, prefixKey string, count int64, fields ...string) ([]*M, error) {
 	var ms []*M
 	// 扫描
-	it := db.SScan(ctx, setKey, 0, "*", 0).Iterator()
+	it := db.SScan(ctx, setKey, 0, "*", count).Iterator()
 	for it.Next(ctx) {
 		m := new(M)
 		if err := HGet(ctx, db, prefixKey+it.Val(), m, fields...); err != nil {

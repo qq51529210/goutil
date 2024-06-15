@@ -134,31 +134,10 @@ func (d *Device) GetDeviceInformation(ctx context.Context) (*owvd.Information, e
 	return owvd.GetDeviceInformation(ctx, d.URL, soap.NewSecurity(d.username, d.password))
 }
 
-// IsMediaServiceOK 媒体服务是否支持
-func (d *Device) IsMediaServiceOK() bool {
-	return d.Capabilities != nil && d.Capabilities.Media != nil && d.Capabilities.Media.XAddr != ""
-}
-
 // GetProfiles 查询媒体属性
 func (d *Device) GetProfiles(ctx context.Context) ([]*owvs.Profile, error) {
 	if !d.IsMediaServiceOK() {
 		return nil, ErrMediaCapabilityUnsupported
 	}
 	return owvm.GetProfiles(ctx, d.Capabilities.Media.XAddr, soap.NewSecurity(d.username, d.password))
-}
-
-// GetRTSPStreamURL 返回 rtsp 地址
-func (d *Device) GetRTSPStreamURL(ctx context.Context, profileToken string) (string, error) {
-	if !d.IsMediaServiceOK() {
-		return "", ErrMediaCapabilityUnsupported
-	}
-	m, err := owvm.GetStreamURL(ctx, d.Capabilities.Media.XAddr, soap.NewSecurity(d.username, d.password),
-		profileToken, owvm.StreamProtocolRTSP, owvm.StreamTypeRTPUnicast)
-	if err != nil {
-		return "", err
-	}
-	u, _ := url.Parse(m.URL)
-	u.User = url.UserPassword(d.username, d.password)
-	u.Host = d.replaceIP(u.Host)
-	return u.String(), nil
 }

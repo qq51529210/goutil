@@ -68,6 +68,15 @@ func (m *Media) SearchAllA(prefix string) []string {
 	return ss
 }
 
+// SearchOther 返回第一个 key 剩下的部分
+func (m *Media) SearchOther(key string) string {
+	v, ok := m.Other[key]
+	if !ok || len(v) < 1 {
+		return ""
+	}
+	return v[0]
+}
+
 // AddOther 添加 k=v
 func (m *Media) AddOther(k, v string) {
 	if m.Other == nil {

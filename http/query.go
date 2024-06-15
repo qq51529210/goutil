@@ -19,17 +19,20 @@ func Query(v any, q url.Values) url.Values {
 
 // QueryWithTag 指定 tag
 func QueryWithTag(v any, q url.Values, tag string) url.Values {
-	if q == nil {
-		q = make(url.Values)
-	}
 	rv := reflect.ValueOf(v)
 	vk := rv.Kind()
+	if vk == reflect.Invalid {
+		return q
+	}
 	if vk == reflect.Pointer {
 		rv = rv.Elem()
 		vk = rv.Kind()
 	}
 	if vk != reflect.Struct {
 		panic("v must be struct or struct ptr")
+	}
+	if q == nil {
+		q = make(url.Values)
 	}
 	return httpQuery(rv, q, tag)
 }

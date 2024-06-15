@@ -54,7 +54,6 @@ func Request(ctx context.Context, client *http.Client, method, url string, query
 		req.URL.RawQuery = q.Encode()
 	}
 	// 发送
-	req = req.WithContext(ctx)
 	res, err := client.Do(req)
 	if err != nil {
 		return err

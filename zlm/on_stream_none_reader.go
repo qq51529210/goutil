@@ -22,12 +22,11 @@ type OnStreamNoneReaderReq struct {
 
 // OnStreamNoneReaderRes 表示 on_stream_none_reader 返回值
 type OnStreamNoneReaderRes struct {
-	Close *bool `json:"close"`
-	Code  int   `json:"code"`
+	Close bool `json:"close,omitempty"`
+	Code  int  `json:"code"`
 }
 
 // OnStreamNoneReader 处理 zlm 的 on_stream_none_reader 回调
 func OnStreamNoneReader(ctx context.Context, req *OnStreamNoneReaderReq, res *OnStreamNoneReaderRes) {
-	res.Close = new(bool)
-	*res.Close = true
+	res.Close = true
 }

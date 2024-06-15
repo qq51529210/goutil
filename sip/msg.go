@@ -618,7 +618,7 @@ func (m *Request) ResponseWith(status, phrase string) {
 		m.Header.Via[0].Received = m.RemoteIP()
 	}
 	if m.Header.Via[0].RProt == "" {
-		m.Header.Via[0].RProt = m.RemotePort()
+		m.Header.Via[0].RProt = fmt.Sprintf("%d", m.RemotePort())
 	}
 	//
 	m.Header.UserAgent = m.Server.opt.UserAgent
@@ -663,7 +663,7 @@ func (m *Request) NewResponse(status, phrase string) *Response {
 		r.Header.Via[0].Received = m.RemoteIP()
 	}
 	if r.Header.Via[0].RProt == "" {
-		r.Header.Via[0].RProt = m.RemotePort()
+		r.Header.Via[0].RProt = fmt.Sprintf("%d", m.RemotePort())
 	}
 	r.Header.From = m.Header.From
 	r.Header.To = m.Header.To
