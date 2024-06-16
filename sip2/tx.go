@@ -15,7 +15,7 @@ type tx interface {
 	// 返回事务的标识
 	ID() string
 	// 完成，一般在处理响应中调用
-	finish(err error)
+	finish(error)
 }
 
 type baseTx struct {
@@ -28,8 +28,6 @@ type baseTx struct {
 	err error
 	// 用于判断超时清理
 	deadline time.Time
-	// 创建时间
-	createTime time.Time
 }
 
 // 实现 context.Context 接口

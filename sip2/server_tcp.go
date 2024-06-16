@@ -2,6 +2,7 @@ package sip
 
 import (
 	"context"
+	"fmt"
 	gs "goutil/sync"
 	"net"
 	"os"
@@ -27,6 +28,10 @@ type tcpServer struct {
 	ok int32
 }
 
+func (s *tcpServer) isOK() bool {
+	return atomic.LoadInt32(&s.ok) == 1
+}
+
 // Serve 监听 address 开始服务
 func (s *tcpServer) Serve(address string) error {
 	s.conn.Init()
@@ -47,10 +52,13 @@ func (s *tcpServer) Serve(address string) error {
 	s.w.Add(1)
 	go s.listenRoutine()
 	// 检查
+	s.w.Add(2)
 	go s.checkActiveTxRoutine()
 	go s.checkPassiveTxRoutine()
 	// 日志
-	s.s.Logger.Infof("listen tcp %s", address)
+	s.s.logger.Infof("listen tcp %s", address)
+	// 状态
+	atomic.StoreInt32(&s.ok, 1)
 	// 返回
 	return nil
 }
@@ -61,18 +69,18 @@ func (s *tcpServer) listenRoutine() {
 		// 结束
 		s.w.Done()
 		// 异常
-		if s.s.Logger.Recover(recover()) {
+		if s.s.logger.Recover(recover()) {
 			os.Exit(1)
 		}
 	}()
-	for atomic.LoadInt32(&s.ok) == 0 {
+	for s.isOK() {
 		// 接受
 		conn, err := s.listener.AcceptTCP()
 		if err != nil {
-			s.s.Logger.Errorf("tcp accept %v", err)
+			s.s.logger.Errorf("tcp accept %v", err)
 			continue
 		}
-		// 处理
+		// 开协程处理处理
 		c := s.addConn(conn)
 		s.w.Add(1)
 		go s.handleConnRoutine(c)
@@ -81,9 +89,13 @@ func (s *tcpServer) listenRoutine() {
 
 // addTCPConn 添加并返回
 func (s *tcpServer) addConn(conn *net.TCPConn) *tcpConn {
+	a := conn.RemoteAddr().(*net.TCPAddr)
 	// 初始化
 	c := new(tcpConn)
-	c.init(conn)
+	c.conn = conn
+	c.remoteIP = a.IP.String()
+	c.remotePort = a.Port
+	c.remoteAddr = fmt.Sprintf("%s:%d", c.remoteIP, c.remotePort)
 	// 添加
 	s.conn.Set(c.key, c)
 	//
@@ -105,7 +117,7 @@ func (s *tcpServer) getConn(addr *net.TCPAddr) *tcpConn {
 
 // dialConn 创建连接
 func (s *tcpServer) dialConn(addr *net.TCPAddr) (*tcpConn, error) {
-	conn, err := net.DialTimeout(addr.Network(), addr.String(), s.s.MsgTimeout)
+	conn, err := net.DialTimeout(addr.Network(), addr.String(), s.s.msgTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -120,14 +132,14 @@ func (s *tcpServer) handleConnRoutine(c *tcpConn) {
 		// 移除
 		s.delConn(c)
 		// 异常
-		s.s.Logger.Recover(recover())
+		s.s.logger.Recover(recover())
 	}()
-	r := newReader(c.conn, s.s.MaxMessageLen)
-	for atomic.LoadInt32(&s.ok) == 0 {
+	r := newReader(c.conn, s.s.maxMessageLen)
+	for s.isOK() {
 		// 解析，错误直接返回关闭连接
 		m := new(Message)
-		if err := m.Dec(r, s.s.MaxMessageLen); err != nil {
-			s.s.Logger.Errorf("tcp parse message %v", err)
+		if err := m.Dec(r, s.s.maxMessageLen); err != nil {
+			s.s.logger.Errorf("tcp parse message %v", err)
 			return
 		}
 		// 处理
@@ -137,69 +149,59 @@ func (s *tcpServer) handleConnRoutine(c *tcpConn) {
 
 func (s *tcpServer) handleMsg(conn *tcpConn, msg *Message) {
 	method := strings.ToUpper(msg.Header.CSeq.Method)
-	// 请求消息
 	if msg.isReq {
-		// 回调
-		hf, ok := s.s.handleFunc.reqFunc[method]
-		if !ok {
-			// 不支持的方法，而且没有注册 RequestNotFoundFunc ，这里直接回复
-			if s.s.handleFunc.reqNotFoundFunc == nil {
-				s.s.handleRequestNotFound(conn, msg)
+		// 回调，没有注册不处理
+		hf := s.s.handleFunc.reqFunc[method]
+		if len(hf) > 0 {
+			// 事务
+			t := s.newPassiveTx(msg.txKey())
+			// 已经完成处理
+			if atomic.LoadInt32(&t.ok) == 1 {
 				return
 			}
-			// 回调
-			if res := s.s.handleFunc.reqNotFoundFunc(msg); res != nil {
-				if err := conn.writeMsg(res); err != nil {
-					s.s.Logger.Errorf("write udp data %v", err)
-				}
+			// 没有完成，在协程中处理
+			if atomic.CompareAndSwapInt32(&t.handing, 0, 1) {
+				s.w.Add(1)
+				go s.handleRequestRoutine(conn, t, msg, hf)
 			}
+		}
+		return
+	}
+	// 回调，没有注册不处理
+	hf := s.s.handleFunc.resFunc[method]
+	if len(hf) > 0 {
+		// 响应消息
+		if msg.StartLine[1][0] == '1' {
+			// 1xx 消息没什么卵用，就不回调了
 			return
 		}
-		// 事务
-		t := s.newPassiveTx(conn, msg.txKey())
-		// 没有完成，在协程中处理
-		if atomic.LoadInt32(&t.ok) != 1 && atomic.CompareAndSwapInt32(&t.handing, 0, 1) {
+		// 事务，不一定有
+		if t := s.deleteAndGetActiveTx(msg.txKey()); t != nil {
+			// 在协程中处理
 			s.w.Add(1)
-			go s.handleRequestRoutine(t, msg, hf)
+			go s.handleResponseRoutine(conn, t, msg, hf)
 		}
-		return
-	}
-	// 回调
-	hf, ok := s.s.handleFunc.resFunc[method]
-	if !ok {
-		// 没有注册响应处理
-		return
-	}
-	// 响应消息
-	if msg.StartLine[1][0] == '1' {
-		// 1xx 消息没什么卵用，就不回调了
-		return
-	}
-	// 事务，不一定有
-	if t := s.deleteAndGetActiveTx(msg.txKey()); t != nil {
-		// 在协程中处理
-		s.w.Add(1)
-		go s.handleResponseRoutine(t, msg, hf)
 	}
 }
 
 // handleRequestRoutine 在协程中处理请求消息
-func (s *tcpServer) handleRequestRoutine(t *tcpPassiveTx, m *Message, f []HandleRequestFunc) {
+func (s *tcpServer) handleRequestRoutine(c *tcpConn, t *tcpPassiveTx, m *Message, f []HandleRequestFunc) {
 	defer func() {
 		// 异常
-		s.s.Logger.Recover(recover())
+		s.s.logger.Recover(recover())
 		// 结束
 		s.w.Done()
 	}()
 	// 上下文
 	var req Request
 	req.tx = t
+	req.Ser = s.s
+	req.conn = c
 	req.Message = m
-	req.Server = s.s
-	req.RemoteNetwork = t.conn.Network()
-	req.RemoteIP = t.conn.remoteIP
-	req.RemotePort = t.conn.remotePort
-	req.RemoteAddr = t.conn.remoteAddr
+	req.RemoteNetwork = networkTCP
+	req.RemoteIP = c.remoteIP
+	req.RemotePort = c.remotePort
+	req.RemoteAddr = c.remoteAddr
 	// 回调
 	req.handleFunc = f
 	req.callback()
@@ -210,10 +212,10 @@ func (s *tcpServer) handleRequestRoutine(t *tcpPassiveTx, m *Message, f []Handle
 }
 
 // handleResponseRoutine 在协程中处理响应消息
-func (s *tcpServer) handleResponseRoutine(t *tcpActiveTx, m *Message, f []HandleResponseFunc) {
+func (s *tcpServer) handleResponseRoutine(c *tcpConn, t *tcpActiveTx, m *Message, f []HandleResponseFunc) {
 	defer func() {
 		// 异常
-		s.s.Logger.Recover(recover())
+		s.s.logger.Recover(recover())
 		// 无论回调有没有通知，这里都通知一下
 		t.finish(nil)
 		// 结束
@@ -221,9 +223,14 @@ func (s *tcpServer) handleResponseRoutine(t *tcpActiveTx, m *Message, f []Handle
 	}()
 	// 上下文
 	var res Response
-	res._Context.tx = t
-	res._Context.Message = m
-	res._Context.Server = s.s
+	res.tx = t
+	res.Ser = s.s
+	res.conn = c
+	res.Message = m
+	res.RemoteNetwork = networkTCP
+	res.RemoteIP = c.remoteIP
+	res.RemotePort = c.remotePort
+	res.RemoteAddr = c.remoteAddr
 	// 回调
 	res.handleFunc = f
 	res.callback()
@@ -240,12 +247,12 @@ func (s *tcpServer) checkActiveTxRoutine() {
 		// 结束
 		s.w.Done()
 		// 异常
-		if s.s.Logger.Recover(recover()) {
+		if s.s.logger.Recover(recover()) {
 			os.Exit(1)
 		}
 	}()
 	// 开始
-	for atomic.LoadInt32(&s.ok) == 0 {
+	for s.isOK() {
 		// 时间
 		now := <-timer.C
 		// 组装
@@ -278,15 +285,14 @@ func (s *tcpServer) newActiveTx(id string, data any) (*tcpActiveTx, bool) {
 	s.activeTx.Lock()
 	defer s.activeTx.Unlock()
 	// 添加
-	s.activeTx.Lock()
 	t, ok := s.activeTx.D[id]
 	if t != nil {
 		return t, ok
 	}
+	// 新的
 	t = new(tcpActiveTx)
 	t.id = id
-	t.createTime = time.Now()
-	t.deadline = t.createTime.Add(s.s.MsgTimeout)
+	t.deadline = time.Now().Add(s.s.msgTimeout)
 	t.done = make(chan struct{})
 	t.data = data
 	//
@@ -324,12 +330,12 @@ func (s *tcpServer) checkPassiveTxRoutine() {
 		// 结束
 		s.w.Done()
 		// 异常
-		if s.s.Logger.Recover(recover()) {
+		if s.s.logger.Recover(recover()) {
 			os.Exit(1)
 		}
 	}()
 	// 开始
-	for atomic.LoadInt32(&s.ok) == 0 {
+	for s.isOK() {
 		// 时间
 		now := <-timer.C
 		// 组装
@@ -352,14 +358,12 @@ func (s *tcpServer) checkPassiveTxRoutine() {
 // tcpPassiveTx 被动接受请求的事务
 type tcpPassiveTx struct {
 	baseTx
-	// 连接
-	conn *tcpConn
 	// 用于控制多消息并发时的单一处理
 	handing int32
 }
 
 // newPassiveTx 添加并返回，用于被动接收请求
-func (s *tcpServer) newPassiveTx(conn *tcpConn, id string) *tcpPassiveTx {
+func (s *tcpServer) newPassiveTx(id string) *tcpPassiveTx {
 	// 锁
 	s.passiveTx.Lock()
 	defer s.passiveTx.Unlock()
@@ -368,10 +372,8 @@ func (s *tcpServer) newPassiveTx(conn *tcpConn, id string) *tcpPassiveTx {
 	if t == nil {
 		t = new(tcpPassiveTx)
 		t.id = id
-		t.createTime = time.Now()
-		t.deadline = t.createTime.Add(s.s.MsgTimeout)
+		t.deadline = time.Now().Add(s.s.msgTimeout)
 		t.done = make(chan struct{})
-		t.conn = conn
 		//
 		s.passiveTx.D[id] = t
 	}
@@ -380,12 +382,14 @@ func (s *tcpServer) newPassiveTx(conn *tcpConn, id string) *tcpPassiveTx {
 }
 
 func (s *tcpServer) Shutdown() {
-	if atomic.CompareAndSwapInt32(&s.ok, 0, 1) {
+	if atomic.CompareAndSwapInt32(&s.ok, 1, -1) {
 		// 关闭 conn
 		s.listener.Close()
 		// 事务通知
 		s.shutdownActiveTx()
 		s.shutdownPassiveTx()
+		// 关闭连接
+		s.shutdownConn()
 		// 等待所有协程退出
 		s.w.Wait()
 	}
@@ -412,7 +416,7 @@ func (s *tcpServer) shutdownActiveTx() {
 	for _, d := range s.activeTx.D {
 		d.finish(ErrServerShutdown)
 	}
-	s.passiveTx.D = make(map[string]*tcpPassiveTx)
+	s.activeTx.D = make(map[string]*tcpActiveTx)
 }
 
 // shutdownPassiveTx 通知所有的被动事务，服务关闭了

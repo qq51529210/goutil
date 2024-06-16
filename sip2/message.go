@@ -526,7 +526,6 @@ func (m *Message) Enc(w *bytes.Buffer) {
 	if m.Header.contentLength > 0 {
 		w.Write(m.Body.Bytes())
 	}
-	return
 }
 
 // decStartLine2 解析 start line
@@ -570,134 +569,12 @@ func (m *Message) KeepBasic() {
 	m.Body.Reset()
 }
 
-// func (m *Message) InitResponse(status, phrase string) {
-// // start line
-// m.StartLine[0] = SIPVersion
-// m.StartLine[1] = string(status)
-// m.StartLine[2] = phrase
-// if m.StartLine[2] == "" {
-// 	m.StartLine[2] = StatusPhrase(status)
-// }
-// // to tag
-// if m.Header.To.Tag == "" {
-// 	m.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
-// }
-// // via
-// m.Header.Via[0].RPort = strconv.Itoa(m.RemotePort)
-// m.Header.Via[0].Received = m.RemoteIP
-// //
-// m.Header.UserAgent = s.UserAgent
-// }
-
-// // Request 表示请求消息
-// type Request struct {
-// 	*Server
-// 	*Message
-// 	tx
-// }
-
-// // NewRequest 创建请求
-// func NewRequest() *Request {
-// 	return &Request{Message: new(Message)}
-// }
-
-// // Response 用于发送响应消息，在处理请求消息的时候使用
-// // 直接修改的是 request 的数据哦
-// func (m *Request) Response(status string) {
-// 	m.ResponseWith(status, StatusPhrase(status))
-// }
-
-// // ResponseWith 用于发送响应消息，在处理请求消息的时候使用
-// // 直接修改的是 request 的数据哦
-// func (m *Request) ResponseWith(status, phrase string) {
-// 	// start line
-// 	m.StartLine[0] = SIPVersion
-// 	m.StartLine[1] = string(status)
-// 	m.StartLine[2] = phrase
-// 	if m.StartLine[2] == "" {
-// 		m.StartLine[2] = StatusPhrase(status)
-// 	}
-// 	// to tag
-// 	if m.Header.To.Tag == "" {
-// 		m.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
-// 	}
-// 	if m.Header.Via[0].Received == "" {
-// 		m.Header.Via[0].Received = m.RemoteIP()
-// 	}
-// 	if m.Header.Via[0].RProt == "" {
-// 		m.Header.Via[0].RProt = fmt.Sprintf("%d", m.RemotePort())
-// 	}
-// 	//
-// 	m.Header.UserAgent = m.Server.opt.UserAgent
-// 	// 格式化
-// 	buf := m.dataBuffer()
-// 	buf.Reset()
-// 	m.Enc(buf)
-// 	// 日志
-// 	m.Server.opt.Logger.DebugfTrace(m.tx.TxKey(), "write response to %s %s\n%s", m.Network(), m.RemoteAddrString(), buf.String())
-// 	// 立刻发送
-// 	err := m.write(buf.Bytes())
-// 	if err != nil {
-// 		m.Server.opt.Logger.ErrorDepthTrace(2, m.txKey(), err)
-// 	}
-// }
-
-// // ResponseError 调用 Response
-// func (m *Request) ResponseError(err *ResponseError) {
-// 	m.ResponseWith(err.Status, err.Phrase)
-// }
-
-// // NewResponse 根据 Request 创建 Response
-// func (m *Request) NewResponse(status, phrase string) *Response {
-// 	r := new(Response)
-// 	r.Server = m.Server
-// 	r.tx = m.tx
-// 	r.Message = new(Message)
-// 	// start line
-// 	r.StartLine[0] = SIPVersion
-// 	r.StartLine[1] = string(status)
-// 	r.StartLine[2] = phrase
-// 	if r.StartLine[2] == "" {
-// 		r.StartLine[2] = StatusPhrase(status)
-// 	}
-// 	// header
-// 	for _, v := range m.Header.Via {
-// 		vv := new(Via)
-// 		*vv = *v
-// 		r.Header.Via = append(r.Header.Via, vv)
-// 	}
-// 	if r.Header.Via[0].Received == "" {
-// 		r.Header.Via[0].Received = m.RemoteIP()
-// 	}
-// 	if r.Header.Via[0].RProt == "" {
-// 		r.Header.Via[0].RProt = fmt.Sprintf("%d", m.RemotePort())
-// 	}
-// 	r.Header.From = m.Header.From
-// 	r.Header.To = m.Header.To
-// 	r.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
-// 	r.Header.CallID = m.Header.CallID
-// 	r.Header.CSeq = m.Header.CSeq
-// 	r.Header.MaxForwards = m.Header.MaxForwards
-// 	r.Header.Expires = m.Header.Expires
-// 	r.Header.UserAgent = m.Server.opt.UserAgent
-// 	r.Header.others = make(map[string]string)
-// 	//
-// 	return r
-// }
-
-// // Response 表示响应消息
-// type Response struct {
-// 	*Server
-// 	*Message
-// 	tx
-// }
-
-// // IsStatus 返回是否与 code 相等，因为 StartLine[1] 不好记忆
-// func (m *Response) IsStatus(status string) bool {
-// 	return m.StartLine[1] == status
-// }
-
-// // Error 返回当前的 status 和 pharse
-// func (m *Response) Error() *ResponseError {
-// 	return NewResponseError(m.StartLine[1], m.StartLine[2], "")
-// }
+// SetResponseStartLine 设置 start line
+func (m *Message) SetResponseStartLine(status, phrase string) {
+	m.StartLine[0] = SIPVersion
+	m.StartLine[1] = string(status)
+	m.StartLine[2] = phrase
+	if m.StartLine[2] == "" {
+		m.StartLine[2] = StatusPhrase(status)
+	}
+}

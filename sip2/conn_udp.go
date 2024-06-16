@@ -11,10 +11,6 @@ type udpConn struct {
 	baseConn
 }
 
-func (c *udpConn) Network() string {
-	return "udp"
-}
-
 func (c *udpConn) write(b []byte) error {
 	_, err := c.conn.WriteToUDP(b, c.addr)
 	return err
@@ -25,8 +21,4 @@ func (c *udpConn) writeMsg(msg *Message) error {
 	msg.Enc(&buf)
 	_, err := c.conn.WriteToUDP(buf.Bytes(), c.addr)
 	return err
-}
-
-func (c *udpConn) isUDP() bool {
-	return true
 }

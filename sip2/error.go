@@ -39,12 +39,3 @@ func (e *ResponseError) Error() string {
 	e.Err = fmt.Sprintf("stauts %s phrase %s", e.Status, e.Phrase)
 	return e.Err
 }
-
-// // NewResponseError 是 ResponseError 构造函数
-// func NewResponseError(status, phrase, err string) *ResponseError {
-// 	return &ResponseError{
-// 		Status: status,
-// 		Phrase: phrase,
-// 		Err:    err,
-// 	}
-// }

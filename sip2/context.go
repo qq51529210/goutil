@@ -1,5 +1,11 @@
 package sip
 
+import (
+	"fmt"
+	"goutil/uid"
+	"strconv"
+)
+
 // _Context 回调函数传递的上下文
 type _Context struct {
 	// 事务
@@ -7,7 +13,15 @@ type _Context struct {
 	// 消息
 	*Message
 	// 服务
-	*Server
+	Ser *Server
+	// 对端网络，tcp/udp
+	RemoteNetwork string
+	// 对端 IP:Port
+	RemoteAddr string
+	// 对端 IP
+	RemoteIP string
+	// 对端 Port
+	RemotePort int
 	// 用于保存上下文数据
 	data map[any]any
 }
@@ -32,14 +46,7 @@ func (c *_Context) SetValue(key, value any) {
 // Request 请求回调上下文
 type Request struct {
 	_Context
-	// 对端网络，tcp/udp
-	RemoteNetwork string
-	// 对端 IP:Port
-	RemoteAddr string
-	// 对端 IP
-	RemoteIP string
-	// 对端 Port
-	RemotePort int
+	conn
 	// 保存调用链函数
 	handleFunc []HandleRequestFunc
 	// 当前调用的函数下标
@@ -54,25 +61,40 @@ func (c *Request) callback() {
 	}
 }
 
+// Response 发送没有 body 的响应，中断调用链
+func (c *Request) Response(status, phrase string) error {
+	// 消息
+	var msg Message
+	msg.SetResponseStartLine(status, phrase)
+	msg.Header = c.Message.Header
+	msg.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
+	// via
+	msg.Header.Via[0].RPort = strconv.Itoa(c.RemotePort)
+	msg.Header.Via[0].Received = c.RemoteIP
+	//
+	msg.Header.UserAgent = c.Ser.userAgent
+	// 发送
+	return c.ResponseMsg(&msg)
+}
+
+// ResponseMsg 发送响应，中断调用链
+func (c *Request) ResponseMsg(msg *Message) error {
+	c.tx.finish(ErrFinish)
+	c.handleIdx = len(c.handleFunc)
+	return c.conn.writeMsg(msg)
+}
+
 // Response 响应回调上下文
 type Response struct {
 	_Context
+	conn
 	// 保存调用链函数
 	handleFunc []HandleResponseFunc
 	// 当前调用的函数下标
 	handleIdx int
 }
 
-// handle 执行调用链中剩下的所有函数
-func (c *Response) handle() {
-	for c.handleIdx < len(c.handleFunc) {
-		c.handleFunc[c.handleIdx](c)
-		c.handleIdx++
-	}
-}
-
 // Finish 结束调用链
-//
 func (c *Response) Finish(err error) {
 	if err == nil {
 		err = ErrFinish

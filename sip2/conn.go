@@ -5,15 +5,19 @@ import (
 	"net"
 )
 
+const (
+	networkUDP = "udp"
+	networkTCP = "tcp"
+)
+
 // conn 抽象一些 conn 的接口，这样调用者好操作
 type conn interface {
-	Network() string
-	RemoteIP() string
-	RemotePort() int
-	RemoteAddr() string
+	// Network() string
+	// RemoteIP() string
+	// RemotePort() int
+	// RemoteAddr() string
 	write([]byte) error
 	writeMsg(*Message) error
-	isUDP() bool
 }
 
 // baseConn 封装一些公共方法

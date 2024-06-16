@@ -3,15 +3,12 @@ package sip
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"goutil/log"
-	"goutil/uid"
 	"net"
-	"strconv"
 	"time"
 )
 
-type Server struct {
+type ServerOption struct {
 	// 用户代理
 	UserAgent string
 	// 日志
@@ -20,12 +17,33 @@ type Server struct {
 	MaxMessageLen int
 	// 发起请求的超时时间，或者响应消息缓存的超时时间
 	MsgTimeout time.Duration
+}
+
+type Server struct {
+	// 用户代理
+	userAgent string
+	// 日志
+	logger *log.Logger
+	// 消息最大的字节数，接收到的消息如果大于这个数会被丢弃
+	maxMessageLen int
+	// 发起请求的超时时间，或者响应消息缓存的超时时间
+	msgTimeout time.Duration
 	// 回调函数
 	handleFunc
 	// udp 服务
 	udp udpServer
 	// tcp 服务
 	tcp tcpServer
+}
+
+// NewServer 必须用这个创建
+func NewServer(opt *ServerOption) *Server {
+	return &Server{
+		userAgent:     opt.UserAgent,
+		logger:        opt.Logger,
+		maxMessageLen: opt.MaxMessageLen,
+		msgTimeout:    opt.MsgTimeout,
+	}
 }
 
 // ServeUDP 启动 udp 服务
@@ -75,36 +93,6 @@ func (s *Server) RequestWithContext(ctx context.Context, msg *Message, addr net.
 	return ErrUnknownAddress
 }
 
-func (s *Server) handleRequestNotFound(conn conn, msg *Message) {
-	msg.Header.KeepBasic()
-	msg.Header.Set("Allow", s.handleFunc.reqMethods)
-	msg.Body.Reset()
-	if err := s.response(conn, msg, StatusMethodNotAllowed, ""); err != nil {
-		s.Logger.ErrorDepthTrace(1, msg.txKey(), err)
-	}
-}
-
-func (s *Server) response(conn conn, msg *Message, status, phrase string) error {
-	// start line
-	msg.StartLine[0] = SIPVersion
-	msg.StartLine[1] = string(status)
-	msg.StartLine[2] = phrase
-	if msg.StartLine[2] == "" {
-		msg.StartLine[2] = StatusPhrase(status)
-	}
-	// to tag
-	if msg.Header.To.Tag == "" {
-		msg.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
-	}
-	// via
-	msg.Header.Via[0].RPort = strconv.Itoa(conn.RemotePort())
-	msg.Header.Via[0].Received = conn.RemoteIP()
-	//
-	msg.Header.UserAgent = s.UserAgent
-	//
-	return s.writeMsg(conn, msg)
-}
-
 func (s *Server) writeMsg(conn conn, msg *Message) error {
 	// 格式化
 	var buf bytes.Buffer
@@ -115,7 +103,7 @@ func (s *Server) writeMsg(conn conn, msg *Message) error {
 
 // checkTxDuration 封装代码
 func (s *Server) checkTxDuration() time.Duration {
-	dur := s.MsgTimeout / 4
+	dur := s.msgTimeout / 4
 	if dur < time.Second {
 		return time.Second
 	}

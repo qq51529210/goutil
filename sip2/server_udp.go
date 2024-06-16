@@ -33,6 +33,10 @@ type udpServer struct {
 	ok int32
 }
 
+func (s *udpServer) isOK() bool {
+	return atomic.LoadInt32(&s.ok) == 1
+}
+
 // Serve 监听 address 开始服务
 func (s *udpServer) Serve(address string) error {
 	s.activeTx.Init()
@@ -62,7 +66,7 @@ func (s *udpServer) Serve(address string) error {
 	s.w.Add(1)
 	go s.checkRTORoutine()
 	// 日志
-	s.s.Logger.Infof("listen udp %s, read routine %d", address, n)
+	s.s.logger.Infof("listen udp %s, read routine %d", address, n)
 	// 状态
 	atomic.StoreInt32(&s.ok, 1)
 	//
@@ -116,19 +120,19 @@ func (s *udpServer) readRoutine() {
 		// 结束
 		s.w.Done()
 		// 异常
-		if s.s.Logger.Recover(recover()) {
+		if s.s.logger.Recover(recover()) {
 			os.Exit(1)
 		}
 	}()
 	// 开始
 	var err error
-	d := &udpData{b: make([]byte, s.s.MaxMessageLen)}
+	d := &udpData{b: make([]byte, s.s.maxMessageLen)}
 	r := &reader{r: d}
-	for atomic.LoadInt32(&s.ok) == 0 {
+	for s.isOK() {
 		// 读取 udp 数据
 		d.n, d.a, err = s.conn.ReadFromUDP(d.b)
 		if err != nil {
-			s.s.Logger.Errorf("udp read data %v", err)
+			s.s.logger.Errorf("udp read data %v", err)
 			continue
 		}
 		// 初始化准备解析
@@ -141,12 +145,12 @@ func (s *udpServer) readRoutine() {
 		c := &udpConn{}
 		s.initConn(c, d.a)
 		// 一个数据包可能有多个消息，这里需要循环解析处理
-		for atomic.LoadInt32(&s.ok) == 0 {
+		for s.isOK() {
 			// 解析
 			m := new(Message)
-			if err = m.Dec(r, s.s.MaxMessageLen); err != nil {
+			if err = m.Dec(r, s.s.maxMessageLen); err != nil {
 				if err != io.EOF {
-					s.s.Logger.Errorf("udp parse message %v", err)
+					s.s.logger.Errorf("udp parse message %v", err)
 				}
 				break
 			}
@@ -158,81 +162,63 @@ func (s *udpServer) readRoutine() {
 
 func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 	method := strings.ToUpper(msg.Header.CSeq.Method)
-	// 请求消息
 	if msg.isReq {
-		// 回调
-		hf, ok := s.s.handleFunc.reqFunc[method]
-		if !ok {
-			// 不支持的方法，而且没有注册 RequestNotFoundFunc ，这里直接回复
-			if s.s.handleFunc.reqNotFoundFunc == nil {
-				s.s.handleRequestNotFound(conn, msg)
+		// 回调，没有注册不处理
+		hf := s.s.handleFunc.reqFunc[method]
+		if len(hf) > 0 {
+			// 事务
+			t := s.newPassiveTx(msg.txKey())
+			// 已经完成处理
+			if atomic.LoadInt32(&t.ok) == 1 {
 				return
 			}
-			// 回调
-			if res := s.s.handleFunc.reqNotFoundFunc(msg); res != nil {
-				if err := conn.writeMsg(res); err != nil {
-					s.s.Logger.Errorf("write udp data %v", err)
-				}
+			// 没有完成，在协程中处理
+			if atomic.CompareAndSwapInt32(&t.handing, 0, 1) {
+				s.w.Add(1)
+				go s.handleRequestRoutine(conn, t, msg, hf)
 			}
+		}
+		return
+	}
+	// 回调，没有注册不处理
+	hf := s.s.handleFunc.resFunc[method]
+	if len(hf) > 0 {
+		// 响应消息
+		if msg.StartLine[1][0] == '1' {
+			// 停止超时重传
+			if t := s.activeTx.Get(msg.txKey()); t != nil {
+				t.rtoStop = true
+			}
+			// 1xx 消息没什么卵用，就不回调了
 			return
 		}
-		// 事务
-		t := s.newPassiveTx(conn, msg.txKey())
-		// 已经完成处理
-		if atomic.LoadInt32(&t.ok) == 1 {
-			// 直接发送响应数据缓存，无需回调
-			if err := t.rewrite(); err != nil {
-				s.s.Logger.ErrorfTrace(t.id, "rewrite response %v", err)
-			}
-			return
-		}
-		// 没有完成，在协程中处理
-		if atomic.CompareAndSwapInt32(&t.handing, 0, 1) {
+		// 事务，不一定有
+		if t := s.deleteAndGetActiveTx(msg.txKey()); t != nil {
+			// 在协程中处理
 			s.w.Add(1)
-			go s.handleRequestRoutine(t, msg, hf)
+			go s.handleResponseRoutine(conn, t, msg, hf)
 		}
-		return
-	}
-	// 回调
-	hf, ok := s.s.handleFunc.resFunc[method]
-	if !ok {
-		// 没有注册响应处理
-		return
-	}
-	// 响应消息
-	if msg.StartLine[1][0] == '1' {
-		// 停止超时重传
-		if t := s.activeTx.Get(msg.txKey()); t != nil {
-			t.rtoStop = true
-		}
-		// 1xx 消息没什么卵用，就不回调了
-		return
-	}
-	// 事务，不一定有
-	if t := s.deleteAndGetActiveTx(msg.txKey()); t != nil {
-		// 在协程中处理
-		s.w.Add(1)
-		go s.handleResponseRoutine(t, msg, hf)
 	}
 }
 
 // handleRequestRoutine 在协程中处理请求消息
-func (s *udpServer) handleRequestRoutine(t *udpPassiveTx, m *Message, f []HandleRequestFunc) {
+func (s *udpServer) handleRequestRoutine(c *udpConn, t *udpPassiveTx, m *Message, f []HandleRequestFunc) {
 	defer func() {
 		// 异常
-		s.s.Logger.Recover(recover())
+		s.s.logger.Recover(recover())
 		// 结束
 		s.w.Done()
 	}()
 	// 上下文
 	var req Request
 	req.tx = t
+	req.Ser = s.s
+	req.conn = c
 	req.Message = m
-	req.Server = s.s
-	req.RemoteNetwork = t.conn.Network()
-	req.RemoteIP = t.conn.remoteIP
-	req.RemotePort = t.conn.remotePort
-	req.RemoteAddr = t.conn.remoteAddr
+	req.RemoteNetwork = networkUDP
+	req.RemoteIP = c.remoteIP
+	req.RemotePort = c.remotePort
+	req.RemoteAddr = c.remoteAddr
 	// 回调
 	req.handleFunc = f
 	req.callback()
@@ -243,10 +229,10 @@ func (s *udpServer) handleRequestRoutine(t *udpPassiveTx, m *Message, f []Handle
 }
 
 // handleResponseRoutine 在协程中处理响应消息
-func (s *udpServer) handleResponseRoutine(t *udpActiveTx, m *Message, f []HandleResponseFunc) {
+func (s *udpServer) handleResponseRoutine(c *udpConn, t *udpActiveTx, m *Message, f []HandleResponseFunc) {
 	defer func() {
 		// 异常
-		s.s.Logger.Recover(recover())
+		s.s.logger.Recover(recover())
 		// 无论回调有没有通知，这里都通知一下
 		t.finish(nil)
 		// 结束
@@ -254,9 +240,14 @@ func (s *udpServer) handleResponseRoutine(t *udpActiveTx, m *Message, f []Handle
 	}()
 	// 上下文
 	var res Response
-	res._Context.tx = t
-	res._Context.Message = m
-	res._Context.Server = s.s
+	res.tx = t
+	res.Ser = s.s
+	res.conn = c
+	res.Message = m
+	res.RemoteNetwork = networkUDP
+	res.RemoteIP = c.remoteIP
+	res.RemotePort = c.remotePort
+	res.RemoteAddr = c.remoteAddr
 	// 回调
 	res.handleFunc = f
 	res.callback()
@@ -272,13 +263,13 @@ func (s *udpServer) checkRTORoutine() {
 		// 结束
 		s.w.Done()
 		// 异常
-		if s.s.Logger.Recover(recover()) {
+		if s.s.logger.Recover(recover()) {
 			os.Exit(1)
 		}
 	}()
 	// 开始
 	wg := new(sync.WaitGroup)
-	for atomic.LoadInt32(&s.ok) == 0 {
+	for s.isOK() {
 		// 时间到
 		now := <-timer.C
 		// 副本
@@ -308,7 +299,7 @@ func (s *udpServer) rtoRoutine(wg *sync.WaitGroup, ts []*udpActiveTx, now time.T
 		// 结束
 		wg.Done()
 		// 异常
-		s.s.Logger.Recover(recover())
+		s.s.logger.Recover(recover())
 	}()
 	// 循环检查，然后发送，超时移除
 	for _, t := range ts {
@@ -320,7 +311,7 @@ func (s *udpServer) rtoRoutine(wg *sync.WaitGroup, ts []*udpActiveTx, now time.T
 		if now.Sub(t.rtoTime) >= t.rto {
 			d := t.rtoData
 			if err := t.conn.write(d.Bytes()); err != nil {
-				s.s.Logger.Errorf("rto %v", err)
+				s.s.logger.Errorf("rto %v", err)
 				continue
 			}
 			// 保存发送时间
@@ -349,12 +340,12 @@ func (s *udpServer) checkActiveTxRoutine() {
 		// 结束
 		s.w.Done()
 		// 异常
-		if s.s.Logger.Recover(recover()) {
+		if s.s.logger.Recover(recover()) {
 			os.Exit(1)
 		}
 	}()
 	// 开始
-	for atomic.LoadInt32(&s.ok) == 0 {
+	for s.isOK() {
 		// 时间
 		now := <-timer.C
 		// 组装
@@ -402,15 +393,16 @@ func (s *udpServer) newActiveTx(id string, conn *udpConn, data any) (*udpActiveT
 	if t != nil {
 		return t, ok
 	}
+	// 添加
+	tt := time.Now()
 	t = new(udpActiveTx)
 	t.id = id
-	t.createTime = time.Now()
-	t.deadline = t.createTime.Add(s.s.MsgTimeout)
+	t.deadline = tt.Add(s.s.msgTimeout)
 	t.done = make(chan struct{})
 	t.data = data
 	t.conn = conn
 	t.rto = s.minRTO
-	t.rtoTime = t.createTime
+	t.rtoTime = tt
 	t.rtoData = bytes.NewBuffer(nil)
 	//
 	s.activeTx.D[t.id] = t
@@ -447,12 +439,12 @@ func (s *udpServer) checkPassiveTxRoutine() {
 		// 结束
 		s.w.Done()
 		// 异常
-		if s.s.Logger.Recover(recover()) {
+		if s.s.logger.Recover(recover()) {
 			os.Exit(1)
 		}
 	}()
 	// 开始
-	for atomic.LoadInt32(&s.ok) == 0 {
+	for s.isOK() {
 		// 时间
 		now := <-timer.C
 		// 组装
@@ -475,25 +467,14 @@ func (s *udpServer) checkPassiveTxRoutine() {
 // udpPassiveTx 被动接受请求的事务
 type udpPassiveTx struct {
 	baseTx
-	// 连接
-	conn *udpConn
 	// 用于控制多消息并发时的单一处理
 	handing int32
 	// 响应的数据缓存
 	dataBuff *bytes.Buffer
 }
 
-func (t *udpPassiveTx) rewrite() error {
-	td := t.dataBuff
-	d := td.Bytes()
-	if len(d) > 0 {
-		return t.conn.write(td.Bytes())
-	}
-	return nil
-}
-
 // newPassiveTx 添加并返回，用于被动接收请求
-func (s *udpServer) newPassiveTx(conn *udpConn, id string) *udpPassiveTx {
+func (s *udpServer) newPassiveTx(id string) *udpPassiveTx {
 	// 锁
 	s.passiveTx.Lock()
 	defer s.passiveTx.Unlock()
@@ -502,10 +483,8 @@ func (s *udpServer) newPassiveTx(conn *udpConn, id string) *udpPassiveTx {
 	if t == nil {
 		t = new(udpPassiveTx)
 		t.id = id
-		t.createTime = time.Now()
-		t.deadline = t.createTime.Add(s.s.MsgTimeout)
+		t.deadline = time.Now().Add(s.s.msgTimeout)
 		t.done = make(chan struct{})
-		t.conn = conn
 		t.dataBuff = bytes.NewBuffer(nil)
 		//
 		s.passiveTx.D[id] = t
@@ -536,7 +515,7 @@ func (s *udpServer) shutdownActiveTx() {
 	for _, d := range s.activeTx.D {
 		d.finish(ErrServerShutdown)
 	}
-	s.passiveTx.D = make(map[string]*udpPassiveTx)
+	s.activeTx.D = make(map[string]*udpActiveTx)
 }
 
 // shutdownPassiveTx 通知所有的被动事务，服务关闭了
