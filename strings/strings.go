@@ -4,14 +4,20 @@ import "strings"
 
 // 字符
 const (
-	CharComma     = ','
-	CharSpace     = ' '
-	CharEqual     = '='
-	CharSemicolon = ';'
-	CharAmpersand = '&'
-	CharColon     = ':'
-	CharAt        = '@'
-	QuotationMark = '"'
+	CharComma          = ','
+	CharSpace          = ' '
+	CharEqual          = '='
+	CharSemicolon      = ';'
+	CharAmpersand      = '&'
+	CharColon          = ':'
+	CharAt             = '@'
+	CharQuotationMark  = '"'
+	CharStar           = '*'
+	CharLessThan       = '<'
+	CharGreaterThan    = '>'
+	CharCarriageReturn = '\r'
+	CharLineFeed       = '\n'
+	CRLF               = "\r\n"
 )
 
 // TrimByte 去掉两端的字符
