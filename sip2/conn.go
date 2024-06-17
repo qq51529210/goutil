@@ -12,12 +12,7 @@ const (
 
 // conn 抽象一些 conn 的接口，这样调用者好操作
 type conn interface {
-	// Network() string
-	// RemoteIP() string
-	// RemotePort() int
-	// RemoteAddr() string
 	write([]byte) error
-	writeMsg(*Message) error
 }
 
 // baseConn 封装一些公共方法
@@ -27,16 +22,26 @@ type baseConn struct {
 	remoteAddr string
 }
 
-func (c *baseConn) RemoteIP() string {
-	return c.remoteIP
+type udpConn struct {
+	conn *net.UDPConn
+	addr *net.UDPAddr
+	baseConn
 }
 
-func (c *baseConn) RemotePort() int {
-	return c.remotePort
+func (c *udpConn) write(b []byte) error {
+	_, err := c.conn.WriteToUDP(b, c.addr)
+	return err
 }
 
-func (c *baseConn) RemoteAddr() string {
-	return c.remoteAddr
+type tcpConn struct {
+	key  connKey
+	conn *net.TCPConn
+	baseConn
+}
+
+func (c *tcpConn) write(b []byte) error {
+	_, err := c.conn.Write(b)
+	return err
 }
 
 // connKey 用于连接表，ip + 端口 标识一个连接

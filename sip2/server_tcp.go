@@ -147,6 +147,7 @@ func (s *tcpServer) handleConnRoutine(c *tcpConn) {
 	}
 }
 
+// handleMsg 处理 msg
 func (s *tcpServer) handleMsg(conn *tcpConn, msg *Message) {
 	method := strings.ToUpper(msg.Header.CSeq.Method)
 	if msg.isReq {
@@ -272,13 +273,6 @@ func (s *tcpServer) checkActiveTxRoutine() {
 	}
 }
 
-// tcpActiveTx 主动发起请求的事务
-type tcpActiveTx struct {
-	baseTx
-	// 请求的数据
-	data any
-}
-
 // newActiveTx 添加并返回，用于主动发送请求
 func (s *tcpServer) newActiveTx(id string, data any) (*tcpActiveTx, bool) {
 	// 锁
@@ -301,6 +295,7 @@ func (s *tcpServer) newActiveTx(id string, data any) (*tcpActiveTx, bool) {
 	return t, ok
 }
 
+// deleteAndGetActiveTx 看名称
 func (s *tcpServer) deleteAndGetActiveTx(id string) *tcpActiveTx {
 	// 锁
 	s.activeTx.Lock()
@@ -314,6 +309,7 @@ func (s *tcpServer) deleteAndGetActiveTx(id string) *tcpActiveTx {
 	return t
 }
 
+// deleteActiveTx 看名称
 func (s *tcpServer) deleteActiveTx(t *tcpActiveTx, err error) {
 	t.finish(err)
 	s.activeTx.Del(t.id)
@@ -353,13 +349,6 @@ func (s *tcpServer) checkPassiveTxRoutine() {
 		// 重置计时器
 		timer.Reset(dur)
 	}
-}
-
-// tcpPassiveTx 被动接受请求的事务
-type tcpPassiveTx struct {
-	baseTx
-	// 用于控制多消息并发时的单一处理
-	handing int32
 }
 
 // newPassiveTx 添加并返回，用于被动接收请求
@@ -449,8 +438,7 @@ func (s *tcpServer) Request(ctx context.Context, msg *Message, addr *net.TCPAddr
 	t, ok := s.newActiveTx(msg.txKey(), data)
 	// 第一次
 	if !ok {
-		// 发送
-		if err := conn.writeMsg(msg); err != nil {
+		if err := t.writeMsg(conn, msg); err != nil {
 			s.deleteActiveTx(t, err)
 			return err
 		}

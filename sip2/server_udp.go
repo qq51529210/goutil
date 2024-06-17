@@ -1,7 +1,6 @@
 package sip
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	gs "goutil/sync"
@@ -73,37 +72,6 @@ func (s *udpServer) Serve(address string) error {
 	return nil
 }
 
-// udpData 实现 io.Reader ，用于读取 udp 数据包
-type udpData struct {
-	// udp 数据
-	b []byte
-	// 数据的大小
-	n int
-	// 用于保存 read 的下标
-	i int
-	// 地址
-	a *net.UDPAddr
-}
-
-// Len 返回剩余的数据
-func (p *udpData) Len() int {
-	return p.n - p.i
-}
-
-// Read 实现 io.Reader
-func (p *udpData) Read(buf []byte) (int, error) {
-	// 没有数据
-	if p.i == p.n {
-		return 0, io.EOF
-	}
-	// 还有数据，copy
-	n := copy(buf, p.b[p.i:p.n])
-	// 增加下标
-	p.i += n
-	// 返回
-	return n, nil
-}
-
 // initConn 初始化 c 的字段
 func (s *udpServer) initConn(c *udpConn, a *net.UDPAddr) {
 	c.conn = s.conn
@@ -160,6 +128,7 @@ func (s *udpServer) readRoutine() {
 	}
 }
 
+// handleMsg 处理 msg
 func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 	method := strings.ToUpper(msg.Header.CSeq.Method)
 	if msg.isReq {
@@ -170,6 +139,13 @@ func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 			t := s.newPassiveTx(msg.txKey())
 			// 已经完成处理
 			if atomic.LoadInt32(&t.ok) == 1 {
+				// 有响应缓存，发送
+				d := t.dataBuff
+				if d != nil {
+					if err := conn.write(d.Bytes()); err != nil {
+						s.s.logger.Errorf("rewrite response %v", err)
+					}
+				}
 				return
 			}
 			// 没有完成，在协程中处理
@@ -307,15 +283,19 @@ func (s *udpServer) rtoRoutine(wg *sync.WaitGroup, ts []*udpActiveTx, now time.T
 		if t.rtoStop {
 			continue
 		}
-		// 是否应该超时重传
-		if now.Sub(t.rtoTime) >= t.rto {
-			d := t.rtoData
+		// 是否有数据
+		d, tt := t.rtoData, t.rtoTime
+		if d == nil || tt == nil {
+			continue
+		}
+		// 是否超时
+		if now.Sub(*tt) >= t.rto {
 			if err := t.conn.write(d.Bytes()); err != nil {
 				s.s.logger.Errorf("rto %v", err)
 				continue
 			}
 			// 保存发送时间
-			t.rtoTime = now
+			t.rtoTime = &now
 			// 如果没有到达最大值
 			if t.rto < s.maxRTO {
 				// 翻倍
@@ -365,23 +345,6 @@ func (s *udpServer) checkActiveTxRoutine() {
 	}
 }
 
-// udpActiveTx 主动发起请求的事务
-type udpActiveTx struct {
-	baseTx
-	// 连接
-	conn *udpConn
-	// 请求的数据
-	data any
-	// 消息重发的间隔，发送一次叠加一倍
-	rto time.Duration
-	// 发送的数据
-	rtoData *bytes.Buffer
-	// 发送数据的时间
-	rtoTime time.Time
-	// 停止 rto
-	rtoStop bool
-}
-
 // newActiveTx 添加并返回，用于主动发送请求
 func (s *udpServer) newActiveTx(id string, conn *udpConn, data any) (*udpActiveTx, bool) {
 	// 锁
@@ -402,14 +365,13 @@ func (s *udpServer) newActiveTx(id string, conn *udpConn, data any) (*udpActiveT
 	t.data = data
 	t.conn = conn
 	t.rto = s.minRTO
-	t.rtoTime = tt
-	t.rtoData = bytes.NewBuffer(nil)
 	//
 	s.activeTx.D[t.id] = t
 	//
 	return t, ok
 }
 
+// deleteActiveTx 看名称
 func (s *udpServer) deleteAndGetActiveTx(id string) *udpActiveTx {
 	// 锁
 	s.activeTx.Lock()
@@ -423,6 +385,7 @@ func (s *udpServer) deleteAndGetActiveTx(id string) *udpActiveTx {
 	return t
 }
 
+// deleteActiveTx 看名称
 func (s *udpServer) deleteActiveTx(t *udpActiveTx, err error) {
 	t.finish(err)
 	s.activeTx.Del(t.id)
@@ -464,15 +427,6 @@ func (s *udpServer) checkPassiveTxRoutine() {
 	}
 }
 
-// udpPassiveTx 被动接受请求的事务
-type udpPassiveTx struct {
-	baseTx
-	// 用于控制多消息并发时的单一处理
-	handing int32
-	// 响应的数据缓存
-	dataBuff *bytes.Buffer
-}
-
 // newPassiveTx 添加并返回，用于被动接收请求
 func (s *udpServer) newPassiveTx(id string) *udpPassiveTx {
 	// 锁
@@ -485,7 +439,6 @@ func (s *udpServer) newPassiveTx(id string) *udpPassiveTx {
 		t.id = id
 		t.deadline = time.Now().Add(s.s.msgTimeout)
 		t.done = make(chan struct{})
-		t.dataBuff = bytes.NewBuffer(nil)
 		//
 		s.passiveTx.D[id] = t
 	}
@@ -539,11 +492,7 @@ func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr
 	t, ok := s.newActiveTx(msg.txKey(), conn, data)
 	// 第一次
 	if !ok {
-		// 格式化消息
-		msg.Enc(t.rtoData)
-		// 立即发送一次
-		d := t.rtoData
-		if err := conn.write(d.Bytes()); err != nil {
+		if err := t.writeMsg(conn, msg); err != nil {
 			s.deleteActiveTx(t, err)
 			return err
 		}

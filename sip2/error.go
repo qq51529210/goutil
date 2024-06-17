@@ -23,6 +23,8 @@ var (
 	errMissHeaderCSeq          = errors.New("miss header cseq")
 	errMissHeaderCallID        = errors.New("miss header call-id")
 	errMissHeaderContentLength = errors.New("miss header content-length")
+	//
+	errLogic = errors.New("internal logic bug")
 )
 
 // ResponseError 表示 sip 响应消息的错误

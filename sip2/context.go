@@ -78,10 +78,20 @@ func (c *Request) Response(status, phrase string) error {
 }
 
 // ResponseMsg 发送响应，中断调用链
+// msg 为 nil 不会发送数据
 func (c *Request) ResponseMsg(msg *Message) error {
 	c.tx.finish(ErrFinish)
 	c.handleIdx = len(c.handleFunc)
-	return c.conn.writeMsg(msg)
+	return c.tx.writeMsg(c.conn, msg)
+}
+
+// Finish 结束调用链
+func (c *Request) Finish(err error) {
+	if err == nil {
+		err = ErrFinish
+	}
+	c.tx.finish(err)
+	c.handleIdx = len(c.handleFunc)
 }
 
 // Response 响应回调上下文
