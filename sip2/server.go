@@ -1,7 +1,6 @@
 package sip
 
 import (
-	"bytes"
 	"context"
 	"goutil/log"
 	"net"
@@ -91,14 +90,6 @@ func (s *Server) RequestWithContext(ctx context.Context, msg *Message, addr net.
 	}
 	// 其他
 	return ErrUnknownAddress
-}
-
-func (s *Server) writeMsg(conn conn, msg *Message) error {
-	// 格式化
-	var buf bytes.Buffer
-	msg.Enc(&buf)
-	// 发送
-	return conn.write(buf.Bytes())
 }
 
 // checkTxDuration 封装代码
