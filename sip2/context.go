@@ -82,16 +82,10 @@ func (c *Request) Response(status, phrase string) error {
 func (c *Request) ResponseMsg(msg *Message) error {
 	c.tx.finish(ErrFinish)
 	c.handleIdx = len(c.handleFunc)
-	return c.tx.writeMsg(c.conn, msg)
-}
-
-// Finish 结束调用链
-func (c *Request) Finish(err error) {
-	if err == nil {
-		err = ErrFinish
+	if msg == nil {
+		return nil
 	}
-	c.tx.finish(err)
-	c.handleIdx = len(c.handleFunc)
+	return c.tx.writeMsg(c.conn, msg)
 }
 
 // Response 响应回调上下文
