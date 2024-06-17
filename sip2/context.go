@@ -88,6 +88,12 @@ func (c *Request) ResponseMsg(msg *Message) error {
 	return c.tx.writeMsg(c.conn, msg)
 }
 
+// ResponseNil 什么都不返回
+func (c *Request) ResponseNil() {
+	c.tx.finish(ErrFinish)
+	c.handleIdx = len(c.handleFunc)
+}
+
 // Response 响应回调上下文
 type Response struct {
 	_Context
