@@ -16,9 +16,8 @@ import (
 
 // 消息头字段名称
 const (
-	StrDate            = "DATE"
-	StrAuthorization   = "AUTHORIZATION"
-	StrWWWAuthenticate = "WWW-AUTHENTICATE"
+	StrAuthorization   = "Authorization"
+	StrWWWAuthenticate = "WWW-Authenticate"
 )
 
 // WWW-Authenticate 算法的名称
@@ -112,13 +111,13 @@ func (m *RegisterHeader) Parse(msg *sip.Message) bool {
 	// Expires
 	m.Expires = msg.Header.Expires
 	// 先检查有没有 Authorization
-	value := msg.Header.Get(StrAuthorization)
+	value := msg.Header.Get(strings.ToUpper(StrAuthorization))
 	if value != "" {
 		m.Authorization = new(RegisterHeaderAuthorization)
 		return m.Authorization.Parse(value)
 	}
 	// 没有 Authorization 在看看有没有 WWW-Authenticate
-	value = msg.Header.Get(StrWWWAuthenticate)
+	value = msg.Header.Get(strings.ToUpper(StrWWWAuthenticate))
 	if value != "" {
 		m.WWWAuthenticate = new(RegisterHeaderWWWAuthenticate)
 		return m.WWWAuthenticate.Parse(value)

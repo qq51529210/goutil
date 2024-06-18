@@ -53,6 +53,14 @@ type Request struct {
 	handleIdx int
 }
 
+// Next 执行调用链中剩下的所有函数
+func (c *Request) Next() {
+	for c.handleIdx < len(c.handleFunc) {
+		c.handleFunc[c.handleIdx](c)
+		c.handleIdx++
+	}
+}
+
 // callback 执行调用链中剩下的所有函数
 func (c *Request) callback() {
 	for c.handleIdx < len(c.handleFunc) {
@@ -61,25 +69,8 @@ func (c *Request) callback() {
 	}
 }
 
-// Response 发送没有 body 的响应，中断调用链
-func (c *Request) Response(status, phrase string) error {
-	// 消息
-	var msg Message
-	msg.SetResponseStartLine(status, phrase)
-	msg.Header = c.Message.Header
-	msg.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
-	// via
-	msg.Header.Via[0].RPort = strconv.Itoa(c.RemotePort)
-	msg.Header.Via[0].Received = c.RemoteIP
-	//
-	msg.Header.UserAgent = c.Ser.userAgent
-	// 发送
-	return c.ResponseMsg(&msg)
-}
-
-// ResponseMsg 发送响应，中断调用链
-// msg 为 nil 不会发送数据
-func (c *Request) ResponseMsg(msg *Message) error {
+// ResponseMsg 发送响应，中断调用链，msg 为 nil 不会发送数据
+func (c *Request) Response(msg *Message) error {
 	c.tx.finish(ErrFinish)
 	c.handleIdx = len(c.handleFunc)
 	if msg == nil {
@@ -94,6 +85,22 @@ func (c *Request) ResponseNil() {
 	c.handleIdx = len(c.handleFunc)
 }
 
+// NewResponse 根据自身返回
+func (c *Request) NewResponse(status, phrase string) *Message {
+	// 消息
+	msg := &Message{}
+	msg.SetResponseStartLine(status, phrase)
+	msg.Header = c.Message.Header
+	msg.Header.To.Tag = fmt.Sprintf("%d", uid.SnowflakeID())
+	// via
+	msg.Header.Via[0].RPort = strconv.Itoa(c.RemotePort)
+	msg.Header.Via[0].Received = c.RemoteIP
+	//
+	msg.Header.UserAgent = c.Ser.userAgent
+	//
+	return msg
+}
+
 // Response 响应回调上下文
 type Response struct {
 	_Context
@@ -102,6 +109,14 @@ type Response struct {
 	handleFunc []HandleResponseFunc
 	// 当前调用的函数下标
 	handleIdx int
+}
+
+// Next 执行调用链中剩下的所有函数
+func (c *Response) Next() {
+	for c.handleIdx < len(c.handleFunc) {
+		c.handleFunc[c.handleIdx](c)
+		c.handleIdx++
+	}
 }
 
 // Finish 结束调用链
@@ -119,4 +134,9 @@ func (c *Response) callback() {
 		c.handleFunc[c.handleIdx](c)
 		c.handleIdx++
 	}
+}
+
+// Status 返回 StartLine[1]
+func (c *Response) Status() string {
+	return c.Message.StartLine[1]
 }

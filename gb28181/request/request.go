@@ -47,7 +47,7 @@ type Request interface {
 }
 
 // New 创建新的请求消息，channelID 用于 invite ，其他传空字符串即可
-func New(ser *sip.Server, req Request, channelID, method, contentType string) (*sip.Message, net.Addr, error) {
+func New(req Request, channelID, method, contentType string) (*sip.Message, net.Addr, error) {
 	// 地址
 	ip := net.ParseIP(req.GetIP())
 	if ip == nil {
@@ -110,7 +110,7 @@ func New(ser *sip.Server, req Request, channelID, method, contentType string) (*
 
 // SendMessage 发送 message 请求并等待结果
 func SendMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Message, data any) error {
-	msg, addr, err := New(ser, req, body.DeviceID, sip.MethodMessage, ContentTypeXML)
+	msg, addr, err := New(req, body.DeviceID, sip.MethodMessage, ContentTypeXML)
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func SendMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Me
 
 // SendReplyMessage 发送有应答的 message 请求并等待结果
 func SendReplyMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Message, data any, timeout time.Duration) error {
-	msg, addr, err := New(ser, req, body.DeviceID, sip.MethodMessage, ContentTypeXML)
+	msg, addr, err := New(req, body.DeviceID, sip.MethodMessage, ContentTypeXML)
 	if err != nil {
 		return err
 	}
@@ -140,17 +140,4 @@ func SendReplyMessage(ctx context.Context, ser *sip.Server, req Request, body *x
 	case <-rep.Done():
 		return rep.Err()
 	}
-}
-
-// SendRegister 发送 register 请求并等待结果
-func SendRegister(ctx context.Context, ser *sip.Server, req Request, expires string, data any) error {
-	msg, addr, err := New(ser, req, "", sip.MethodRegister, "")
-	if err != nil {
-		return err
-	}
-	// 这两个是一样的
-	msg.Header.To.URI = msg.Header.From.URI
-	msg.Header.Expires = expires
-	//
-	return ser.RequestWithContext(ctx, msg, addr, data)
 }
