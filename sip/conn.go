@@ -2,18 +2,46 @@ package sip
 
 import (
 	"encoding/binary"
-	"fmt"
 	"net"
 )
 
+const (
+	networkUDP = "udp"
+	networkTCP = "tcp"
+)
+
+// conn 抽象一些 conn 的接口，这样调用者好操作
 type conn interface {
-	RemoteAddr() net.Addr
-	Network() string
-	RemoteIP() string
-	RemotePort() int
-	RemoteAddrString() string
 	write([]byte) error
-	isUDP() bool
+}
+
+// baseConn 封装一些公共方法
+type baseConn struct {
+	remoteIP   string
+	remotePort int
+	remoteAddr string
+}
+
+type udpConn struct {
+	conn *net.UDPConn
+	addr *net.UDPAddr
+	baseConn
+}
+
+func (c *udpConn) write(b []byte) error {
+	_, err := c.conn.WriteToUDP(b, c.addr)
+	return err
+}
+
+type tcpConn struct {
+	key  connKey
+	conn *net.TCPConn
+	baseConn
+}
+
+func (c *tcpConn) write(b []byte) error {
+	_, err := c.conn.Write(b)
+	return err
 }
 
 // connKey 用于连接表，ip + 端口 标识一个连接
@@ -38,105 +66,4 @@ func (k *connKey) Init(ip net.IP, port int) {
 		k.ip2 = binary.BigEndian.Uint64(ip[8:])
 	}
 	k.port = uint16(port)
-}
-
-// tcpConn 表示 tcp 连接
-type tcpConn struct {
-	key connKey
-	// 底层连接
-	conn *net.TCPConn
-	// ip
-	ip string
-	// 端口
-	port int
-	// ip:port
-	ipport string
-}
-
-func (c *tcpConn) init(conn *net.TCPConn) {
-	c.conn = conn
-	a := c.conn.RemoteAddr().(*net.TCPAddr)
-	c.key.Init(a.IP, a.Port)
-	c.ip = a.IP.String()
-	c.port = a.Port
-	c.ipport = fmt.Sprintf("%s:%d", c.ip, c.port)
-}
-
-func (c *tcpConn) write(b []byte) (err error) {
-	_, err = c.conn.Write(b)
-	return
-}
-
-func (c *tcpConn) isUDP() bool {
-	return false
-}
-
-func (c *tcpConn) RemoteAddr() net.Addr {
-	return c.conn.RemoteAddr()
-}
-
-func (c *tcpConn) Network() string {
-	return "tcp"
-}
-
-func (c *tcpConn) RemoteIP() string {
-	return c.ip
-}
-
-func (c *tcpConn) RemotePort() int {
-	return c.port
-}
-
-func (c *tcpConn) RemoteAddrString() string {
-	return c.ipport
-}
-
-// udpConn 表示 udp 连接
-type udpConn struct {
-	// 底层连接
-	conn *net.UDPConn
-	// 地址
-	addr *net.UDPAddr
-	// ip
-	ip string
-	// 端口
-	port int
-	// ip:port
-	ipport string
-}
-
-func (c *udpConn) initAddr(a *net.UDPAddr) {
-	c.addr = a
-	c.ip = a.IP.String()
-	c.port = a.Port
-	c.ipport = fmt.Sprintf("%s:%d", c.ip, c.port)
-}
-
-func (c *udpConn) isUDP() bool {
-	return true
-}
-
-func (c *udpConn) write(b []byte) (err error) {
-	_, err = c.conn.WriteToUDP(b, c.addr)
-	return
-}
-
-func (c *udpConn) RemoteAddr() net.Addr {
-	return c.addr
-}
-
-func (c *udpConn) Network() string {
-	return "udp"
-}
-
-func (c *udpConn) RemoteIP() string {
-	return c.ip
-}
-
-func (c *udpConn) RemotePort() int {
-	return c.port
-}
-
-func (c *udpConn) RemoteAddrString() string {
-	return c.ipport
 }
