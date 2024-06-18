@@ -5,23 +5,37 @@ import (
 )
 
 const (
-	// GBTimeForamt 国标时间格式
-	GBTimeForamt = "2006-01-02T15:04:05"
+	// TimeForamt 国标时间格式
+	TimeForamt = "2006-01-02T15:04:05"
 )
 
-// GBTime 返回国标格式的时间字符串
-func GBTime() string {
-	return time.Now().Format(GBTimeForamt)
+// Time 返回国标格式的时间字符串
+func Time() string {
+	return time.Now().Format(TimeForamt)
 }
 
-// IsGBTime 验证国标时间
-func IsGBTime(timeStr string) bool {
-	_, err := time.Parse(GBTimeForamt, timeStr)
+// IsTime 验证 t 是否国标时间格式
+func IsTime(t string) bool {
+	_, err := time.Parse(TimeForamt, t)
 	return err == nil
 }
 
-// IsGBID 验证国标编号
-func IsGBID(id string) bool {
+// Timestamp 解析标时间格式的 t 并返回时间戳
+func Timestamp(t string) int64 {
+	_t, err := time.ParseInLocation(TimeForamt, t, time.Local)
+	if err != nil {
+		return 0
+	}
+	return _t.Unix()
+}
+
+// TimeFromTimestamp 返回时间戳 ts 的国标格式时间字符串
+func TimeFromTimestamp(ts int64) string {
+	return time.Unix(ts, 0).Format(TimeForamt)
+}
+
+// IsID 验证 id 是否国标编号
+func IsID(id string) bool {
 	if len(id) != 20 {
 		return false
 	}
@@ -31,18 +45,4 @@ func IsGBID(id string) bool {
 		}
 	}
 	return true
-}
-
-// GBTimestamp 解析并返回时间戳
-func GBTimestamp(t string) int64 {
-	_t, err := time.ParseInLocation(GBTimeForamt, t, time.Local)
-	if err != nil {
-		return 0
-	}
-	return _t.Unix()
-}
-
-// GBTimeFromTimestamp 返回国标格式的时间字符串
-func GBTimeFromTimestamp(ts int64) string {
-	return time.Unix(ts, 0).Format(GBTimeForamt)
 }

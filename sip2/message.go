@@ -261,8 +261,7 @@ func (m *Header) Dec(r Reader, max int) error {
 		}
 		// key: value
 		key, value := gostrings.Split(line, gostrings.CharColon)
-		key = strings.TrimSpace(key)
-		value = strings.TrimSpace(value)
+		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
 		// 大写
 		uKey := strings.ToUpper(key)
 		// 挑选出必要的头
@@ -315,7 +314,7 @@ func (m *Header) Dec(r Reader, max int) error {
 		case "USER-AGENT":
 			m.UserAgent = value
 		default:
-			m.others[key] = value
+			m.others[uKey] = value
 		}
 	}
 	// 检查必须的字段
@@ -420,7 +419,7 @@ func (m *Header) Has(key string) (ok bool) {
 	return
 }
 
-// Get 返回
+// Get 返回，key 需要时大写，因为底层解析的时候，全部转化成大写了
 func (m *Header) Get(key string) (value string) {
 	if m.others != nil {
 		value = m.others[key]
