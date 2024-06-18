@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	gbu "goutil/gb28181/util"
-	"goutil/sip"
+	sip "goutil/sip2"
 	gs "goutil/strings"
 	"strings"
 )
