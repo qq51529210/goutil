@@ -8,6 +8,7 @@ import (
 	"goutil/sip"
 	"goutil/uid"
 	"net"
+	"time"
 )
 
 // 常量
@@ -23,206 +24,133 @@ var (
 	errorIPAddress = errors.New("error ip address")
 )
 
-type request struct {
-	network     string
-	ip          string
-	port        int
-	method      string
-	contentType string
-	fromID      string
-	fromDomain  string
-	fromTag     string
-	toID        string
-	toDomain    string
-	toTag       string
-	callID      string
-	contact     string
+// Request 用于组装
+type Request interface {
+	// 网络类型
+	GetNetwork() string
+	// ip
+	GetIP() string
+	// port
+	GetPort() int
+	// 本地编号
+	GetLocalID() string
+	// 本地域
+	GetLocalDomain() string
+	// 本地的可访问到的监听地址
+	GetLocalAddress() string
+	// 对方编号
+	GetRemoteID() string
+	// 对方域
+	GetRemoteDomain() string
+	// xml 编号
+	GetXMLEncoding() string
 }
 
-func (r *request) New() (*sip.Request, net.Addr, error) {
-	ip := net.ParseIP(r.ip)
+// New 创建新的请求消息，channelID 用于 invite ，其他传空字符串即可
+func New(ser *sip.Server, req Request, channelID, method, contentType string) (*sip.Message, net.Addr, error) {
+	// 地址
+	ip := net.ParseIP(req.GetIP())
 	if ip == nil {
 		return nil, nil, errorIPAddress
 	}
-	// 地址
 	var addr net.Addr
 	var proto string
-	if r.network == "tcp" {
-		addr = &net.TCPAddr{
-			IP:   net.ParseIP(r.ip),
-			Port: r.port,
-		}
+	if req.GetNetwork() == "tcp" {
+		addr = &net.TCPAddr{IP: ip, Port: req.GetPort()}
 		proto = sip.TCP
 	} else {
-		addr = &net.UDPAddr{
-			IP:   net.ParseIP(r.ip),
-			Port: r.port,
-		}
+		addr = &net.UDPAddr{IP: ip, Port: req.GetPort()}
 		proto = sip.UDP
 	}
-	// 请求
-	m := sip.NewRequest()
+	// 消息
+	m := new(sip.Message)
+	fromID := req.GetLocalID()
+	fromDomain := req.GetLocalDomain()
+	toID := req.GetRemoteID()
+	if channelID != "" {
+		toID = channelID
+	}
+	toDomain := req.GetRemoteDomain()
+	contact := req.GetLocalAddress()
 	// start line
-	m.StartLine[0] = r.method
-	m.StartLine[1] = fmt.Sprintf("sip:%s@%s", r.toID, r.toDomain)
+	m.StartLine[0] = method
+	m.StartLine[1] = fmt.Sprintf("sip:%s@%s", toID, toDomain)
 	m.StartLine[2] = sip.SIPVersion
 	// via
 	m.Header.Via = append(m.Header.Via, &sip.Via{
 		Proto:   proto,
-		Address: r.contact,
+		Address: contact,
 		Branch:  fmt.Sprintf("%s%d", sip.BranchPrefix, uid.SnowflakeID()),
 	})
 	// From
 	m.Header.From.URI.Scheme = sip.SIP
-	m.Header.From.URI.Name = r.fromID
-	m.Header.From.URI.Domain = r.fromDomain
-	m.Header.From.Tag = r.fromTag
-	if m.Header.From.Tag == "" {
-		m.Header.From.Tag = uid.SnowflakeIDString()
-	}
+	m.Header.From.URI.Name = fromID
+	m.Header.From.URI.Domain = fromDomain
+	m.Header.From.Tag = uid.SnowflakeIDString()
 	// To
 	m.Header.To.URI.Scheme = sip.SIP
-	m.Header.To.URI.Name = r.toID
-	m.Header.To.URI.Domain = r.toDomain
-	m.Header.To.Tag = r.toTag
+	m.Header.To.URI.Name = toID
+	m.Header.To.URI.Domain = toDomain
 	// Call-ID
-	m.Header.CallID = r.callID
-	if m.Header.CallID == "" {
-		m.Header.CallID = uid.SnowflakeIDString()
-	}
+	m.Header.CallID = uid.SnowflakeIDString()
 	// CSeq
 	m.Header.CSeq.SN = sip.GetSNString()
-	m.Header.CSeq.Method = r.method
+	m.Header.CSeq.Method = method
 	// Max-Forwards
 	m.Header.MaxForwards = MaxForwards
 	// Content-Type
-	m.Header.ContentType = r.contentType
+	m.Header.ContentType = contentType
 	// Contact
 	m.Header.Contact.Scheme = sip.SIP
-	m.Header.Contact.Name = r.fromID
-	m.Header.Contact.Domain = r.contact
+	m.Header.Contact.Name = fromID
+	m.Header.Contact.Domain = contact
 	//
 	return m, addr, nil
 }
 
-// Device 用于 NewDeviceRequest
-type Device interface {
-	GetNetwork() string
-	GetIP() string
-	GetPort() int
-	GetDeviceID() string
-	GetDeviceDomain() string
-	GetServerID() string
-	GetServerDomain() string
-	GetContact() string
-	GetXMLEncoding() string
-}
-
-// NewDeviceRequest 创建新的设备请求
-func NewDeviceRequest(ser *sip.Server, device Device, deviceOrChannelID, method, contentType, fromTag, toTag, callID string) (*sip.Request, net.Addr, error) {
-	var req request
-	req.network = device.GetNetwork()
-	req.ip = device.GetIP()
-	req.port = device.GetPort()
-	req.callID = callID
-	req.contentType = contentType
-	req.method = method
-	req.toID = deviceOrChannelID
-	req.toDomain = device.GetDeviceDomain()
-	req.toTag = toTag
-	req.fromID = device.GetServerID()
-	req.fromDomain = device.GetServerDomain()
-	req.fromTag = fromTag
-	req.contact = device.GetContact()
-	return req.New()
-}
-
-// SendDeviceMessageRequest 向设备发送 message 类型的请求并等待结果
-func SendDeviceMessageRequest(ctx context.Context, ser *sip.Server, device Device, body *xml.Message, ctxData any) error {
-	m, addr, err := NewDeviceRequest(ser, device, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+// SendMessage 发送 message 请求并等待结果
+func SendMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Message, data any) error {
+	msg, addr, err := New(ser, req, body.DeviceID, sip.MethodMessage, ContentTypeXML)
 	if err != nil {
 		return err
 	}
-	xml.Encode(&m.Body, device.GetXMLEncoding(), body)
-	return ser.Request(ctx, m, addr, ctxData)
+	xml.Encode(&msg.Body, req.GetXMLEncoding(), body)
+	//
+	return ser.RequestWithContext(ctx, msg, addr, data)
 }
 
-// SendDeviceMessageReplyRequest 向设备发送 message 类型的应答式请求并等待结果
-func SendDeviceMessageReplyRequest(ctx context.Context, ser *sip.Server, device Device, body *xml.Message, ctxData any) error {
-	// 消息
-	m, addr, err := NewDeviceRequest(ser, device, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
+// SendReplyMessage 发送有应答的 message 请求并等待结果
+func SendReplyMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Message, data any, timeout time.Duration) error {
+	msg, addr, err := New(ser, req, body.DeviceID, sip.MethodMessage, ContentTypeXML)
 	if err != nil {
 		return err
 	}
-	xml.Encode(&m.Body, device.GetXMLEncoding(), body)
-	// 有响应的请求
-	rep := AddReply(device.GetDeviceID(), body.SN, ctxData, ser.GetTxTimeout())
+	xml.Encode(&msg.Body, req.GetXMLEncoding(), body)
+	// 应答
+	rep := AddReply(body.DeviceID, body.SN, data, timeout)
+	defer rep.Finish(nil)
 	// 请求
-	if err := ser.Request(ctx, m, addr, nil); err != nil {
-		rep.Finish(err)
+	if err := ser.RequestWithContext(ctx, msg, addr, rep); err != nil {
 		return err
 	}
-	// 等待结果
+	// 等待响应请求结果
 	select {
 	case <-ctx.Done():
-		err := ctx.Err()
-		rep.Finish(err)
-		return err
+		return ctx.Err()
 	case <-rep.Done():
 		return rep.Err()
 	}
 }
 
-// Device 用于 NewDeviceRequest
-type Cascade interface {
-	GetNetwork() string
-	GetIP() string
-	GetPort() int
-	GetLocalID() string
-	GetLocalDomain() string
-	GetCascadeID() string
-	GetCascadeDomain() string
-	GetContact() string
-	GetXMLEncoding() string
-}
-
-// NewCascadeRequest 创建新的级联请求
-func NewCascadeRequest(ser *sip.Server, cascade Cascade, cascadeOrChannelID, method, contentType, fromTag, toTag, callID string) (*sip.Request, net.Addr, error) {
-	var req request
-	req.network = cascade.GetNetwork()
-	req.ip = cascade.GetIP()
-	req.port = cascade.GetPort()
-	req.callID = callID
-	req.contentType = contentType
-	req.method = method
-	req.toID = cascadeOrChannelID
-	req.toDomain = cascade.GetCascadeDomain()
-	req.toTag = toTag
-	req.fromID = cascade.GetLocalID()
-	req.fromDomain = cascade.GetLocalDomain()
-	req.fromTag = fromTag
-	req.contact = cascade.GetContact()
-	return req.New()
-}
-
-// SendCascadeMessageRequest 向级联发送 message 类型的请求并等待结果
-func SendCascadeMessageRequest(ctx context.Context, ser *sip.Server, cascade Cascade, body *xml.Message, ctxData any) error {
-	m, addr, err := NewCascadeRequest(ser, cascade, cascade.GetCascadeID(), sip.MethodMessage, ContentTypeXML, "", "", "")
+// SendRegister 发送 register 请求并等待结果
+func SendRegister(ctx context.Context, ser *sip.Server, req Request, expires string, data any) error {
+	msg, addr, err := New(ser, req, "", sip.MethodRegister, "")
 	if err != nil {
 		return err
 	}
-	xml.Encode(&m.Body, cascade.GetXMLEncoding(), body)
-	return ser.Request(ctx, m, addr, ctxData)
-}
-
-// SendCascadeRegisterRequest 向级联发送 register 类型的请求并等待结果
-func SendCascadeRegisterRequest(ctx context.Context, ser *sip.Server, cascade Cascade, body *xml.Message, ctxData any) error {
-	m, addr, err := NewCascadeRequest(ser, cascade, body.DeviceID, sip.MethodMessage, ContentTypeXML, "", "", "")
-	if err != nil {
-		return err
-	}
-	xml.Encode(&m.Body, cascade.GetXMLEncoding(), body)
 	// 这两个是一样的
-	m.Header.To.URI = m.Header.From.URI
-	return ser.Request(ctx, m, addr, ctxData)
+	msg.Header.To.URI = msg.Header.From.URI
+	msg.Header.Expires = expires
+	//
+	return ser.RequestWithContext(ctx, msg, addr, data)
 }

@@ -46,10 +46,7 @@ var (
 
 // 公共错误
 var (
-	ErrFormat  = sip.NewResponseError(sip.StatusBadRequest, "Error XML Format", "")
-	ErrType    = sip.NewResponseError(sip.StatusBadRequest, "Error XML Type", "")
-	ErrCmdType = sip.NewResponseError(sip.StatusBadRequest, "Error XML CmdType", "")
-	ErrData    = sip.NewResponseError(sip.StatusBadRequest, "Error XML Data", "")
+	ErrFormat = &sip.ResponseError{Status: sip.StatusBadRequest, Phrase: "Error XML Format", Err: "error xml format"}
 )
 
 // Decode 从 r 解析数据到 v
