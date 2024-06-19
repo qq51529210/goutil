@@ -155,7 +155,7 @@ func (s *tcpServer) handleMsg(conn *tcpConn, msg *Message) {
 		hf := s.s.handleFunc.reqFunc[method]
 		if len(hf) > 0 {
 			// 事务
-			t := s.newPassiveTx(msg.txKey())
+			t := s.newPassiveTx(msg.TxKey())
 			// 已经完成处理
 			if atomic.LoadInt32(&t.ok) == 1 {
 				return
@@ -177,7 +177,7 @@ func (s *tcpServer) handleMsg(conn *tcpConn, msg *Message) {
 			return
 		}
 		// 事务，不一定有
-		if t := s.deleteAndGetActiveTx(msg.txKey()); t != nil {
+		if t := s.deleteAndGetActiveTx(msg.TxKey()); t != nil {
 			// 在协程中处理
 			s.w.Add(1)
 			go s.handleResponseRoutine(conn, t, msg, hf)
@@ -435,7 +435,7 @@ func (s *tcpServer) Request(ctx context.Context, msg *Message, addr *net.TCPAddr
 		go s.handleConnRoutine(c)
 	}
 	// 事务
-	t, ok := s.newActiveTx(msg.txKey(), data)
+	t, ok := s.newActiveTx(msg.TxKey(), data)
 	// 第一次
 	if !ok {
 		if err := t.writeMsg(conn, msg); err != nil {

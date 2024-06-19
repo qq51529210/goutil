@@ -136,7 +136,7 @@ func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 		hf := s.s.handleFunc.reqFunc[method]
 		if len(hf) > 0 {
 			// 事务
-			t := s.newPassiveTx(msg.txKey())
+			t := s.newPassiveTx(msg.TxKey())
 			// 已经完成处理
 			if atomic.LoadInt32(&t.ok) == 1 {
 				// 有响应缓存，发送
@@ -162,14 +162,14 @@ func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 		// 响应消息
 		if msg.StartLine[1][0] == '1' {
 			// 停止超时重传
-			if t := s.activeTx.Get(msg.txKey()); t != nil {
+			if t := s.activeTx.Get(msg.TxKey()); t != nil {
 				t.rtoStop = true
 			}
 			// 1xx 消息没什么卵用，就不回调了
 			return
 		}
 		// 事务，不一定有
-		if t := s.deleteAndGetActiveTx(msg.txKey()); t != nil {
+		if t := s.deleteAndGetActiveTx(msg.TxKey()); t != nil {
 			// 在协程中处理
 			s.w.Add(1)
 			go s.handleResponseRoutine(conn, t, msg, hf)
@@ -489,7 +489,7 @@ func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr
 	conn := &udpConn{}
 	s.initConn(conn, addr)
 	// 事务
-	t, ok := s.newActiveTx(msg.txKey(), conn, data)
+	t, ok := s.newActiveTx(msg.TxKey(), conn, data)
 	// 第一次
 	if !ok {
 		if err := t.writeMsg(conn, msg); err != nil {

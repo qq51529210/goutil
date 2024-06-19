@@ -463,8 +463,8 @@ type Message struct {
 	isReq     bool
 }
 
-// txKey 返回事务的 key
-func (m *Message) txKey() string {
+// TxKey 返回事务的 key
+func (m *Message) TxKey() string {
 	return m.Header.CSeq.Method + m.Header.CallID + m.Header.Via[0].Branch
 }
 
