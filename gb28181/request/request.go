@@ -110,7 +110,7 @@ func New(req Request, channelID, method, contentType string) (*sip.Message, net.
 
 // SendMessage 发送 message 请求并等待结果
 func SendMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Message, data any) error {
-	msg, addr, err := New(req, body.DeviceID, sip.MethodMessage, ContentTypeXML)
+	msg, addr, err := New(req, "", sip.MethodMessage, ContentTypeXML)
 	if err != nil {
 		return err
 	}
@@ -121,16 +121,11 @@ func SendMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Me
 
 // SendReplyMessage 发送有应答的 message 请求并等待结果
 func SendReplyMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Message, data any, timeout time.Duration) error {
-	msg, addr, err := New(req, body.DeviceID, sip.MethodMessage, ContentTypeXML)
-	if err != nil {
-		return err
-	}
-	xml.Encode(&msg.Body, req.GetXMLEncoding(), body)
 	// 应答
 	rep := AddReply(body.DeviceID, body.SN, data, timeout)
 	defer rep.Finish(nil)
 	// 请求
-	if err := ser.RequestWithContext(ctx, msg, addr, rep); err != nil {
+	if err := SendMessage(ctx, ser, req, body, rep); err != nil {
 		return err
 	}
 	// 等待响应请求结果

@@ -6,9 +6,6 @@ type HandleRequestFunc func(*Request)
 // HandleResponseFunc 响应回调函数
 type HandleResponseFunc func(*Response)
 
-// HandleRequestFunc 请求方法未注册时回调函数，res 是回复的消息
-type HandleRequestNotFoundFunc func(req *Message) (res *Message)
-
 type handleFunc struct {
 	// 请求消息回调
 	reqFunc map[string][]HandleRequestFunc

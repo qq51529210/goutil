@@ -79,12 +79,6 @@ func (c *Request) Response(msg *Message) error {
 	return c.tx.writeMsg(c.conn, msg)
 }
 
-// ResponseNil 什么都不返回
-func (c *Request) ResponseNil() {
-	c.tx.finish(ErrFinish)
-	c.handleIdx = len(c.handleFunc)
-}
-
 // NewResponse 根据自身返回
 func (c *Request) NewResponse(status, phrase string) *Message {
 	// 消息
@@ -105,6 +99,8 @@ func (c *Request) NewResponse(status, phrase string) *Message {
 type Response struct {
 	_Context
 	conn
+	// 发起请求传入的数据
+	ReqData any
 	// 保存调用链函数
 	handleFunc []HandleResponseFunc
 	// 当前调用的函数下标

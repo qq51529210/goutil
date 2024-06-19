@@ -220,6 +220,7 @@ func (s *udpServer) handleResponseRoutine(c *udpConn, t *udpActiveTx, m *Message
 	res.Ser = s.s
 	res.conn = c
 	res.Message = m
+	res.ReqData = t.data
 	res.RemoteNetwork = networkUDP
 	res.RemoteIP = c.remoteIP
 	res.RemotePort = c.remotePort

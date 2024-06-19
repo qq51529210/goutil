@@ -228,6 +228,7 @@ func (s *tcpServer) handleResponseRoutine(c *tcpConn, t *tcpActiveTx, m *Message
 	res.Ser = s.s
 	res.conn = c
 	res.Message = m
+	res.ReqData = t.data
 	res.RemoteNetwork = networkTCP
 	res.RemoteIP = c.remoteIP
 	res.RemotePort = c.remotePort
