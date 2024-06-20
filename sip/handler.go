@@ -42,3 +42,45 @@ func (h *handleFunc) ResponseFunc(method string, funcs ...HandleResponseFunc) {
 	}
 	h.resFunc[method] = append(f, funcs...)
 }
+
+// reqFuncChain 请求调用链
+type reqFuncChain struct {
+	// 保存调用链函数
+	f []HandleRequestFunc
+	// 当前调用的函数下标
+	i int
+}
+
+// Next 执行调用链中剩下的所有函数
+func (c *reqFuncChain) Next(r *Request) {
+	for c.i < len(c.f) {
+		c.f[c.i](r)
+		c.i++
+	}
+}
+
+// Abort 结束调用链
+func (c *reqFuncChain) Abort() {
+	c.i = len(c.f)
+}
+
+// resFuncChain 响应调用链
+type resFuncChain struct {
+	// 保存调用链函数
+	f []HandleResponseFunc
+	// 当前调用的函数下标
+	i int
+}
+
+// Next 执行调用链中剩下的所有函数
+func (c *resFuncChain) Next(r *Response) {
+	for c.i < len(c.f) {
+		c.f[c.i](r)
+		c.i++
+	}
+}
+
+// Abort 结束调用链
+func (c *resFuncChain) Abort() {
+	c.i = len(c.f)
+}

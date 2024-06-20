@@ -47,39 +47,34 @@ func (c *_Context) SetValue(key, value any) {
 type Request struct {
 	_Context
 	conn
-	// 保存调用链函数
-	handleFunc []HandleRequestFunc
-	// 当前调用的函数下标
-	handleIdx int
+	// 当前调用链
+	f *reqFuncChain
 }
 
 // Next 执行调用链中剩下的所有函数
 func (c *Request) Next() {
-	for c.handleIdx < len(c.handleFunc) {
-		c.handleFunc[c.handleIdx](c)
-		c.handleIdx++
-	}
+	c.f.Next(c)
 }
 
-// callback 执行调用链中剩下的所有函数
-func (c *Request) callback() {
-	for c.handleIdx < len(c.handleFunc) {
-		c.handleFunc[c.handleIdx](c)
-		c.handleIdx++
-	}
+// Change 将当前的中断并改为执行新的回调
+func (c *Request) Change(funcs ...HandleRequestFunc) {
+	c.f.Abort()
+	f := new(reqFuncChain)
+	f.f = append(f.f, funcs...)
+	c.f = f
 }
 
 // ResponseMsg 发送响应，中断调用链，msg 为 nil 不会发送数据
 func (c *Request) Response(msg *Message) error {
 	c.tx.finish(ErrFinish)
-	c.handleIdx = len(c.handleFunc)
+	c.f.Abort()
 	if msg == nil {
 		return nil
 	}
 	return c.tx.writeMsg(c.conn, msg)
 }
 
-// NewResponse 根据自身返回
+// NewResponse 根据自身的字段构造响应消息
 func (c *Request) NewResponse(status, phrase string) *Message {
 	// 消息
 	msg := &Message{}
@@ -101,18 +96,21 @@ type Response struct {
 	conn
 	// 发起请求传入的数据
 	ReqData any
-	// 保存调用链函数
-	handleFunc []HandleResponseFunc
-	// 当前调用的函数下标
-	handleIdx int
+	// 当前调用链
+	f *resFuncChain
 }
 
 // Next 执行调用链中剩下的所有函数
 func (c *Response) Next() {
-	for c.handleIdx < len(c.handleFunc) {
-		c.handleFunc[c.handleIdx](c)
-		c.handleIdx++
-	}
+	c.f.Next(c)
+}
+
+// Change 将当前的中断并改为执行新的回调
+func (c *Response) Change(funcs ...HandleResponseFunc) {
+	c.f.Abort()
+	f := new(resFuncChain)
+	f.f = append(f.f, funcs...)
+	c.f = f
 }
 
 // Finish 结束调用链
@@ -121,18 +119,15 @@ func (c *Response) Finish(err error) {
 		err = ErrFinish
 	}
 	c.tx.finish(err)
-	c.handleIdx = len(c.handleFunc)
-}
-
-// callback 执行调用链中剩下的所有函数
-func (c *Response) callback() {
-	for c.handleIdx < len(c.handleFunc) {
-		c.handleFunc[c.handleIdx](c)
-		c.handleIdx++
-	}
+	c.f.Abort()
 }
 
 // Status 返回 StartLine[1]
 func (c *Response) Status() string {
 	return c.Message.StartLine[1]
+}
+
+// Phrase 返回 StartLine[2]
+func (c *Response) Phrase() string {
+	return c.Message.StartLine[2]
 }

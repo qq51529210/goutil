@@ -139,11 +139,12 @@ func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 			t := s.newPassiveTx(msg.TxKey())
 			// 已经完成处理
 			if atomic.LoadInt32(&t.ok) == 1 {
+				s.s.logger.ErrorfTrace(t.id, "rewrite response")
 				// 有响应缓存，发送
 				d := t.dataBuff
 				if d != nil {
 					if err := conn.write(d.Bytes()); err != nil {
-						s.s.logger.Errorf("rewrite response %v", err)
+						s.s.logger.ErrorfTrace(t.id, "rewrite response %v", err)
 					}
 				}
 				return
@@ -151,7 +152,7 @@ func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 			// 没有完成，在协程中处理
 			if atomic.CompareAndSwapInt32(&t.handing, 0, 1) {
 				s.w.Add(1)
-				go s.handleRequestRoutine(conn, t, msg, hf)
+				go s.handleRequestRoutine(conn, t, msg, &reqFuncChain{f: hf})
 			}
 		}
 		return
@@ -172,32 +173,35 @@ func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 		if t := s.deleteAndGetActiveTx(msg.TxKey()); t != nil {
 			// 在协程中处理
 			s.w.Add(1)
-			go s.handleResponseRoutine(conn, t, msg, hf)
+			go s.handleResponseRoutine(conn, t, msg, &resFuncChain{f: hf})
 		}
 	}
 }
 
 // handleRequestRoutine 在协程中处理请求消息
-func (s *udpServer) handleRequestRoutine(c *udpConn, t *udpPassiveTx, m *Message, f []HandleRequestFunc) {
+func (s *udpServer) handleRequestRoutine(c *udpConn, t *udpPassiveTx, m *Message, f *reqFuncChain) {
+	cost := time.Now()
 	defer func() {
-		// 异常
-		s.s.logger.Recover(recover())
 		// 结束
 		s.w.Done()
+		// 日志
+		s.s.logger.DebugfTrace(t.id, "request from udp %s cost %v\n%v", c.remoteAddr, time.Since(cost), m)
+		// 异常
+		s.s.logger.Recover(recover())
 	}()
 	// 上下文
-	var req Request
-	req.tx = t
-	req.Ser = s.s
-	req.conn = c
-	req.Message = m
-	req.RemoteNetwork = networkUDP
-	req.RemoteIP = c.remoteIP
-	req.RemotePort = c.remotePort
-	req.RemoteAddr = c.remoteAddr
+	var ctx Request
+	ctx.tx = t
+	ctx.Ser = s.s
+	ctx.conn = c
+	ctx.Message = m
+	ctx.RemoteNetwork = networkUDP
+	ctx.RemoteIP = c.remoteIP
+	ctx.RemotePort = c.remotePort
+	ctx.RemoteAddr = c.remoteAddr
 	// 回调
-	req.handleFunc = f
-	req.callback()
+	ctx.f = f
+	ctx.Next()
 	// 没有完成，回复标记，等下一次的消息再回调
 	if atomic.LoadInt32(&t.ok) == 0 {
 		atomic.StoreInt32(&t.handing, 0)
@@ -205,29 +209,32 @@ func (s *udpServer) handleRequestRoutine(c *udpConn, t *udpPassiveTx, m *Message
 }
 
 // handleResponseRoutine 在协程中处理响应消息
-func (s *udpServer) handleResponseRoutine(c *udpConn, t *udpActiveTx, m *Message, f []HandleResponseFunc) {
+func (s *udpServer) handleResponseRoutine(c *udpConn, t *udpActiveTx, m *Message, f *resFuncChain) {
+	cost := time.Now()
 	defer func() {
-		// 异常
-		s.s.logger.Recover(recover())
-		// 无论回调有没有通知，这里都通知一下
-		t.finish(nil)
 		// 结束
 		s.w.Done()
+		// 无论回调有没有通知，这里都通知一下
+		t.finish(nil)
+		// 日志
+		s.s.logger.DebugfTrace(t.id, "response from udp %s cost %v\n%v", c.remoteAddr, time.Since(cost), m)
+		// 异常
+		s.s.logger.Recover(recover())
 	}()
 	// 上下文
-	var res Response
-	res.tx = t
-	res.Ser = s.s
-	res.conn = c
-	res.Message = m
-	res.ReqData = t.data
-	res.RemoteNetwork = networkUDP
-	res.RemoteIP = c.remoteIP
-	res.RemotePort = c.remotePort
-	res.RemoteAddr = c.remoteAddr
+	var ctx Response
+	ctx.tx = t
+	ctx.Ser = s.s
+	ctx.conn = c
+	ctx.Message = m
+	ctx.ReqData = t.data
+	ctx.RemoteNetwork = networkUDP
+	ctx.RemoteIP = c.remoteIP
+	ctx.RemotePort = c.remotePort
+	ctx.RemoteAddr = c.remoteAddr
 	// 回调
-	res.handleFunc = f
-	res.callback()
+	ctx.f = f
+	ctx.Next()
 }
 
 // checkRTORoutine 检测消息超时重传
@@ -486,6 +493,7 @@ func (s *udpServer) shutdownPassiveTx() {
 
 // Request 发送请求
 func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr, data any) error {
+	cost := time.Now()
 	// 连接
 	conn := &udpConn{}
 	s.initConn(conn, addr)
@@ -508,6 +516,8 @@ func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr
 		// 底层超时
 		err = t.Err()
 	}
+	// 日志
+	s.s.logger.DebugfTrace(t.id, "request to udp %s cost %v\n%v", conn.remoteAddr, time.Since(cost), msg)
 	// 移除
 	s.deleteActiveTx(t, err)
 	if err == ErrFinish {
