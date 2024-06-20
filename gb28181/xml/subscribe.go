@@ -9,8 +9,6 @@ type Subscribe struct {
 	CmdType  string
 	SN       string
 	DeviceID string
-	// 执行结果标志
-	Result string `xml:",omitempty"`
 	// Query-Alarm
 	// 报警起始级别(可选)
 	// 0:全部
