@@ -513,7 +513,7 @@ func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr
 		// 传入的上下文
 		err = ctx.Err()
 	case <-t.Done():
-		// 底层超时
+		// 底层超时，或者 RequestAbort
 		err = t.Err()
 	}
 	// 日志

@@ -92,6 +92,24 @@ func (s *Server) RequestWithContext(ctx context.Context, msg *Message, addr net.
 	return ErrUnknownAddress
 }
 
+// RequestAbort 主动中断请求
+func (s *Server) RequestAbort(network, msgTxKey string, err error) {
+	if err == nil {
+		err = ErrFinish
+	}
+	if network == "udp" {
+		t := s.udp.activeTx.Get(msgTxKey)
+		if t != nil {
+			t.finish(err)
+		}
+	} else {
+		t := s.tcp.activeTx.Get(msgTxKey)
+		if t != nil {
+			t.finish(err)
+		}
+	}
+}
+
 // checkTxDuration 封装代码
 func (s *Server) checkTxDuration() time.Duration {
 	dur := s.msgTimeout / 4
