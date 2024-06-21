@@ -51,11 +51,19 @@ type reqFuncChain struct {
 	i int
 }
 
-// Next 执行调用链中剩下的所有函数
-func (c *reqFuncChain) Next(r *Request) {
+// handle 执行
+func (c *reqFuncChain) handle(r *Request) {
 	for c.i < len(c.f) {
 		c.f[c.i](r)
 		c.i++
+	}
+}
+
+// Next 执行调用链中剩下的所有函数
+func (c *reqFuncChain) Next(r *Request) {
+	c.i++
+	for c.i < len(c.f) {
+		c.f[c.i](r)
 	}
 }
 
@@ -72,11 +80,19 @@ type resFuncChain struct {
 	i int
 }
 
-// Next 执行调用链中剩下的所有函数
-func (c *resFuncChain) Next(r *Response) {
+// handle 执行
+func (c *resFuncChain) handle(r *Response) {
 	for c.i < len(c.f) {
 		c.f[c.i](r)
 		c.i++
+	}
+}
+
+// Next 执行调用链中剩下的所有函数
+func (c *resFuncChain) Next(r *Response) {
+	c.i++
+	for c.i < len(c.f) {
+		c.f[c.i](r)
 	}
 }
 

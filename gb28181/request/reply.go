@@ -43,7 +43,7 @@ func GetReply(deviceID, sn string) *Reply {
 	return replys.Get(key)
 }
 
-// ReplyResult 用于保存应答请求的 Result
-type ReplyResult struct {
+// XMLResult 用于接收 xml.response.Result 字段的值
+type XMLResult struct {
 	Result string
 }

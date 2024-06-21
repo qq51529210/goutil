@@ -8,7 +8,6 @@ import (
 	"goutil/sip"
 	"goutil/uid"
 	"net"
-	"time"
 )
 
 // 常量
@@ -120,9 +119,9 @@ func SendMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Me
 }
 
 // SendReplyMessage 发送有应答的 message 请求并等待结果
-func SendReplyMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Message, data any, timeout time.Duration) error {
+func SendReplyMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Message, data any) error {
 	// 应答
-	rep := AddReply(body.DeviceID, body.SN, data, timeout)
+	rep := AddReply(body.DeviceID, body.SN, data, ser.MsgTimeout())
 	defer rep.Finish(nil)
 	// 请求
 	if err := SendMessage(ctx, ser, req, body, rep); err != nil {
@@ -135,4 +134,19 @@ func SendReplyMessage(ctx context.Context, ser *sip.Server, req Request, body *x
 	case <-rep.Done():
 		return rep.Err()
 	}
+}
+
+// SendSubscribe 封装请求
+func SendSubscribe(ctx context.Context, ser *sip.Server, req Request, body *xml.Subscribe, expire int64, data any) error {
+	// 消息
+	msg, addr, err := New(req, "", sip.MethodSubscribe, ContentTypeXML)
+	if err != nil {
+		return err
+	}
+	// body
+	msg.Header.Expires = fmt.Sprintf("%d", expire)
+	msg.Header.Set("Event", "presence")
+	xml.Encode(&msg.Body, req.GetXMLEncoding(), body)
+	//
+	return ser.RequestWithContext(ctx, msg, addr, data)
 }

@@ -45,6 +45,11 @@ func NewServer(opt *ServerOption) *Server {
 	}
 }
 
+// MsgTimeout 返回底层判断消息超时的时间
+func (s *Server) MsgTimeout() time.Duration {
+	return s.msgTimeout
+}
+
 // ServeUDP 启动 udp 服务
 // address 是监听地址
 // minRTO 消息的超时重发最小间隔

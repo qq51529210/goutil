@@ -62,6 +62,7 @@ func (c *Request) Change(funcs ...HandleRequestFunc) {
 	f := new(reqFuncChain)
 	f.f = append(f.f, funcs...)
 	c.f = f
+	f.handle(c)
 }
 
 // ResponseMsg 发送响应，中断调用链，msg 为 nil 不会发送数据
@@ -75,7 +76,7 @@ func (c *Request) Response(msg *Message) error {
 		return nil
 	}
 	// 日志
-	c.Ser.logger.DebugfTrace(c.ID(), "response to %s\n%v", c.RemoteAddr, msg)
+	c.Ser.logger.DebugfTrace(c.ID(), "response to %s %s\n%v", c.RemoteNetwork, c.RemoteAddr, msg)
 	// 发送
 	return c.tx.writeMsg(c.conn, msg)
 }

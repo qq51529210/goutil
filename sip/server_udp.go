@@ -185,10 +185,12 @@ func (s *udpServer) handleRequestRoutine(c *udpConn, t *udpPassiveTx, m *Message
 		// 结束
 		s.w.Done()
 		// 日志
-		s.s.logger.DebugfTrace(t.id, "request from udp %s cost %v\n%v", c.remoteAddr, time.Since(cost), m)
+		s.s.logger.DebugfTrace(t.id, "cost %v", time.Since(cost))
 		// 异常
 		s.s.logger.Recover(recover())
 	}()
+	// 日志
+	s.s.logger.DebugfTrace(t.id, "request from udp %s \n%v", c.remoteAddr, m)
 	// 上下文
 	var ctx Request
 	ctx.tx = t
@@ -201,7 +203,7 @@ func (s *udpServer) handleRequestRoutine(c *udpConn, t *udpPassiveTx, m *Message
 	ctx.RemoteAddr = c.remoteAddr
 	// 回调
 	ctx.f = f
-	ctx.Next()
+	f.handle(&ctx)
 	// 没有完成，回复标记，等下一次的消息再回调
 	if atomic.LoadInt32(&t.ok) == 0 {
 		atomic.StoreInt32(&t.handing, 0)
@@ -210,17 +212,16 @@ func (s *udpServer) handleRequestRoutine(c *udpConn, t *udpPassiveTx, m *Message
 
 // handleResponseRoutine 在协程中处理响应消息
 func (s *udpServer) handleResponseRoutine(c *udpConn, t *udpActiveTx, m *Message, f *resFuncChain) {
-	cost := time.Now()
 	defer func() {
 		// 结束
 		s.w.Done()
 		// 无论回调有没有通知，这里都通知一下
 		t.finish(nil)
-		// 日志
-		s.s.logger.DebugfTrace(t.id, "response from udp %s cost %v\n%v", c.remoteAddr, time.Since(cost), m)
 		// 异常
 		s.s.logger.Recover(recover())
 	}()
+	// 日志
+	s.s.logger.DebugfTrace(t.id, "response from udp %s \n%v", c.remoteAddr, m)
 	// 上下文
 	var ctx Response
 	ctx.tx = t
@@ -234,7 +235,7 @@ func (s *udpServer) handleResponseRoutine(c *udpConn, t *udpActiveTx, m *Message
 	ctx.RemoteAddr = c.remoteAddr
 	// 回调
 	ctx.f = f
-	ctx.Next()
+	f.handle(&ctx)
 }
 
 // checkRTORoutine 检测消息超时重传
