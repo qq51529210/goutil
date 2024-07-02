@@ -9,6 +9,11 @@ import (
 	"net/url"
 )
 
+var (
+	// ContentTypeJSON header Content-Type
+	ContentTypeJSON = []string{"application/json; charset=utf-8"}
+)
+
 // JSONClient 封装 http 请求代码
 type JSONClient struct {
 	// 客户端，需要初始化
