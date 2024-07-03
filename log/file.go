@@ -23,7 +23,7 @@ var (
 // FileConfig 是 NewFile 的参数
 type FileConfig struct {
 	// 日志保存的根目录
-	RootDir string `json:"rootDir" yaml:"rootDir" validate:"required"`
+	RootDir string `json:"rootDir" yaml:"rootDir" validate:"required,dirpath"`
 	// 日期目录名称格式，默认是 20060102
 	DirNameFormat string `json:"dirNameFormat" yaml:"dirNameFormat"`
 	// 文件名称格式，默认是 150405.000000

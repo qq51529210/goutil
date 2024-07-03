@@ -44,7 +44,7 @@ func (s *Server) Serve() error {
 	if s.Swagger != "" {
 		g.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 		g.NoRoute(func(ctx *gin.Context) {
-			ctx.Writer.WriteString(`<a ref="/docs/index.html">document</a>`)
+			ctx.Writer.WriteString(`<a href="/docs/index.html">document</a>`)
 		})
 	}
 	// 开始服务

@@ -14,8 +14,8 @@ type LoadMP4FileReq struct {
 	App string `query:"app"`
 	// 添加的流id，例如 test
 	Stream string `query:"stream"`
-	// mp4 文件的绝对路径
-	FilePath string `query:"file_path"`
+	// mp4 文件的路径
+	Path string `query:"file_path"`
 }
 
 // loadMP4FileRes 是 LoadMP4File 返回值

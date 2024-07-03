@@ -4,15 +4,12 @@ import (
 	"fmt"
 )
 
-// Code 用于
-type Code int
-
 // Result 表示返回的结果
 type Result[T any] struct {
 	// 追踪标识，用于日志快速定位
 	Trace string `json:"trace,omitempty"`
 	// 错误码
-	Code Code `json:"code"`
+	Code int `json:"code"`
 	// 正确时返回的数据
 	Data T `json:"data,omitempty"`
 	// 错误短语

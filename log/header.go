@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"time"
@@ -125,4 +126,59 @@ func FilePathHeader(log *Log, name, module string, level, depth int) {
 	log.b = append(log.b, ':')
 	log.Int(line)
 	log.b = append(log.b, ']')
+}
+
+type FileNameError struct {
+	Name string
+	Line int
+	Err  error
+}
+
+// Error 返回 [Name:Line] Err
+func (e *FileNameError) Error() string {
+	return fmt.Sprintf("[%s:%d] %s", e.Name, e.Line, e.Err.Error())
+}
+
+func NewFileNameError(depth int, err error) *FileNameError {
+	_, path, line, ok := runtime.Caller(depth + 1)
+	if !ok {
+		path = "???"
+		line = -1
+	} else {
+		for i := len(path) - 1; i > 0; i-- {
+			if os.IsPathSeparator(path[i]) {
+				path = path[i+1:]
+				break
+			}
+		}
+	}
+	return &FileNameError{
+		Name: path,
+		Line: line,
+		Err:  err,
+	}
+}
+
+type FilePathError struct {
+	Path string
+	Line int
+	Err  error
+}
+
+// Error 返回 [Path:Line] Err
+func (e *FilePathError) Error() string {
+	return fmt.Sprintf("[%s:%d] %s", e.Path, e.Line, e.Err.Error())
+}
+
+func NewFilePathError(depth int, err error) *FilePathError {
+	_, path, line, ok := runtime.Caller(depth + 1)
+	if !ok {
+		path = "???"
+		line = -1
+	}
+	return &FilePathError{
+		Path: path,
+		Line: line,
+		Err:  err,
+	}
 }

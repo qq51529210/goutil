@@ -1,6 +1,8 @@
 package log
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"testing"
 )
@@ -30,4 +32,17 @@ func printPanic(lg *Logger) {
 		lg.Recover(recover())
 	}()
 	panic("test panice")
+}
+
+func TestError(t *testing.T) {
+	fmt.Println(f1())
+	fmt.Println(f2())
+}
+
+func f1() error {
+	return NewFileNameError(0, io.EOF)
+}
+
+func f2() error {
+	return NewFilePathError(0, io.EOF)
 }

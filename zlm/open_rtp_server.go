@@ -4,6 +4,12 @@ import (
 	"context"
 )
 
+const (
+	OpenRTPServerReqTCPModelUDP     = "0"
+	OpenRTPServerReqTCPModelPassive = "1"
+	OpenRTPServerReqTCPModelActive  = "2"
+)
+
 // OpenRTPServerReq 是 OpenRTPServer 的参数
 type OpenRTPServerReq struct {
 	// http://localhost:8080
