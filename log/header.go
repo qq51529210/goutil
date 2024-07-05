@@ -128,18 +128,33 @@ func FilePathHeader(log *Log, name, module string, level, depth int) {
 	log.b = append(log.b, ']')
 }
 
-type FileNameError struct {
+type FileNameError[T any] struct {
+	// 追踪
+	Trace string
+	// 文件名
 	Name string
+	// 行号
 	Line int
-	Err  error
+	// 错误字符串
+	Err string
+	// 自定义数据
+	Data T
 }
 
-// Error 返回 [Name:Line] Err
-func (e *FileNameError) Error() string {
-	return fmt.Sprintf("[%s:%d] %s", e.Name, e.Line, e.Err.Error())
+// Error 实现接口
+func (e *FileNameError[T]) Error() string {
+	return e.Err
 }
 
-func NewFileNameError(depth int, err error) *FileNameError {
+// Error 返回 [Name:Line] [Trace] Err
+func (e *FileNameError[T]) Log() string {
+	if e.Trace != "" {
+		return fmt.Sprintf("[%s:%d] [%s] %s", e.Name, e.Line, e.Trace, e.Err)
+	}
+	return fmt.Sprintf("[%s:%d] %s", e.Name, e.Line, e.Err)
+}
+
+func NewFileNameError[T any](depth int, trace string, data T, err error) *FileNameError[T] {
 	_, path, line, ok := runtime.Caller(depth + 1)
 	if !ok {
 		path = "???"
@@ -152,33 +167,52 @@ func NewFileNameError(depth int, err error) *FileNameError {
 			}
 		}
 	}
-	return &FileNameError{
-		Name: path,
-		Line: line,
-		Err:  err,
+	return &FileNameError[T]{
+		Trace: trace,
+		Name:  path,
+		Line:  line,
+		Err:   err.Error(),
+		Data:  data,
 	}
 }
 
-type FilePathError struct {
+type FilePathError[T any] struct {
+	// 追踪
+	Trace string
+	// 文件路径
 	Path string
+	// 行号
 	Line int
-	Err  error
+	// 错误字符串
+	Err string
+	// 自定义数据
+	Data T
 }
 
 // Error 返回 [Path:Line] Err
-func (e *FilePathError) Error() string {
-	return fmt.Sprintf("[%s:%d] %s", e.Path, e.Line, e.Err.Error())
+func (e *FilePathError[T]) Error() string {
+	return e.Err
 }
 
-func NewFilePathError(depth int, err error) *FilePathError {
+// Error 返回 [Path:Line] [Trace] Err
+func (e *FilePathError[T]) Log() string {
+	if e.Trace != "" {
+		return fmt.Sprintf("[%s:%d] [%s] %s", e.Path, e.Line, e.Trace, e.Err)
+	}
+	return fmt.Sprintf("[%s:%d] %s", e.Path, e.Line, e.Err)
+}
+
+func NewFilePathError[T any](depth int, trace string, data T, err error) *FilePathError[T] {
 	_, path, line, ok := runtime.Caller(depth + 1)
 	if !ok {
 		path = "???"
 		line = -1
 	}
-	return &FilePathError{
-		Path: path,
-		Line: line,
-		Err:  err,
+	return &FilePathError[T]{
+		Trace: trace,
+		Path:  path,
+		Line:  line,
+		Err:   err.Error(),
+		Data:  data,
 	}
 }

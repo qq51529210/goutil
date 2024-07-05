@@ -35,14 +35,25 @@ func printPanic(lg *Logger) {
 }
 
 func TestError(t *testing.T) {
-	fmt.Println(f1())
-	fmt.Println(f2())
+	fmt.Println(testError1())
+	fmt.Println(testError2())
+
+	fmt.Println(testError3().Log())
+	fmt.Println(testError4().Log())
 }
 
-func f1() error {
-	return NewFileNameError(0, io.EOF)
+func testError1() error {
+	return NewFileNameError(0, "3", 1, io.EOF)
 }
 
-func f2() error {
-	return NewFilePathError(0, io.EOF)
+func testError2() error {
+	return NewFilePathError(0, "4", 2, io.EOF)
+}
+
+func testError3() *FileNameError[int] {
+	return NewFileNameError(0, "3", 1, io.EOF)
+}
+
+func testError4() *FilePathError[int] {
+	return NewFilePathError(0, "", 2, io.EOF)
 }

@@ -68,7 +68,7 @@ func Request(ctx context.Context, client *http.Client, method, url string, query
 	return onResponse(res)
 }
 
-// HandleResponse 封装处理代码
+// HandleResponse 封装处理代码，判断 status 是否 200 ，然后解析 body json 到 data
 func HandleResponse[M any](res *http.Response, data *Result[M]) error {
 	// 状态码
 	if res.StatusCode != http.StatusOK {
@@ -80,6 +80,15 @@ func HandleResponse[M any](res *http.Response, data *Result[M]) error {
 	}
 	if data.Code != 0 {
 		return data
+	}
+	return nil
+}
+
+// HandleResponseStatus 封装处理代码，只判断 status 是否 200
+func HandleResponseStatus(res *http.Response) error {
+	// 状态码
+	if res.StatusCode != http.StatusOK {
+		return StatusError(res.StatusCode)
 	}
 	return nil
 }

@@ -126,9 +126,9 @@ func (lg *Logger) printTrace(depth, level int, trace string, args ...any) {
 	lg.Header(l, lg.name, lg.module, level, depth)
 	l.b = append(l.b, ' ')
 	// 追踪
-	l.b = append(l.b, '<')
+	l.b = append(l.b, '[')
 	l.b = append(l.b, trace...)
-	l.b = append(l.b, '>')
+	l.b = append(l.b, ']')
 	l.b = append(l.b, ' ')
 	// 日志
 	fmt.Fprint(l, args...)
@@ -147,9 +147,9 @@ func (lg *Logger) printfTrace(depth, level int, trace, format string, args ...an
 	lg.Header(l, lg.name, lg.module, level, depth)
 	l.b = append(l.b, ' ')
 	// 追踪
-	l.b = append(l.b, '<')
+	l.b = append(l.b, '[')
 	l.b = append(l.b, trace...)
-	l.b = append(l.b, '>')
+	l.b = append(l.b, ']')
 	l.b = append(l.b, ' ')
 	// 日志
 	fmt.Fprintf(l, format, args...)
