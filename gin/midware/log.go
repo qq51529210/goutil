@@ -1,93 +1,51 @@
 package gin
 
 import (
-	"encoding/json"
-	"fmt"
 	"goutil/log"
 	"goutil/uid"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Log 日志中间件
-type Log struct {
-	// Logger 日志
-	Logger *log.Logger
-	// CtxKeyTraceID 用于追踪 id
-	CtxKeyTraceID string
-	// CtxKeyRequestData 用于保存请求的的数据
-	CtxKeyRequestData string
-	// CtxKeyResponseData 用于保存响应的数据
-	CtxKeyResponseData string
-	// CtxKeyError 用于保存处理中发生的错误
-	CtxKeyHandleError string
-	// HeaderNameRemoteAddr 代理服务透传的客户端地址头名称
-	HeaderNameRemoteAddr string
-	// HeaderNameTraceID 如果有则使用它
-	HeaderNameTraceID string
-}
+var (
+	// LogLogger 日志对象，必须设置
+	LogLogger *log.Logger
+	// 上下文拿到追踪标识的 key
+	LogCtxTraceID = "TraceID"
+	// 拿到上层服务透传的追踪标识的 header name
+	LogHeaderTrace = "X-Trace"
+	// 拿到上层服务透传的客户端地址的 header name
+	LogHeaderRemoteAddr = "X-Remote-Addr"
+)
 
-// 实现接口
-func (h *Log) ServeHTTP(ctx *gin.Context) {
-	// 清理
+// Logger 全局中间件，一般放在第一
+// 拿到/生成追踪标识，放到 ctx.Value(LogCtxTraceID)
+// 如果有 LogHeaderRemoteAddr 的值，修改 ctx.Request.RemoteAddr
+// LogLogger 必须设置，不然空指针
+func Logger(ctx *gin.Context) {
 	defer func() {
 		// 异常
-		if h.Logger.Recover(recover()) {
+		if LogLogger.Recover(recover()) {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 		}
 	}()
 	// 追踪 id
-	var traceID string
-	if h.HeaderNameTraceID != "" {
-		traceID = ctx.GetHeader(h.HeaderNameTraceID)
-	}
+	traceID := ctx.GetHeader(LogHeaderTrace)
 	if traceID == "" {
 		traceID = uid.SnowflakeIDString()
 	}
-	ctx.Set(h.CtxKeyTraceID, traceID)
-	old := time.Now()
-	// 执行
-	ctx.Next()
-	// 花费时间
-	cost := time.Since(old)
+	ctx.Set(LogCtxTraceID, traceID)
 	// 如果有代理，代理必须使用这个字段来透传客户端 ip
-	remoteAddr := ctx.Request.RemoteAddr
-	if addr := ctx.GetHeader(h.HeaderNameRemoteAddr); addr != "" {
-		remoteAddr = addr
+	if addr := ctx.GetHeader(LogHeaderRemoteAddr); addr != "" {
+		ctx.Request.RemoteAddr = addr
 	}
 	// 日志
-	var str strings.Builder
-	fmt.Fprintf(&str, "[%v] %s %s %s", cost, remoteAddr, ctx.Request.Method, ctx.Request.URL.Path)
-	// 提交的数据
-	if data, ok := ctx.Value(h.CtxKeyRequestData).(string); ok && data != "" {
-		str.WriteString("\nrequest data: ")
-		str.WriteString(data)
-	}
-	// 返回的数据
-	if data, ok := ctx.Value(h.CtxKeyResponseData).(string); ok && data != "" {
-		str.WriteString("\nresponse data: ")
-		str.WriteString(data)
-	}
-	// 如果有错误
-	if data, ok := ctx.Value(h.CtxKeyHandleError).(string); ok && data != "" {
-		str.WriteString("\nhandle error: ")
-		str.WriteString(data)
-	}
-	// 输出
-	h.Logger.DebugTrace(traceID, str.String())
-}
-
-// SetRequestData 将 data json 后，加入到上下文数据 CtxKeyRequestData
-func (h *Log) SetRequestData(ctx *gin.Context, data any) {
-	var str strings.Builder
-	json.NewEncoder(&str).Encode(data)
-	s := str.String()
-	n := len(s) - 1
-	if s[n] == '\n' {
-		s = s[:n]
-	}
-	ctx.Set(h.CtxKeyRequestData, s)
+	LogLogger.DebugfTrace(traceID, "%s %s %s", ctx.Request.RemoteAddr, ctx.Request.Method, ctx.Request.URL.Path)
+	// 执行
+	old := time.Now()
+	ctx.Next()
+	// 日志
+	LogLogger.DebugfTrace(traceID, "cost %v", time.Since(old))
 }
