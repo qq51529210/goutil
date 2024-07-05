@@ -53,6 +53,10 @@ func DefaultHeader(log *Log, name, module string, level, depth int) {
 		log.b = append(log.b, ' ')
 		log.b = append(log.b, module...)
 	}
+	// // []
+	// log.b = append(log.b, ' ')
+	// log.b = append(log.b, '[')
+	// log.b = append(log.b, ']')
 }
 
 // FileNameHeader 输出 [level] [2006-01-02 15:04:05.000000000] [name] [module] [fileName:fileLine]
@@ -128,7 +132,7 @@ func FilePathHeader(log *Log, name, module string, level, depth int) {
 	log.b = append(log.b, ']')
 }
 
-type FileNameError[T any] struct {
+type StatckError[T any] struct {
 	// 追踪
 	Trace string
 	// 文件名
@@ -142,19 +146,25 @@ type FileNameError[T any] struct {
 }
 
 // Error 实现接口
-func (e *FileNameError[T]) Error() string {
+func (e *StatckError[T]) Error() string {
 	return e.Err
 }
 
-// Error 返回 [Name:Line] [Trace] Err
-func (e *FileNameError[T]) Log() string {
-	if e.Trace != "" {
-		return fmt.Sprintf("[%s:%d] [%s] %s", e.Name, e.Line, e.Trace, e.Err)
+// String 返回 [Name:Line] [Trace] Err
+func (e *StatckError[T]) String() string {
+	if e.Name == "" {
+		if e.Trace == "" {
+			return e.Err
+		}
+		return fmt.Sprintf("[%s] %s", e.Trace, e.Err)
 	}
-	return fmt.Sprintf("[%s:%d] %s", e.Name, e.Line, e.Err)
+	if e.Trace == "" {
+		return fmt.Sprintf("[%s:%d] %s", e.Name, e.Line, e.Err)
+	}
+	return fmt.Sprintf("[%s:%d] [%s] %s", e.Name, e.Line, e.Trace, e.Err)
 }
 
-func NewFileNameError[T any](depth int, trace string, data T, err error) *FileNameError[T] {
+func NewFileNameError[T any](depth int, trace string, data T, err error) *StatckError[T] {
 	_, path, line, ok := runtime.Caller(depth + 1)
 	if !ok {
 		path = "???"
@@ -167,7 +177,7 @@ func NewFileNameError[T any](depth int, trace string, data T, err error) *FileNa
 			}
 		}
 	}
-	return &FileNameError[T]{
+	return &StatckError[T]{
 		Trace: trace,
 		Name:  path,
 		Line:  line,
@@ -176,41 +186,15 @@ func NewFileNameError[T any](depth int, trace string, data T, err error) *FileNa
 	}
 }
 
-type FilePathError[T any] struct {
-	// 追踪
-	Trace string
-	// 文件路径
-	Path string
-	// 行号
-	Line int
-	// 错误字符串
-	Err string
-	// 自定义数据
-	Data T
-}
-
-// Error 返回 [Path:Line] Err
-func (e *FilePathError[T]) Error() string {
-	return e.Err
-}
-
-// Error 返回 [Path:Line] [Trace] Err
-func (e *FilePathError[T]) Log() string {
-	if e.Trace != "" {
-		return fmt.Sprintf("[%s:%d] [%s] %s", e.Path, e.Line, e.Trace, e.Err)
-	}
-	return fmt.Sprintf("[%s:%d] %s", e.Path, e.Line, e.Err)
-}
-
-func NewFilePathError[T any](depth int, trace string, data T, err error) *FilePathError[T] {
+func NewFilePathError[T any](depth int, trace string, data T, err error) *StatckError[T] {
 	_, path, line, ok := runtime.Caller(depth + 1)
 	if !ok {
 		path = "???"
 		line = -1
 	}
-	return &FilePathError[T]{
+	return &StatckError[T]{
 		Trace: trace,
-		Path:  path,
+		Name:  path,
 		Line:  line,
 		Err:   err.Error(),
 		Data:  data,

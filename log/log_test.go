@@ -35,25 +35,38 @@ func printPanic(lg *Logger) {
 }
 
 func TestError(t *testing.T) {
-	fmt.Println(testError1())
-	fmt.Println(testError2())
 
-	fmt.Println(testError3().Log())
-	fmt.Println(testError4().Log())
+	fmt.Println(StatckError1())
+	fmt.Println(StatckError2())
+
+	fmt.Println(StatckError3().String())
+	fmt.Println(StatckError4().String())
+	fmt.Println(StatckError5().String())
+
+	DefaultLogger.name = "[app]"
+	DefaultLogger.module = "[test]"
+
+	DefaultLogger.Debug(StatckError3().String())
+	DefaultLogger.Debug(StatckError4().String())
+	DefaultLogger.Debug(StatckError5().String())
 }
 
-func testError1() error {
+func StatckError1() error {
 	return NewFileNameError(0, "3", 1, io.EOF)
 }
 
-func testError2() error {
+func StatckError2() error {
 	return NewFilePathError(0, "4", 2, io.EOF)
 }
 
-func testError3() *FileNameError[int] {
+func StatckError3() *StatckError[int] {
 	return NewFileNameError(0, "3", 1, io.EOF)
 }
 
-func testError4() *FilePathError[int] {
+func StatckError4() *StatckError[int] {
 	return NewFilePathError(0, "", 2, io.EOF)
+}
+
+func StatckError5() *StatckError[int] {
+	return &StatckError[int]{Err: io.EOF.Error()}
 }
