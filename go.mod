@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/glebarez/sqlite v1.10.0
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/mozillazg/go-pinyin v0.20.0
 	github.com/redis/go-redis/v9 v9.3.1
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
