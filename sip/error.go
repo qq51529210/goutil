@@ -28,9 +28,9 @@ var (
 
 // ResponseError 表示 sip 响应消息的错误
 type ResponseError struct {
-	Status string
-	Phrase string
-	Err    string
+	Status string `json:"status"`
+	Phrase string `json:"phrase"`
+	Err    string `json:"-"`
 }
 
 func (e *ResponseError) Error() string {
