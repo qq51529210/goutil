@@ -29,6 +29,11 @@ type MediaInfo struct {
 	TotalReaderCount int64  `json:"-"`
 	OriginType       int64  `json:"-"`
 	OriginURL        string `json:"-"`
+	// 连接信息
+	LocalIP   string `json:"-"`
+	LocalPort int    `json:"-"`
+	PeerIP    string `json:"-"`
+	PeerPort  int    `json:"-"`
 }
 
 // HasH265 返回是否包含 h265 视频流
