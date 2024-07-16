@@ -15,32 +15,13 @@ type Time struct {
 // PageQuery 分页查询参数
 type PageQuery struct {
 	// 偏移，小于 0 不匹配
-	Offset *int `json:"offset,omitempty" form:"offset" binding:"omitempty,min=0"`
+	Offset int `json:"offset,omitempty" form:"offset" binding:"omitempty,min=0"`
 	// 条数，小于 1 不匹配
-	Count *int `json:"count,omitempty" form:"count" binding:"omitempty,min=1"`
+	Count int `json:"count,omitempty" form:"count" binding:"omitempty,min=1"`
 	// 排序，"column1 [desc], column2..."
 	Order string `json:"order,omitempty" form:"order"`
 	// 是否需要返回总数
 	Total string `json:"total,omitempty" form:"total" binding:"omitempty,oneof=0 1"`
-}
-
-// NextPage 下一页，n 是当前页的数据量
-func (m *PageQuery) NextPage(n int) bool {
-	// 分页
-	if m.HasCount() && m.Offset != nil {
-		if *m.Count <= n {
-			*m.Offset += *m.Count
-			return true
-		}
-		// 当前页数据小于条数，说明是最后一页了
-	}
-	// 不分页
-	return false
-}
-
-// HasCount 是否有分页
-func (m *PageQuery) HasCount() bool {
-	return m.Count != nil && *m.Count > 0
 }
 
 // HasTotal 是否有总数
@@ -51,12 +32,12 @@ func (m *PageQuery) HasTotal() bool {
 // InitDB 初始化
 func (m *PageQuery) InitDB(db *gorm.DB) *gorm.DB {
 	// 分页
-	if m.Offset != nil {
-		db = db.Offset(*m.Offset)
+	if m.Offset > 0 {
+		db = db.Offset(m.Offset)
 	}
 	// 数量
-	if m.HasCount() {
-		db = db.Limit(*m.Count)
+	if m.Count > 0 {
+		db = db.Limit(m.Count)
 	}
 	// 排序
 	if m.Order != "" {

@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -76,4 +77,95 @@ func IsDuplicateError(err error) bool {
 		return e.Number == 1062
 	}
 	return false
+}
+
+type DB[V any] struct {
+	D *gorm.DB
+}
+
+// Get 单个
+func (m *DB[V]) Get(ctx context.Context, v V, fields ...string) error {
+	db := m.D.WithContext(ctx)
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
+	return db.Take(v).Error
+}
+
+// First 第一个
+func (m *DB[V]) First(ctx context.Context, v V, q any, fields ...string) error {
+	db := m.D.WithContext(ctx)
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
+	if q != nil {
+		db = InitQuery(db, q)
+	}
+	return db.First(v).Error
+}
+
+// Add 添加
+func (m *DB[V]) Add(ctx context.Context, v V) error {
+	return m.D.WithContext(ctx).Create(v).Error
+}
+
+// BatchAdd 批量添加
+func (m *DB[V]) BatchAdd(ctx context.Context, vs []V) error {
+	return m.D.WithContext(ctx).Create(vs).Error
+}
+
+// Update 更新
+func (m *DB[V]) Update(ctx context.Context, v V, fields ...string) (int64, error) {
+	db := m.D.WithContext(ctx)
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
+	db = db.Updates(v)
+	return db.RowsAffected, db.Error
+}
+
+// BatchUpdate 批量更新
+func (m *DB[V]) BatchUpdate(ctx context.Context, vs []V, fields ...string) (int64, error) {
+	var row int64
+	return row, m.D.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, v := range vs {
+			db := tx
+			if len(fields) > 0 {
+				db = db.Select(fields)
+			}
+			db = db.Updates(v)
+			if db.Error != nil {
+				return db.Error
+			}
+			row += db.RowsAffected
+		}
+		return nil
+	})
+}
+
+// Delete 删除
+func (m *DB[V]) Delete(ctx context.Context, v V) (int64, error) {
+	db := m.D.WithContext(ctx).Delete(v)
+	return db.RowsAffected, db.Error
+}
+
+// BatchDelete 批量删除，v 做为 table name 使用
+func (m *DB[V]) BatchDelete(ctx context.Context, v V, query any) (int64, error) {
+	db := InitQuery(m.D.WithContext(ctx), query).Delete(v)
+	return db.RowsAffected, db.Error
+}
+
+// Page 分页
+func (m *DB[V]) Page(ctx context.Context, v V, page *PageQuery, query any) (*PageResult[V], error) {
+	db := m.D.WithContext(ctx).Model(v)
+	if query != nil {
+		db = InitQuery(db, query)
+	}
+	res := &PageResult[V]{}
+	return res, Page(db, page, res)
+}
+
+// All 所有
+func (m *DB[V]) All(ctx context.Context, v V, query any) ([]V, error) {
+	return All[V](m.D.WithContext(ctx).Model(v), query)
 }
