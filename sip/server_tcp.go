@@ -453,6 +453,8 @@ func (s *tcpServer) Request(ctx context.Context, msg *Message, addr *net.TCPAddr
 			return err
 		}
 	}
+	// 日志
+	s.s.logger.DebugfTrace(t.id, "request to tcp %s \n%v", conn.remoteAddr, msg)
 	// 等待
 	var err error
 	select {
@@ -464,7 +466,7 @@ func (s *tcpServer) Request(ctx context.Context, msg *Message, addr *net.TCPAddr
 		err = t.Err()
 	}
 	// 日志
-	s.s.logger.DebugfTrace(t.id, "request to tcp %s cost %v\n%v", conn.remoteAddr, time.Since(cost), msg)
+	s.s.logger.DebugfTrace(t.id, "cost %v", time.Since(cost))
 	// 移除
 	s.deleteActiveTx(t, err)
 	if err == ErrFinish {

@@ -507,6 +507,8 @@ func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr
 			return err
 		}
 	}
+	// 日志
+	s.s.logger.DebugfTrace(t.id, "request to udp %s \n%v", conn.remoteAddr, msg)
 	// 等待
 	var err error
 	select {
@@ -518,7 +520,7 @@ func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr
 		err = t.Err()
 	}
 	// 日志
-	s.s.logger.DebugfTrace(t.id, "request to udp %s cost %v\n%v", conn.remoteAddr, time.Since(cost), msg)
+	s.s.logger.DebugfTrace(t.id, "cost %v", time.Since(cost))
 	// 移除
 	s.deleteActiveTx(t, err)
 	if err == ErrFinish {
