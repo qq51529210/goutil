@@ -440,6 +440,7 @@ func (s *tcpServer) Request(ctx context.Context, msg *Message, addr *net.TCPAddr
 		if err != nil {
 			return err
 		}
+		conn = c
 		// 启动处理协程
 		s.w.Add(1)
 		go s.handleConnRoutine(c)
