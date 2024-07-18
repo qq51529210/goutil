@@ -360,7 +360,6 @@ func (s *udpServer) newActiveTx(id string, conn *udpConn, data any) (*udpActiveT
 	s.activeTx.Lock()
 	defer s.activeTx.Unlock()
 	// 添加
-	s.activeTx.Lock()
 	t, ok := s.activeTx.D[id]
 	if t != nil {
 		return t, ok
