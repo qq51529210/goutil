@@ -26,6 +26,8 @@ type tcpServer struct {
 	passiveTx gs.Map[string, *tcpPassiveTx]
 	// 状态
 	ok int32
+	// 连接空闲时间
+	maxIdleTime time.Duration
 }
 
 func (s *tcpServer) isOK() bool {
@@ -37,6 +39,9 @@ func (s *tcpServer) Serve(address string) error {
 	s.conn.Init()
 	s.activeTx.Init()
 	s.passiveTx.Init()
+	if s.maxIdleTime < 1 {
+		s.maxIdleTime = time.Minute
+	}
 	// 地址
 	addr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
@@ -137,6 +142,11 @@ func (s *tcpServer) handleConnRoutine(c *tcpConn) {
 	}()
 	r := newReader(c.conn, s.s.maxMessageLen)
 	for s.isOK() {
+		// 设置超时
+		if err := c.conn.SetReadDeadline(time.Now().Add(s.maxIdleTime)); err != nil {
+			s.s.logger.Errorf("tcp set read deadline %v", err)
+			return
+		}
 		// 解析，错误直接返回关闭连接
 		m := new(Message)
 		if err := m.Dec(r, s.s.maxMessageLen); err != nil {

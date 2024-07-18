@@ -16,6 +16,8 @@ type ServerOption struct {
 	MaxMessageLen int
 	// 发起请求的超时时间，或者响应消息缓存的超时时间
 	MsgTimeout time.Duration
+	// tcp conn 最大空闲时间，就是 read timeout
+	TCPMaxIdleTime time.Duration
 }
 
 type Server struct {
@@ -62,8 +64,9 @@ func (s *Server) ServeUDP(address string, minRTO, maxRTO time.Duration) error {
 }
 
 // ServeTCP 启动 tcp 服务
-func (s *Server) ServeTCP(address string) error {
+func (s *Server) ServeTCP(address string, maxIdleTime time.Duration) error {
 	s.tcp.s = s
+	s.tcp.maxIdleTime = maxIdleTime
 	return s.tcp.Serve(address)
 }
 
