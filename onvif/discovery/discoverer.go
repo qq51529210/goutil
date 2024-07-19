@@ -2,11 +2,13 @@ package discovery
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"fmt"
 	"goutil/uid"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -49,16 +51,18 @@ type result struct {
 // Callback 回调，err 是 net.Conn 返回的错误，超时是正常
 type Callback func(addr string, err error)
 
-type Discoverer struct {
+type discoverer struct {
 	// 监听的连接
 	conn *net.UDPConn
 	// 监听的地址
 	addr *net.UDPAddr
 	// 回调
 	callback Callback
+	// 取消的标记
+	cancel int32
 }
 
-func (d *Discoverer) init(iface, addr string) error {
+func (d *discoverer) init(iface, addr string) error {
 	// 网卡
 	ifa, err := net.InterfaceByName(iface)
 	if err != nil {
@@ -79,7 +83,7 @@ func (d *Discoverer) init(iface, addr string) error {
 	return nil
 }
 
-func (d *Discoverer) writeRoutine(wg *sync.WaitGroup) {
+func (d *discoverer) writeRoutine(wg *sync.WaitGroup) {
 	// 计时器
 	timer := time.NewTimer(0)
 	defer func() {
@@ -93,11 +97,17 @@ func (d *Discoverer) writeRoutine(wg *sync.WaitGroup) {
 	fmt.Fprintf(buf, msgFmt, uid.UUID1())
 	for {
 		if _, err := d.conn.WriteTo(buf.Bytes(), d.addr); err != nil {
+			// 看看是不是网络超时
 			if e, ok := err.(net.Error); ok {
 				if e.Timeout() {
 					return
 				}
 			}
+			// 是取消的标记
+			if atomic.LoadInt32(&d.cancel) == 1 {
+				return
+			}
+			// 其他错误
 			d.callback("", err)
 			return
 		}
@@ -106,22 +116,29 @@ func (d *Discoverer) writeRoutine(wg *sync.WaitGroup) {
 	}
 }
 
-func (d *Discoverer) readRoutine(wg *sync.WaitGroup) {
+func (d *discoverer) readRoutine(wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
 		// 异常
 		recover()
 	}()
 	buf := make([]byte, readBufLen)
+	host := make(map[string]int)
 	// 读取
 	for {
 		n, _, err := d.conn.ReadFromUDP(buf)
 		if err != nil {
+			// 看看是不是网络超时
 			if e, ok := err.(net.Error); ok {
 				if e.Timeout() {
 					return
 				}
 			}
+			// 是取消的标记
+			if atomic.LoadInt32(&d.cancel) == 1 {
+				return
+			}
+			// 其他错误
 			d.callback("", err)
 			return
 		}
@@ -132,15 +149,21 @@ func (d *Discoverer) readRoutine(wg *sync.WaitGroup) {
 			return
 		}
 		// 成功通知
-		d.callback(data.Body.ProbeMatches.ProbeMatch.XAddrs, err)
+		addr := data.Body.ProbeMatches.ProbeMatch.XAddrs
+		if _, ok := host[addr]; ok {
+			continue
+		} else {
+			host[addr] = 1
+		}
+		d.callback(addr, err)
 	}
 }
 
 // Discover 阻塞发现 timeout 超时后返回
-func (d *Discoverer) Discover(timeout time.Duration) error {
+func (d *discoverer) discover(ctx context.Context, duration time.Duration) error {
 	// 超时
-	if timeout > 0 {
-		dealine := time.Now().Add(timeout)
+	if duration > 0 {
+		dealine := time.Now().Add(duration)
 		if err := d.conn.SetReadDeadline(dealine); err != nil {
 			d.conn.Close()
 			return err
@@ -155,20 +178,29 @@ func (d *Discoverer) Discover(timeout time.Duration) error {
 	wg.Add(2)
 	go d.readRoutine(&wg)
 	go d.writeRoutine(&wg)
+	// 等待
+	var err error
+	select {
+	case <-ctx.Done():
+		atomic.StoreInt32(&d.cancel, 1)
+		err = ctx.Err()
+	case <-time.After(duration):
+		atomic.StoreInt32(&d.cancel, 1)
+	}
+	// 关闭
+	d.conn.Close()
+	//
 	wg.Wait()
 	//
-	return nil
+	return err
 }
 
-// Close 用于关闭底层的 conn
-func (d *Discoverer) Close() {
-	if d.conn != nil {
-		d.conn.Close()
-	}
-}
-
-func NewDiscoverer(iface, addr string, callback Callback) (*Discoverer, error) {
-	d := new(Discoverer)
+// Discover 发现一次，然后关闭 conn
+func Discover(ctx context.Context, iface, addr string, callback Callback, duration time.Duration) error {
+	d := new(discoverer)
 	d.callback = callback
-	return d, d.init(iface, addr)
+	if err := d.init(iface, addr); err != nil {
+		return err
+	}
+	return d.discover(ctx, duration)
 }
