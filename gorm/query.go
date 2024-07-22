@@ -185,24 +185,24 @@ func QueryRLIKE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kin
 	return db
 }
 
-// QueryGT field > ?
+// QueryGT field < ?
 func QueryGT(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-	return db.Where(fmt.Sprintf("`%s` > ?", field), value.Interface())
-}
-
-// QueryGTE field >= ?
-func QueryGTE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
-	return db.Where(fmt.Sprintf("`%s` >= ?", field), value.Interface())
-}
-
-// QueryLT field < ?
-func QueryLT(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 	return db.Where(fmt.Sprintf("`%s` < ?", field), value.Interface())
 }
 
-// QueryLTE field <= ?
-func QueryLTE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+// QueryGTE field <= ?
+func QueryGTE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 	return db.Where(fmt.Sprintf("`%s` <= ?", field), value.Interface())
+}
+
+// QueryLT field > ?
+func QueryLT(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	return db.Where(fmt.Sprintf("`%s` > ?", field), value.Interface())
+}
+
+// QueryLTE field >= ?
+func QueryLTE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	return db.Where(fmt.Sprintf("`%s` >= ?", field), value.Interface())
 }
 
 // QueryNULL field IS [NOT]NULL
