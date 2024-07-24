@@ -10,6 +10,8 @@ type SetRecordSpeedReq struct {
 	Secret string `query:"secret"`
 	// 添加的流的虚拟主机，例如 __defaultVhost__
 	VHost string `query:"vhost"`
+	// 这个 postman 上没有，但是不添不行
+	Schema string `query:"schema"`
 	// 添加的应用名，例如 live
 	App string `query:"app"`
 	// 添加的流 id ，例如 test
