@@ -33,5 +33,5 @@ type OnServerKeepaliveDataModel struct {
 }
 
 // OnServerKeepalive 处理 zlm 的 on_server_keepalive 回调
-func OnServerKeepalive(ctx context.Context, req *OnServerKeepaliveReq) {
+func OnServerKeepalive(ctx context.Context, req *OnServerKeepaliveReq, res *CodeMsg) {
 }

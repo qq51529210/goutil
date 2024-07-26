@@ -33,5 +33,5 @@ type OnRecordMP4Req struct {
 }
 
 // OnRecordMP4 处理 zlm 的 on_record_mp4 回调
-func OnRecordMP4(ctx context.Context, req *OnRecordMP4Req) {
+func OnRecordMP4(ctx context.Context, req *OnRecordMP4Req, res *CodeMsg) {
 }

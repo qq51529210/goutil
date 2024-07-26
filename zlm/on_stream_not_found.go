@@ -23,5 +23,5 @@ type OnStreamNotFoundReq struct {
 }
 
 // OnStreamNotFound 处理 zlm 的 on_stream_not_found 回调
-func OnStreamNotFound(ctx context.Context, req *OnStreamNotFoundReq) {
+func OnStreamNotFound(ctx context.Context, req *OnStreamNotFoundReq, res *CodeMsg) {
 }

@@ -17,5 +17,5 @@ type OnStreamChangedReq struct {
 }
 
 // OnStreamChanged 处理 zlm 的 on_stream_changed 回调
-func OnStreamChanged(ctx context.Context, req *OnStreamChangedReq) {
+func OnStreamChanged(ctx context.Context, req *OnStreamChangedReq, res *CodeMsg) {
 }

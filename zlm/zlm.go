@@ -63,3 +63,9 @@ func request[Query, Response any](ctx context.Context, baseURL, path string, que
 	Logger.DebugfDepth(2, "[%v] %s", time.Since(old), url)
 	return nil
 }
+
+// CodeMsg on_xx 的返回值
+type CodeMsg struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg,omitempty"`
+}
