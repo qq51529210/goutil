@@ -6,8 +6,10 @@ import (
 
 // OnServerKeepaliveReq 表示 on_server_keepalive 提交的数据
 type OnServerKeepaliveReq struct {
-	Data          *OnServerKeepaliveDataModel `json:"data"`
-	MediaServerID string                      `json:"mediaServerId"`
+	// 数据
+	Data *OnServerKeepaliveDataModel `json:"data"`
+	// 服务标识
+	MediaServerID string `json:"mediaServerId"`
 	// 日志追踪
 	TraceID string `json:"-"`
 }

@@ -6,17 +6,17 @@ import (
 
 // OnPlayReq 表示 on_play 提交的数据
 type OnPlayReq struct {
-	// 服务器id,通过配置文件设置
-	MediaServerID string `json:"mediaServerId"`
-	// 流虚拟主机
+	// 虚拟主机
 	VHost string `json:"vhost"`
-	// 推流的协议，可能是rtsp、rtmp
-	Schema string `json:"schema"`
-	// 流应用名
-	App string `json:"app"`
-	// 流ID
-	Stream string `json:"stream"`
-	// 推流url参数
+	// 服务标识
+	MediaServerID string `json:"mediaServerId"`
+	// 协议
+	Schema string `query:"schema"`
+	// 流应用
+	App string `query:"app"`
+	// 流标识
+	Stream string `query:"stream"`
+	// url 查询字符串
 	Params string `json:"params"`
 	// 日志追踪
 	TraceID string `json:"-"`
@@ -28,5 +28,4 @@ type OnPlayReq struct {
 // 如果本服务有流，就直接播放了
 // 如果没有流，等 on_stream_not_found 再处理同步问题
 func OnPlay(ctx context.Context, req *OnPlayReq, res *CodeMsg) {
-
 }

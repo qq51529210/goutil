@@ -2,10 +2,10 @@ package zlm
 
 // MediaInfoKey 媒体流标识
 type MediaInfoKey struct {
-	// 流的唯一标识
-	App string `json:"app"`
-	// 流的唯一标识
-	Stream string `json:"stream"`
+	// 流应用
+	App string `query:"app"`
+	// 流标识
+	Stream string `query:"stream"`
 }
 
 // MediaInfo 表示某一个媒体流的信息
@@ -70,7 +70,7 @@ type MediaInfoAudioTrack struct {
 
 // PlayInfo 用于返回播放地址
 type PlayInfo struct {
-	// 媒体流标识
+	// 媒体流应用
 	App string `json:"app,omitempty"`
 	// 媒体流标识
 	Stream string `json:"stream,omitempty"`

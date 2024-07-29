@@ -4,21 +4,15 @@ import "context"
 
 // ListRTPSenderReq 是 ListRTPSender 的参数
 type ListRTPSenderReq struct {
-	// http://localhost:8080
-	BaseURL string
-	// 访问密钥
-	Secret string `query:"secret"`
-	// 添加的流的虚拟主机，例如 __defaultVhost__
-	VHost string `query:"vhost"`
-	// 添加的应用名，例如 live
+	// 流应用
 	App string `query:"app"`
-	// 添加的流id，例如 test
+	// 流标识
 	Stream string `query:"stream"`
 }
 
 // listRTPSenderRes 是 ListRTPSender 返回值
 type listRTPSenderRes struct {
-	apiError
+	CodeMsg
 	// 文档没有说明，我看代码的
 	// 应该是返回了 ssrc 数组
 	// val["data"].append(ssrc);
@@ -26,19 +20,18 @@ type listRTPSenderRes struct {
 }
 
 const (
-	apiListRTPSender = "listRtpSender"
+	ListRTPSenderPath = apiPathPrefix + "/listRtpSender"
 )
 
-// ListRTPSender 调用 /index/api/listRtpSender
-func ListRTPSender(ctx context.Context, req *ListRTPSenderReq) ([]string, error) {
+// ListRTPSender 调用 /index/api/listRtpSender ，返回所有 rtp server 的 ssrc
+func ListRTPSender(ctx context.Context, ser Server, req *ListRTPSenderReq) ([]string, error) {
 	// 请求
 	var res listRTPSenderRes
-	if err := request(ctx, req.BaseURL, apiListRTPSender, req, &res); err != nil {
+	if err := Request(ctx, ser, ListRTPSenderPath, req, &res); err != nil {
 		return nil, err
 	}
-	if res.apiError.Code != codeTrue {
-		res.apiError.Path = apiListRTPSender
-		return nil, &res.apiError
+	if res.Code != CodeOK {
+		return nil, &res.CodeMsg
 	}
 	return res.Data, nil
 }

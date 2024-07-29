@@ -6,19 +6,13 @@ import (
 
 // DelStreamPusherProxyReq 是 DelStreamPusherProxy 的参数
 type DelStreamPusherProxyReq struct {
-	// http://localhost:8080
-	BaseURL string
-	// 访问密钥
-	Secret string `query:"secret"`
-	// 流的唯一标识
+	// addStreamPusherProxy 返回的 key
 	Key string `query:"key"`
-	// 虚拟主机，例如 __defaultVhost__
-	VHost string `query:"vhost"`
 }
 
 // delStreamPusherProxyRes 是 DelStreamPusherProxy 返回值
 type delStreamPusherProxyRes struct {
-	apiError
+	CodeMsg
 	Data struct {
 		Flag bool `json:"flag"`
 	} `json:"data"`
@@ -31,22 +25,21 @@ type DelStreamPusherProxyResData struct {
 }
 
 const (
-	apiDelStreamPusherProxy = "delStreamPusherProxy"
+	DelStreamPusherProxyPath = apiPathPrefix + "/delStreamPusherProxy"
 )
 
-// DelStreamPusherProxy 调用 /index/api/delStreamPusherProxy
-func DelStreamPusherProxy(ctx context.Context, req *DelStreamPusherProxyReq) (bool, error) {
+// DelStreamPusherProxy 调用 /index/api/delStreamPusherProxy 停止推流，可以使用 close_streams 替代
+func DelStreamPusherProxy(ctx context.Context, ser Server, req *DelStreamPusherProxyReq) (bool, error) {
 	// 请求
 	var res delStreamPusherProxyRes
-	if err := request(ctx, req.BaseURL, apiDelStreamPusherProxy, req, &res); err != nil {
+	if err := Request(ctx, ser, DelStreamPusherProxyPath, req, &res); err != nil {
 		return false, err
 	}
-	if res.apiError.Code != codeTrue {
-		// -500 是没有找到流，也算成功
-		if res.apiError.Code != -500 {
-			res.apiError.Path = apiDelStreamPusherProxy
-			return false, &res.apiError
-		}
+	// 经过测试，-500 应该是不存在的意思
+	// 不存在也当它成功了
+	if res.Code != CodeOK && res.Code != -500 {
+		return false, &res.CodeMsg
 	}
+	//
 	return res.Data.Flag, nil
 }

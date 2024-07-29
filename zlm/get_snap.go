@@ -2,56 +2,50 @@ package zlm
 
 import (
 	"context"
-	gh "goutil/http"
+	ghttp "goutil/http"
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
-	"time"
 )
 
 // GetSnapReq 是 GetSnap 的参数
 type GetSnapReq struct {
-	// http://localhost:8080
-	BaseURL string
-	// 访问密钥
-	Secret string `query:"secret"`
-	// 虚拟主机，例如 __defaultVhost__
-	VHost string `query:"vhost"`
-	// 需要截图的url，可以是本机的，也可以是远程主机的
+	// 媒体流源地址
 	URL string `query:"url"`
-	// 截图失败超时时间，防止FFmpeg一直等待截图
-	TimeoutSec string `query:"timeout_sec"`
-	// 截图的过期时间，该时间内产生的截图都会作为缓存返回
-	ExpireSec string `query:"expire_sec"`
+	// 超时时间，单位秒
+	Timeout string `query:"timeout_sec"`
+	// 缓存过期时间，单位秒
+	Expire string `query:"expire_sec"`
 }
 
 const (
-	apiGetSnap = "getSnap"
+	GetSnapPath = apiPathPrefix + "/getSnap"
 )
 
-// GetSnap 调用 /index/api/getSnap
-// 获取截图或生成实时截图并返回，jpeg格式的图片，可以在浏览器直接打开
-func GetSnap(ctx context.Context, req *GetSnapReq, out io.Writer) error {
-	url := requestURL(req.BaseURL, apiGetSnap, req)
-	// 请求
-	old := time.Now()
-	err := gh.Request(ctx, http.DefaultClient, http.MethodGet, url, nil, nil,
+// GetSnap 调用 /index/api/getSnap ，返回 jpeg 格式的图片
+func GetSnap(ctx context.Context, ser Server, req *GetSnapReq) ([]byte, error) {
+	var data []byte
+	return data, ghttp.JSONRequest(ctx, http.DefaultClient, http.MethodGet,
+		ser.BaseURL()+GetSnapPath, ghttp.Query(req, initRequestQuery(ser)), nil,
 		func(res *http.Response) error {
 			// 必须是 200
 			if res.StatusCode != http.StatusOK {
-				return gh.StatusError(res.StatusCode)
+				return ghttp.StatusError(res.StatusCode)
 			}
-			// 写入
-			_, err := io.Copy(out, res.Body)
+			// 读取数据
+			var err error
+			data, err = io.ReadAll(res.Body)
 			return err
 		})
-	Logger.DebugfDepth(1, "[%v] %s", time.Since(old), url)
-	//
-	return err
 }
 
-// ReadSnapshot 返回 app 和 stream 的截图快照数据
-func ReadSnapshot(dir, app, stream string) ([]byte, error) {
-	return os.ReadFile(filepath.Join(dir, app, stream))
+// SaveSnap 保存截图到磁盘
+func SaveSnap(ctx context.Context, ser Server, req *GetSnapReq, path string) error {
+	// 获取
+	d, err := GetSnap(ctx, ser, req)
+	if err != nil {
+		return err
+	}
+	// 写入文件
+	return os.WriteFile(path, d, os.ModePerm)
 }

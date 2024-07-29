@@ -6,40 +6,27 @@ import (
 
 // ConnectRTPServerReq 是 ConnectRTPServer 的参数
 type ConnectRTPServerReq struct {
-	// http://localhost:8080
-	BaseURL string
-	// 访问密钥
-	Secret string `query:"secret"`
-	// 虚拟主机，例如 __defaultVhost__
-	VHost string `query:"vhost"`
-	// tcp主动模式时服务端地址
-	DstURL string `query:"dst_url"`
-	// tcp主动模式时服务端端口
+	// 服务端地址
+	DstIP string `query:"dst_url"`
+	// 服务端端口
 	DstPort string `query:"dst_port"`
-	// OpenRtpServer时绑定的流id
+	// OpenRtpServer 时绑定的流标识
 	Stream string `query:"stream_id"`
 }
 
-// connectRTPServerRes 是 OpenRTPServer 的返回值
-type connectRTPServerRes struct {
-	apiError
-}
-
 const (
-	apiConnectRTPServer = "connectRtpServer"
+	ConnectRTPServerPath = apiPathPrefix + "/connectRtpServer"
 )
 
-// ConnectRTPServer 调用 /index/api/connectRtpServer
-// 未找到文档说明，从 postman 上发现的
-func ConnectRTPServer(ctx context.Context, req *ConnectRTPServerReq) error {
+// ConnectRTPServer 调用 /index/api/connectRtpServer ，用于主动模式拉流
+func ConnectRTPServer(ctx context.Context, ser Server, req *ConnectRTPServerReq) error {
 	// 请求
-	var res connectRTPServerRes
-	if err := request(ctx, req.BaseURL, apiConnectRTPServer, req, &res); err != nil {
+	var res CodeMsg
+	if err := Request(ctx, ser, ConnectRTPServerPath, req, &res); err != nil {
 		return err
 	}
-	if res.apiError.Code != codeTrue {
-		res.apiError.Path = apiConnectRTPServer
-		return &res.apiError
+	if res.Code != CodeOK {
+		return &res
 	}
 	return nil
 }

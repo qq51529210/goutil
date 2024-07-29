@@ -6,7 +6,7 @@ import (
 
 // OnStreamChangedReq 表示 on_stream_changed 提交的数据，保存注册和注销的所有字段
 type OnStreamChangedReq struct {
-	// 服务器id，通过配置文件设置
+	// 服务标识
 	MediaServerID string `json:"mediaServerId"`
 	// 流注册或注销
 	Regist bool `json:"regist"`

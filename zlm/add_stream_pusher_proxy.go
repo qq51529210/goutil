@@ -6,31 +6,25 @@ import (
 
 // AddStreamPusherProxyReq 是 AddStreamPusherProxy 参数
 type AddStreamPusherProxyReq struct {
-	// http://localhost:8080
-	BaseURL string
-	// 访问密钥
-	Secret string `query:"secret"`
-	// 添加的流的虚拟主机，例如 __defaultVhost__
-	VHost string `query:"vhost"`
-	// 筛选协议，例如 rtsp或rtmp
+	// 协议
 	Schema string `query:"schema"`
-	// 添加的应用名，例如 live
+	// 流应用
 	App string `query:"app"`
-	// 添加的流id，例如 test
+	// 流标识
 	Stream string `query:"stream"`
-	// 推流地址，需要与schema字段协议一致
+	// 推流地址，需要与 schema 字段协议一致
 	DstURL string `query:"dst_url"`
-	// rtsp推流时，拉流方式，0：tcp，1：udp
-	RTPType string `query:"rtp_type"`
+	// rtsp 拉流方式
+	RTPType RTSPRTPType `query:"rtp_type"`
 	// 推流超时时间，单位秒，float类型
-	TimeoutSec string `query:"timeout_sec"`
-	// 推流重试次数,不传此参数或传值<=0时，则无限重试
+	Timeout string `query:"timeout_sec"`
+	// 推流重试次数，不传则无限重试
 	RetryCount string `query:"retry_count"`
 }
 
 // addStreamPusherProxyRes 是 AddStreamPusherProxy 返回值
 type addStreamPusherProxyRes struct {
-	apiError
+	CodeMsg
 	Data AddStreamPusherProxyResData `json:"data"`
 }
 
@@ -41,19 +35,18 @@ type AddStreamPusherProxyResData struct {
 }
 
 const (
-	apiAddStreamPusherProxy = "addStreamPusherProxy"
+	AddStreamPusherProxyPath = apiPathPrefix + "/addStreamPusherProxy"
 )
 
-// AddStreamPusherProxy 调用 /index/api/addStreamPusherProxy ，返回 key
-func AddStreamPusherProxy(ctx context.Context, req *AddStreamPusherProxyReq) (string, error) {
+// AddStreamPusherProxy 调用 /index/api/addStreamPusherProxy ，把本服务器的直播流（rtsp/rtmp）推送到其他服务器，返回 key
+func AddStreamPusherProxy(ctx context.Context, ser Server, req *AddStreamPusherProxyReq) (string, error) {
 	// 请求
 	var res addStreamPusherProxyRes
-	if err := request(ctx, req.BaseURL, apiAddStreamPusherProxy, req, &res); err != nil {
+	if err := Request(ctx, ser, AddStreamPusherProxyPath, req, &res); err != nil {
 		return "", err
 	}
-	if res.apiError.Code != codeTrue {
-		res.apiError.Path = apiAddStreamPusherProxy
-		return "", &res.apiError
+	if res.Code != CodeOK {
+		return "", &res.CodeMsg
 	}
 	return res.Data.Key, nil
 }

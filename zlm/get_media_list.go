@@ -18,26 +18,21 @@ const (
 
 // GetMediaListReq 是 GetMediaList 的参数
 type GetMediaListReq struct {
-	// http://localhost:8080
-	BaseURL string
-	// 访问密钥
-	Secret string `query:"secret"`
-	// 筛选虚拟主机，例如 __defaultVhost__
-	VHost string `query:"vhost"`
-	// 筛选协议，例如 rtsp或rtmp
+	// 协议
 	Schema string `query:"schema"`
-	// 筛选应用名，例如 live
+	// 流应用
 	App string `query:"app"`
-	// 筛选流id，例如 test
+	// 流标识
 	Stream string `query:"stream"`
 }
 
 // getMediaListRes 是 GetMediaList 的返回值
 type getMediaListRes struct {
-	apiError
+	CodeMsg
 	Data []*MediaListData `json:"data"`
 }
 
+// MediaListDataSock 是 MediaListData.OriginSock
 type MediaListDataSock struct {
 	LocalIP   string `json:"local_ip"`
 	LocalPort int    `json:"local_port"`
@@ -50,11 +45,11 @@ type MediaListData struct {
 	// 虚拟主机名
 	VHost string `json:"vhost"`
 	// 协议
-	Schema string `json:"schema"`
-	// 应用名
-	App string `json:"app"`
-	// 协议
-	Stream string `json:"stream"`
+	Schema string `query:"schema"`
+	// 流应用
+	App string `query:"app"`
+	// 流标识
+	Stream string `query:"stream"`
 	// unix 系统时间戳，单位秒
 	CreateStamp int64 `json:"createStamp"`
 	// 是否正在录制 hls
@@ -116,21 +111,18 @@ func ParseTrack(tracks []map[string]any) (vs []*MediaInfoVideoTrack, as []*Media
 }
 
 const (
-	apiGetMediaList = "getMediaList"
+	GetMediaListPath = apiPathPrefix + "/getMediaList"
 )
 
-// GetMediaList 调用 /index/api/getMediaList
-// 返回媒体流列表
-func GetMediaList(ctx context.Context, req *GetMediaListReq) ([]*MediaListData, error) {
+// GetMediaList 调用 /index/api/getMediaList ，返回媒体流列表
+func GetMediaList(ctx context.Context, ser Server, req *GetMediaListReq) ([]*MediaListData, error) {
 	// 请求
 	var res getMediaListRes
-	if err := request(ctx, req.BaseURL, apiGetMediaList, req, &res); err != nil {
+	if err := Request(ctx, ser, GetMediaListPath, req, &res); err != nil {
 		return nil, err
 	}
-	if res.apiError.Code != codeTrue {
-		res.apiError.Path = apiGetMediaList
-		return nil, &res.apiError
+	if res.Code != CodeOK {
+		return nil, &res.CodeMsg
 	}
-	//
 	return res.Data, nil
 }

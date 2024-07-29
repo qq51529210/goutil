@@ -6,12 +6,16 @@ import (
 
 // OnRecordMP4Req 表示 on_record_mp4 提交的数据
 type OnRecordMP4Req struct {
-	// 服务器id，通过配置文件设置
+	// 虚拟主机
+	VHost string `json:"vhost"`
+	// 服务标识
 	MediaServerID string `json:"mediaServerId"`
-	// 录制的流应用名
-	App string `json:"app"`
-	// 录制的流ID
-	Stream string `json:"stream"`
+	// 协议
+	Schema string `query:"schema"`
+	// 流应用
+	App string `query:"app"`
+	// 流标识
+	Stream string `query:"stream"`
 	// 录像文件名
 	FileName string `json:"file_name"`
 	// 录像文件绝对路径
@@ -26,8 +30,6 @@ type OnRecordMP4Req struct {
 	TimeLen float64 `json:"time_len"`
 	// 点播相对 url 路径
 	URL string `json:"url"`
-	// 流虚拟主机
-	VHost string `json:"vhost"`
 	// 日志追踪
 	TraceID string `json:"-"`
 }

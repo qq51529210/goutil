@@ -6,42 +6,28 @@ import (
 
 // StopSendRTPReq 是 StopSendRTP 参数
 type StopSendRTPReq struct {
-	// http://localhost:8080
-	BaseURL string
-	// 访问密钥
-	Secret string `query:"secret"`
-	// 添加的流的虚拟主机，例如 __defaultVhost__
-	VHost string `query:"vhost"`
-	// 添加的应用名，例如 live
+	// 流应用
 	App string `query:"app"`
-	// 添加的流id，例如 test
+	// 流标识
 	Stream string `query:"stream"`
-	// 根据ssrc关停某路rtp推流，不传时关闭所有推流
+	// 停止指定 ssrc 的推流，默认关闭所有推流
 	SSRC string `query:"ssrc"`
 }
 
-// stopSendRTPRes 是 StopSendRTP 返回值
-type stopSendRTPRes struct {
-	apiError
-}
-
 const (
-	apiStopSendRTP = "stopSendRtp"
+	StopSendRTPPath = apiPathPrefix + "/stopSendRtp"
 )
 
 // StopSendRTP 调用 /index/api/stopSendRtp
 // 停止 GB28181 rtp 推流。
-func StopSendRTP(ctx context.Context, req *StopSendRTPReq) error {
-	var res stopSendRTPRes
-	if err := request(ctx, req.BaseURL, apiStopSendRTP, req, &res); err != nil {
+func StopSendRTP(ctx context.Context, ser Server, req *StopSendRTPReq) error {
+	var res CodeMsg
+	if err := Request(ctx, ser, StopSendRTPPath, req, &res); err != nil {
 		return err
 	}
 	// 经过测试，-500 是找不到流，-1 是已经停止
-	if res.apiError.Code != codeTrue &&
-		res.apiError.Code != -500 &&
-		res.apiError.Code != -1 {
-		res.apiError.Path = apiStopSendRTP
-		return &res.apiError
+	if res.Code != CodeOK && res.Code != -500 && res.Code != -1 {
+		return &res
 	}
 	return nil
 }

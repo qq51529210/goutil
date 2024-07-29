@@ -71,6 +71,15 @@ func (m *Map[K, V]) Del(k K) {
 	m.Unlock()
 }
 
+// BatchDel 批量移除
+func (m *Map[K, V]) BatchDel(ks []K) {
+	m.Lock()
+	for i := 0; i < len(ks); i++ {
+		delete(m.D, ks[i])
+	}
+	m.Unlock()
+}
+
 // Values 返回所有值
 func (m *Map[K, V]) Values() (v []V) {
 	m.RLock()
