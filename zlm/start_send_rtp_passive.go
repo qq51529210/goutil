@@ -26,8 +26,8 @@ type StartSendRTPPassiveReq struct {
 	RecvStreamID string `query:"recv_stream_id"`
 }
 
-// startSendRTPPassiveRes 是 StartSendRTPPassive 返回值
-type startSendRTPPassiveRes struct {
+// StartSendRTPPassiveRes 是 StartSendRTPPassive 返回值
+type StartSendRTPPassiveRes struct {
 	CodeMsg
 	// 使用的本地端口号
 	LocalPort int `json:"local_port"`
@@ -37,15 +37,7 @@ const (
 	StartSendRtpPassivePath = apiPathPrefix + "/startSendRtpPassive"
 )
 
-// StartSendRTPPassive 调用 /index/api/startSendRtpPassive ，被动推流，返回使用的本地端口号
-func StartSendRTPPassive(ctx context.Context, ser Server, req *StartSendRTPPassiveReq) (int, error) {
-	// 请求
-	var res startSendRTPPassiveRes
-	if err := Request(ctx, ser, StartSendRtpPassivePath, req, &res); err != nil {
-		return 0, err
-	}
-	if res.Code != CodeOK {
-		return 0, &res.CodeMsg
-	}
-	return res.LocalPort, nil
+// StartSendRTPPassive 调用 /index/api/startSendRtpPassive ，被动推流
+func StartSendRTPPassive(ctx context.Context, ser Server, req *StartSendRTPPassiveReq, res *StartSendRTPPassiveRes) error {
+	return Request(ctx, ser, StartSendRtpPassivePath, req, res)
 }

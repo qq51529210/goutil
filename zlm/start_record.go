@@ -18,8 +18,8 @@ type StartRecordReq struct {
 	MaxSecond string `query:"max_second"`
 }
 
-// startRecordRes 是 StartRecord 的返回值
-type startRecordRes struct {
+// StartRecordRes 是 StartRecord 的返回值
+type StartRecordRes struct {
 	CodeMsg
 	// 成功与否
 	Result bool `json:"result"`
@@ -29,15 +29,7 @@ const (
 	StartRecordPath = apiPathPrefix + "/startRecord"
 )
 
-// StartRecord 调用 /index/api/startRecord ，开始录制，返回是否成功
-func StartRecord(ctx context.Context, ser Server, req *StartRecordReq) (bool, error) {
-	// 请求
-	var res startRecordRes
-	if err := Request(ctx, ser, StartRecordPath, req, &res); err != nil {
-		return false, err
-	}
-	if res.Code != CodeOK {
-		return false, &res.CodeMsg
-	}
-	return res.Result, nil
+// StartRecord 调用 /index/api/startRecord ，开始录制
+func StartRecord(ctx context.Context, ser Server, req *StartRecordReq, res *StartRecordRes) error {
+	return Request(ctx, ser, StartRecordPath, req, res)
 }

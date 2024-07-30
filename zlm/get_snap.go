@@ -26,7 +26,7 @@ const (
 func GetSnap(ctx context.Context, ser Server, req *GetSnapReq) ([]byte, error) {
 	var data []byte
 	return data, ghttp.JSONRequest(ctx, http.DefaultClient, http.MethodGet,
-		ser.BaseURL()+GetSnapPath, ghttp.Query(req, initRequestQuery(ser)), nil,
+		ser.BaseURL()+GetSnapPath, ghttp.Query(req, NewRequestQuery(ser)), nil,
 		func(res *http.Response) error {
 			// 必须是 200
 			if res.StatusCode != http.StatusOK {

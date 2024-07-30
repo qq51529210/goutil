@@ -16,59 +16,55 @@ type GetServerConfigReq struct {
 	ID string
 }
 
-// getServerConfigRes 是 GetServerConfig 的返回值
-type getServerConfigRes struct {
+type getServerConfigRes[M Config] struct {
 	CodeMsg
-	Data []map[string]string `json:"data"`
+	Data []M `json:"data"`
+}
+
+// GetServerConfigRes 是 GetServerConfig 的返回值
+// M 是结构体
+//
+//	type config struct {
+//		MediaServerID      string `json:"general.mediaServerId"`
+//		RTMPPort           string `json:"rtmp.port"`
+//		RTMPSSLPort        string `json:"rtmp.sslport"`
+//		RTSPPort           string `json:"rtsp.port"`
+//		RTSPSSLPort        string `json:"rtsp.sslport"`
+//		HTTPPort           string `json:"http.port"`
+//		HTTPSSLPort        string `json:"http.sslport"`
+//		RTCUDPPort         string `json:"rtc.port"`
+//		RTCTCPPort         string `json:"rtc.tcpPort"`
+//		AliveInterval      string `json:"hook.alive_interval"`
+//		RTPProxyPortRange  string `json:"rtp_proxy.port_range"`
+//		RTPProxyTimeoutSec string `json:"rtp_proxy.timeoutSec"`
+//		MaxStreamWaitMS    string `json:"general.maxStreamWaitMS"`
+//	}
+//
+//	func (m *config) ID() string {
+//		return m.MediaServerID
+//	}
+type GetServerConfigRes[M Config] struct {
+	CodeMsg
+	Data M `json:"data"`
 }
 
 const (
 	GetServerConfigPath = apiPathPrefix + "/getServerConfig"
 )
 
-// GetServerConfig 调用 /index/api/getServerConfig ，返回配置
-func GetServerConfig(ctx context.Context, ser Server, req *GetServerConfigReq) (map[string]string, error) {
-	// 请求
-	var res getServerConfigRes
-	if err := Request(ctx, ser, GetServerConfigPath, req, &res); err != nil {
-		return nil, err
+// GetServerConfig 调用 /index/api/getServerConfig ，查询配置
+func GetServerConfig[M Config](ctx context.Context, ser Server, req *GetServerConfigReq, res *GetServerConfigRes[M]) error {
+	var _res getServerConfigRes[M]
+	if err := Request(ctx, ser, GetServerConfigPath, req, &_res); err != nil {
+		return err
 	}
-	if res.Code != CodeOK {
-		return nil, &res.CodeMsg
-	}
-	// 找到自己的配置
-	for _, d := range res.Data {
-		if d["general.mediaServerId"] == req.ID {
-			return d, nil
-		}
-	}
-	// 没有配置，流媒体服务有问题
-	return nil, ErrConfig
-}
-
-// getServerConfigAndUnmarshalRes 是 GetServerConfigAndUnmarshal 的返回值
-type getServerConfigAndUnmarshalRes[M ServerID] struct {
-	CodeMsg
-	Data []M `json:"data"`
-}
-
-// GetServerConfigAndUnmarshal 调用 /index/api/getServerConfig ，返回配置
-func GetServerConfigAndUnmarshal[M ServerID](ctx context.Context, ser Server, req *GetServerConfigReq) (m M, err error) {
-	// 请求
-	var res getServerConfigAndUnmarshalRes[M]
-	if err = Request(ctx, ser, GetServerConfigPath, req, &res); err != nil {
-		return
-	}
-	if res.Code != CodeOK {
-		err = &res.CodeMsg
-		return
-	}
+	res.CodeMsg = _res.CodeMsg
 	// 筛选
-	for i := 0; i < len(res.Data); i++ {
-		if res.Data[i].ID() == req.ID {
-			m = res.Data[i]
-			return
+	for i := 0; i < len(_res.Data); i++ {
+		if _res.Data[i].ServerID() == req.ID {
+			res.Data = _res.Data[i]
+			break
 		}
 	}
-	return
+	return nil
 }

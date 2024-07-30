@@ -2,19 +2,21 @@ package zlm
 
 import (
 	"context"
-	"encoding/json"
-	ghttp "goutil/http"
-	"net/http"
 )
 
 // SetServerConfigReq 是 SetServerConfig 参数
-type SetServerConfigReq struct {
+// M 是结构体
+//
+//	type config struct {
+//		AliveInterval      string `query:"hook.alive_interval"`
+//	}
+type SetServerConfigReq[M any] struct {
 	// 数据
-	Data map[string]string
+	Data M
 }
 
-// setServerConfigRes 是 SetServerConfig 的返回值
-type setServerConfigRes struct {
+// SetServerConfigRes 是 SetServerConfig 的返回值
+type SetServerConfigRes struct {
 	CodeMsg
 	Changed int `json:"changed"`
 }
@@ -24,41 +26,6 @@ const (
 )
 
 // SetServerConfig 调用 /index/api/setServerConfig ，更新配置
-func SetServerConfig(ctx context.Context, ser Server, req *SetServerConfigReq) error {
-	// 参数
-	q := initRequestQuery(ser)
-	for k, v := range req.Data {
-		q.Add(k, v)
-	}
-	// 请求
-	var res setServerConfigRes
-	if err := ghttp.JSONRequest(ctx, http.DefaultClient, http.MethodGet,
-		ser.BaseURL()+SetServerConfigPath, q, nil,
-		func(res *http.Response) error {
-			// 必须是 200
-			if res.StatusCode != http.StatusOK {
-				return ghttp.StatusError(res.StatusCode)
-			}
-			// 解析
-			return json.NewDecoder(res.Body).Decode(&res)
-		}); err != nil {
-		return err
-	}
-	if res.Code != CodeOK {
-		return &res.CodeMsg
-	}
-	return nil
-}
-
-// SetServerConfig2 调用 /index/api/setServerConfig ，更新配置
-func SetServerConfig2[M any](ctx context.Context, ser Server, m M) error {
-	// 请求
-	var res setServerConfigRes
-	if err := Request(ctx, ser, SetServerConfigPath, &m, &res); err != nil {
-		return err
-	}
-	if res.Code != CodeOK {
-		return &res.CodeMsg
-	}
-	return nil
+func SetServerConfig[M Config](ctx context.Context, ser Server, req *SetServerConfigReq[M], res *SetServerConfigRes) error {
+	return Request(ctx, ser, SetServerConfigPath, req.Data, res)
 }

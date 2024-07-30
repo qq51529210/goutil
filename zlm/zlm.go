@@ -97,26 +97,29 @@ type Server interface {
 	VHost() string
 }
 
-// ServerID 返回服务标识
-type ServerID interface {
-	ID() string
+// Config 返回服务标识
+type Config interface {
+	ServerID() string
 }
 
-// Request 封装请求，返回
-func Request[Query, Response any](ctx context.Context, ser Server, apiPath string, query *Query, data *Response) error {
-	return ghttp.JSONRequest(ctx, http.DefaultClient, http.MethodGet,
-		ser.BaseURL()+apiPath, ghttp.Query(query, initRequestQuery(ser)), nil,
-		func(res *http.Response) error {
-			// 必须是 200
-			if res.StatusCode != http.StatusOK {
-				return ghttp.StatusError(res.StatusCode)
-			}
-			// 解析
-			return json.NewDecoder(res.Body).Decode(data)
-		})
-}
+var (
+	// Request 请求函数，可以替换
+	Request = func(ctx context.Context, ser Server, apiPath string, query any, data any) error {
+		return ghttp.JSONRequest(ctx, http.DefaultClient, http.MethodGet,
+			ser.BaseURL()+apiPath, ghttp.Query(query, NewRequestQuery(ser)), nil,
+			func(res *http.Response) error {
+				// 必须是 200
+				if res.StatusCode != http.StatusOK {
+					return ghttp.StatusError(res.StatusCode)
+				}
+				// 解析
+				return json.NewDecoder(res.Body).Decode(data)
+			})
+	}
+)
 
-func initRequestQuery(ser Server) url.Values {
+// NewRequestQuery 填充 secret 和 vhost 返回
+func NewRequestQuery(ser Server) url.Values {
 	q := make(url.Values)
 	q.Add("secret", ser.Secret())
 	q.Add("vhost", ser.VHost())

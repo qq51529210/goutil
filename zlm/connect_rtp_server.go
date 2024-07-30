@@ -14,19 +14,16 @@ type ConnectRTPServerReq struct {
 	Stream string `query:"stream_id"`
 }
 
+// ConnectRTPServerRes 是 ConnectRTPServer 的返回值
+type ConnectRTPServerRes struct {
+	CodeMsg
+}
+
 const (
 	ConnectRTPServerPath = apiPathPrefix + "/connectRtpServer"
 )
 
 // ConnectRTPServer 调用 /index/api/connectRtpServer ，用于主动模式拉流
-func ConnectRTPServer(ctx context.Context, ser Server, req *ConnectRTPServerReq) error {
-	// 请求
-	var res CodeMsg
-	if err := Request(ctx, ser, ConnectRTPServerPath, req, &res); err != nil {
-		return err
-	}
-	if res.Code != CodeOK {
-		return &res
-	}
-	return nil
+func ConnectRTPServer(ctx context.Context, ser Server, req *ConnectRTPServerReq, res *ConnectRTPServerRes) error {
+	return Request(ctx, ser, ConnectRTPServerPath, req, res)
 }

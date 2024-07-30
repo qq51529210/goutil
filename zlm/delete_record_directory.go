@@ -13,21 +13,17 @@ type DeleteRecordDirectoryReq struct {
 	Period string `query:"period"`
 }
 
+// DeleteRecordDirectoryRes 是 DeleteRecordDirectory 返回值
+type DeleteRecordDirectoryRes struct {
+	CodeMsg
+}
+
 const (
 	DeleteRecordDirectoryPath = apiPathPrefix + "/deleteRecordDirectory"
 )
 
 // DeleteRecordDirectory 调用 /index/api/deleteRecordDirectory ，删除录像文件目录
-func DeleteRecordDirectory(ctx context.Context, ser Server, req *DeleteRecordDirectoryReq) error {
-	// 请求
-	var res CodeMsg
-	if err := Request(ctx, ser, DeleteRecordDirectoryPath, req, &res); err != nil {
-		return err
-	}
-	// 经过测试，删除不存在的会返回 -1 ，当它成功了
-	if res.Code != CodeOK && res.Code != -500 {
-		return &res
-	}
-	//
-	return nil
+// 经过测试，删除不存在的会返回 code=-1
+func DeleteRecordDirectory(ctx context.Context, ser Server, req *DeleteRecordDirectoryReq, res *DeleteRecordDirectoryRes) error {
+	return Request(ctx, ser, DeleteRecordDirectoryPath, req, res)
 }

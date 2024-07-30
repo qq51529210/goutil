@@ -16,14 +16,9 @@ type CloseStreamsReq struct {
 	Force Boolean `query:"force"`
 }
 
-// closeStreamsRes 封装 CloseStreamsRes
-type closeStreamsRes struct {
-	CodeMsg
-	CloseStreamsRes
-}
-
-// CloseStreamsRes 是 closeStreams 返回值
+// CloseStreamsRes 是 CloseStreams 的返回值
 type CloseStreamsRes struct {
+	CodeMsg
 	// 命中的流个数
 	CountHit int `json:"count_hit"`
 	// 被关闭的流个数
@@ -35,17 +30,7 @@ const (
 )
 
 // CloseStreams 调用 /index/api/close_streams ，关闭流
-func CloseStreams(ctx context.Context, ser Server, req *CloseStreamsReq) (*CloseStreamsRes, error) {
-	// 请求
-	var res closeStreamsRes
-	if err := Request(ctx, ser, CloseStreamsPath, req, &res); err != nil {
-		return nil, err
-	}
-	// 经过测试，-500 应该是不存在的意思
-	// 不存在也当它成功了
-	if res.Code != CodeOK && res.Code != -500 {
-		return nil, &res.CodeMsg
-	}
-	//
-	return &res.CloseStreamsRes, nil
+// 经过测试 code=-500 应该是流不存在的意思
+func CloseStreams(ctx context.Context, ser Server, req *CloseStreamsReq, res *CloseStreamsRes) error {
+	return Request(ctx, ser, CloseStreamsPath, req, res)
 }

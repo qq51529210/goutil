@@ -8,18 +8,16 @@ import (
 type RestartServerReq struct {
 }
 
+// RestartServerRes 是 RestartServer 返回值
+type RestartServerRes struct {
+	CodeMsg
+}
+
 const (
 	RestartServerPath = apiPathPrefix + "/restartServer"
 )
 
 // RestartServer 调用 /index/api/restartServer ，重启服务器
-func RestartServer(ctx context.Context, ser Server, req *RestartServerReq) error {
-	var res CodeMsg
-	if err := Request(ctx, ser, RestartServerPath, req, &res); err != nil {
-		return err
-	}
-	if res.Code != CodeOK {
-		return &res
-	}
-	return nil
+func RestartServer(ctx context.Context, ser Server, req *RestartServerReq, res *RestartServerReq) error {
+	return Request(ctx, ser, RestartServerPath, req, res)
 }

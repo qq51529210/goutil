@@ -16,16 +16,13 @@ type GetMP4RecordFileReq struct {
 	Period string `query:"period"`
 }
 
-// getMp4RecordFileRes 是 GetMP4RecordFile 返回值
-type getMp4RecordFileRes struct {
+// GetMp4RecordFileRes 是 GetMP4RecordFile 返回值
+type GetMp4RecordFileRes struct {
 	CodeMsg
-	Data GetMP4RecordFileData `json:"data"`
-}
-
-// GetMP4RecordFileData 是 GetMP4RecordFile 返回值
-type GetMP4RecordFileData struct {
-	Path     []string `json:"path"`
-	RootPath string   `json:"rootPath"`
+	Data struct {
+		Path     []string `json:"path"`
+		RootPath string   `json:"rootPath"`
+	} `json:"data"`
 }
 
 const (
@@ -33,14 +30,6 @@ const (
 )
 
 // GetMP4RecordFile 调用 /index/api/getMp4RecordFile 查询指定日期的录像文件
-func GetMP4RecordFile(ctx context.Context, ser Server, req *GetMP4RecordFileReq) (*GetMP4RecordFileData, error) {
-	// 请求
-	var res getMp4RecordFileRes
-	if err := Request(ctx, ser, GetMP4RecordFilePath, req, &res); err != nil {
-		return nil, err
-	}
-	if res.Code != CodeOK {
-		return nil, &res.CodeMsg
-	}
-	return &res.Data, nil
+func GetMP4RecordFile(ctx context.Context, ser Server, req *GetMP4RecordFileReq, res *GetMp4RecordFileRes) error {
+	return Request(ctx, ser, GetMP4RecordFilePath, req, res)
 }

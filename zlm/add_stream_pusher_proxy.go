@@ -22,31 +22,20 @@ type AddStreamPusherProxyReq struct {
 	RetryCount string `query:"retry_count"`
 }
 
-// addStreamPusherProxyRes 是 AddStreamPusherProxy 返回值
-type addStreamPusherProxyRes struct {
+// AddStreamPusherProxyRes 是 AddStreamPusherProxy 返回值
+type AddStreamPusherProxyRes struct {
 	CodeMsg
-	Data AddStreamPusherProxyResData `json:"data"`
-}
-
-// AddStreamPusherProxyResData 是 addStreamPusherProxyRes 的 Data 字段
-type AddStreamPusherProxyResData struct {
-	// 流的唯一标识
-	Key string
+	Data struct {
+		// 流的唯一标识
+		Key string
+	} `json:"data"`
 }
 
 const (
 	AddStreamPusherProxyPath = apiPathPrefix + "/addStreamPusherProxy"
 )
 
-// AddStreamPusherProxy 调用 /index/api/addStreamPusherProxy ，把本服务器的直播流（rtsp/rtmp）推送到其他服务器，返回 key
-func AddStreamPusherProxy(ctx context.Context, ser Server, req *AddStreamPusherProxyReq) (string, error) {
-	// 请求
-	var res addStreamPusherProxyRes
-	if err := Request(ctx, ser, AddStreamPusherProxyPath, req, &res); err != nil {
-		return "", err
-	}
-	if res.Code != CodeOK {
-		return "", &res.CodeMsg
-	}
-	return res.Data.Key, nil
+// AddStreamPusherProxy 调用 /index/api/addStreamPusherProxy ，把本服务器的直播流（rtsp/rtmp）推送到其他服务器
+func AddStreamPusherProxy(ctx context.Context, ser Server, req *AddStreamPusherProxyReq, res *AddStreamPusherProxyRes) error {
+	return Request(ctx, ser, AddStreamPusherProxyPath, req, res)
 }

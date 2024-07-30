@@ -24,14 +24,6 @@ const (
 )
 
 // ListRTPSender 调用 /index/api/listRtpSender ，返回所有 rtp server 的 ssrc
-func ListRTPSender(ctx context.Context, ser Server, req *ListRTPSenderReq) ([]string, error) {
-	// 请求
-	var res listRTPSenderRes
-	if err := Request(ctx, ser, ListRTPSenderPath, req, &res); err != nil {
-		return nil, err
-	}
-	if res.Code != CodeOK {
-		return nil, &res.CodeMsg
-	}
-	return res.Data, nil
+func ListRTPSender(ctx context.Context, ser Server, req *ListRTPSenderReq, res *ListRTPSenderReq) error {
+	return Request(ctx, ser, ListRTPSenderPath, req, res)
 }

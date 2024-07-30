@@ -34,8 +34,8 @@ type StartSendRTPReq struct {
 	RecvStreamID string `query:"recv_stream_id"`
 }
 
-// startSendRTPRes 是 StartSendRTP 返回值
-type startSendRTPRes struct {
+// StartSendRTPRes 是 StartSendRTP 返回值
+type StartSendRTPRes struct {
 	CodeMsg
 	// 使用的本地端口号
 	LocalPort int `json:"local_port"`
@@ -45,15 +45,7 @@ const (
 	StartSendRtpPath = apiPathPrefix + "/startSendRtp"
 )
 
-// StartSendRTP 调用 /index/api/startSendRtp ，开始推流，返回使用的本地端口号
-func StartSendRTP(ctx context.Context, ser Server, req *StartSendRTPReq) (int, error) {
-	// 请求
-	var res startSendRTPRes
-	if err := Request(ctx, ser, StartSendRtpPath, req, &res); err != nil {
-		return 0, err
-	}
-	if res.Code != CodeOK {
-		return 0, &res.CodeMsg
-	}
-	return res.LocalPort, nil
+// StartSendRTP 调用 /index/api/startSendRtp ，开始推流
+func StartSendRTP(ctx context.Context, ser Server, req *StartSendRTPReq, res *StartSendRTPRes) error {
+	return Request(ctx, ser, StartSendRtpPath, req, res)
 }

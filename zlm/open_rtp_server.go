@@ -32,8 +32,8 @@ type OpenRTPServerReq struct {
 	OnlyAudio Boolean `query:"only_audio"`
 }
 
-// openRTPServerRes 是 OpenRTPServer 的返回值
-type openRTPServerRes struct {
+// OpenRTPServerRes 是 OpenRTPServer 的返回值
+type OpenRTPServerRes struct {
 	CodeMsg
 	// 接收端口，0 随机端口号
 	Port int `json:"port"`
@@ -43,15 +43,8 @@ const (
 	OpenRTPServerPath = apiPathPrefix + "/openRtpServer"
 )
 
-// OpenRTPServer 调用 /index/api/openRtpServer ，返回使用的端口，如果返回端口为 0 但是没有错误，说明有流
-func OpenRTPServer(ctx context.Context, ser Server, req *OpenRTPServerReq) (int, error) {
-	// 请求
-	var res openRTPServerRes
-	if err := Request(ctx, ser, OpenRTPServerPath, req, &res); err != nil {
-		return 0, err
-	}
-	if res.Code != CodeOK {
-		return 0, &res.CodeMsg
-	}
-	return res.Port, nil
+// OpenRTPServer 调用 /index/api/openRtpServer ，打开端口准备收流
+// 经过测试，如果返回端口为 0 但是没有错误，说明有流
+func OpenRTPServer(ctx context.Context, ser Server, req *OpenRTPServerReq, res *OpenRTPServerRes) error {
+	return Request(ctx, ser, OpenRTPServerPath, req, res)
 }

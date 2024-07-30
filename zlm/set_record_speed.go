@@ -14,19 +14,16 @@ type SetRecordSpeedReq struct {
 	Speed string `query:"speed"`
 }
 
+// SetRecordSpeedRes 是 SetRecordSpeed 返回值
+type SetRecordSpeedRes struct {
+	CodeMsg
+}
+
 const (
 	SetRecordSpeedPath = apiPathPrefix + "/setRecordSpeed"
 )
 
 // SetRecordSpeed 调用 /index/api/setRecordSpeed ，设置录像的播放速度
-func SetRecordSpeed(ctx context.Context, ser Server, req *SetRecordSpeedReq) error {
-	// 请求
-	var res CodeMsg
-	if err := Request(ctx, ser, SetRecordSpeedPath, req, &res); err != nil {
-		return err
-	}
-	if res.Code != CodeOK {
-		return &res
-	}
-	return nil
+func SetRecordSpeed(ctx context.Context, ser Server, req *SetRecordSpeedReq, res *SetRecordSpeedRes) error {
+	return Request(ctx, ser, SetRecordSpeedPath, req, res)
 }

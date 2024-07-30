@@ -43,15 +43,12 @@ type AddStreamProxyReq struct {
 }
 
 // addStreamProxyRes 是 AddStreamProxy 返回值
-type addStreamProxyRes struct {
+type AddStreamProxyRes struct {
 	CodeMsg
-	Data AddStreamProxyResData `json:"data"`
-}
-
-// AddStreamProxyResData 是 addStreamProxyRes 的 Data 字段
-type AddStreamProxyResData struct {
-	// 流的唯一标识
-	Key string
+	Data struct {
+		// 流的唯一标识
+		Key string
+	} `json:"data"`
 }
 
 const (
@@ -59,14 +56,6 @@ const (
 )
 
 // AddStreamProxy 调用 /index/api/addStreamProxy ，rtsp/rtmp/hls/http-ts/http-flv 拉流，返回 key
-func AddStreamProxy(ctx context.Context, ser Server, req *AddStreamProxyReq) (string, error) {
-	// 请求
-	var res addStreamProxyRes
-	if err := Request(ctx, ser, AddStreamProxyPath, req, &res); err != nil {
-		return "", err
-	}
-	if res.Code != CodeOK {
-		return "", &res.CodeMsg
-	}
-	return res.Data.Key, nil
+func AddStreamProxy(ctx context.Context, ser Server, req *AddStreamProxyReq, res *AddStreamProxyRes) error {
+	return Request(ctx, ser, AddStreamProxyPath, req, res)
 }

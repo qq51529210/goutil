@@ -16,22 +16,6 @@ const (
 	OriginTypeRtcPush
 )
 
-// GetMediaListReq 是 GetMediaList 的参数
-type GetMediaListReq struct {
-	// 协议
-	Schema string `query:"schema"`
-	// 流应用
-	App string `query:"app"`
-	// 流标识
-	Stream string `query:"stream"`
-}
-
-// getMediaListRes 是 GetMediaList 的返回值
-type getMediaListRes struct {
-	CodeMsg
-	Data []*MediaListData `json:"data"`
-}
-
 // MediaListDataSock 是 MediaListData.OriginSock
 type MediaListDataSock struct {
 	LocalIP   string `json:"local_ip"`
@@ -110,19 +94,27 @@ func ParseTrack(tracks []map[string]any) (vs []*MediaInfoVideoTrack, as []*Media
 	return
 }
 
+// GetMediaListReq 是 GetMediaList 的参数
+type GetMediaListReq struct {
+	// 协议
+	Schema string `query:"schema"`
+	// 流应用
+	App string `query:"app"`
+	// 流标识
+	Stream string `query:"stream"`
+}
+
+// GetMediaListRes 是 GetMediaList 的返回值
+type GetMediaListRes struct {
+	CodeMsg
+	Data []*MediaListData `json:"data"`
+}
+
 const (
 	GetMediaListPath = apiPathPrefix + "/getMediaList"
 )
 
 // GetMediaList 调用 /index/api/getMediaList ，返回媒体流列表
-func GetMediaList(ctx context.Context, ser Server, req *GetMediaListReq) ([]*MediaListData, error) {
-	// 请求
-	var res getMediaListRes
-	if err := Request(ctx, ser, GetMediaListPath, req, &res); err != nil {
-		return nil, err
-	}
-	if res.Code != CodeOK {
-		return nil, &res.CodeMsg
-	}
-	return res.Data, nil
+func GetMediaList(ctx context.Context, ser Server, req *GetMediaListReq, res *GetMediaListRes) error {
+	return Request(ctx, ser, GetMediaListPath, req, res)
 }

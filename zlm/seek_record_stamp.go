@@ -14,19 +14,16 @@ type SeekRecordStampReq struct {
 	Stamp string `query:"stamp"`
 }
 
+// SeekRecordStampRes 是 SeekRecordStamp 返回值
+type SeekRecordStampRes struct {
+	CodeMsg
+}
+
 const (
 	SeekRecordStampPath = apiPathPrefix + "/seekRecordStamp"
 )
 
 // SeekRecordStamp 调用 /index/api/seekRecordStamp ，设置录像的播放位置
-func SeekRecordStamp(ctx context.Context, ser Server, req *SeekRecordStampReq) error {
-	// 请求
-	var res CodeMsg
-	if err := Request(ctx, ser, SeekRecordStampPath, req, &res); err != nil {
-		return err
-	}
-	if res.Code != CodeOK {
-		return &res
-	}
-	return nil
+func SeekRecordStamp(ctx context.Context, ser Server, req *SeekRecordStampReq, res *SeekRecordStampRes) error {
+	return Request(ctx, ser, SeekRecordStampPath, req, res)
 }
