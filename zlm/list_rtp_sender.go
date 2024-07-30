@@ -11,7 +11,7 @@ type ListRTPSenderReq struct {
 }
 
 // listRTPSenderRes 是 ListRTPSender 返回值
-type listRTPSenderRes struct {
+type ListRTPSenderRes struct {
 	CodeMsg
 	// 文档没有说明，我看代码的
 	// 应该是返回了 ssrc 数组
@@ -24,6 +24,6 @@ const (
 )
 
 // ListRTPSender 调用 /index/api/listRtpSender ，返回所有 rtp server 的 ssrc
-func ListRTPSender(ctx context.Context, ser Server, req *ListRTPSenderReq, res *ListRTPSenderReq) error {
+func ListRTPSender(ctx context.Context, ser Server, req *ListRTPSenderReq, res *ListRTPSenderRes) error {
 	return Request(ctx, ser, ListRTPSenderPath, req, res)
 }
