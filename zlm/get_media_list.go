@@ -50,27 +50,6 @@ type MediaListData struct {
 	OriginURL        string `json:"originUrl"`
 }
 
-// InitMediaInfo 填充 m
-func (d *MediaListData) InitMediaInfo(m *MediaInfo, sid string) {
-	m.App = d.App
-	m.Stream = d.Stream
-	m.Tracks = d.Tracks
-	m.IsRecordingHLS = d.IsRecordingHLS
-	m.IsRecordingMP4 = d.IsRecordingMP4
-	m.Timestamp = d.CreateStamp
-	m.TotalReaderCount = d.TotalReaderCount
-	m.OriginType = d.OriginType
-	m.OriginURL = d.OriginURL
-	m.Video, m.Audio = ParseTrack(d.Tracks)
-	if d.OriginSock != nil {
-		m.LocalIP = d.OriginSock.LocalIP
-		m.LocalPort = d.OriginSock.LocalPort
-		m.PeerIP = d.OriginSock.PeerIP
-		m.PeerPort = d.OriginSock.PeerPort
-	}
-	m.Server = sid
-}
-
 // ParseTrack 区分出音/视频轨道
 func ParseTrack(tracks []map[string]any) (vs []*MediaInfoVideoTrack, as []*MediaInfoAudioTrack) {
 	// 这里假定，返回的数据格式没有错误

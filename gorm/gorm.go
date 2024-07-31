@@ -49,7 +49,7 @@ func (m *PageQuery) InitDB(db *gorm.DB) *gorm.DB {
 // PageResult 是 Page 的返回值
 type PageResult[M any] struct {
 	// 总数
-	Total int64 `json:"total"`
+	Total *int64 `json:"total,omitempty"`
 	// 列表
 	Data []M `json:"data"`
 }
@@ -59,7 +59,8 @@ func Page[M any](db *gorm.DB, page *PageQuery, res *PageResult[M]) error {
 	if page != nil {
 		// 总数
 		if page.HasTotal() {
-			if err := db.Count(&res.Total).Error; err != nil {
+			res.Total = new(int64)
+			if err := db.Count(res.Total).Error; err != nil {
 				return err
 			}
 		}

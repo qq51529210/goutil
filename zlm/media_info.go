@@ -46,6 +46,27 @@ func (m *MediaInfo) HasH265() bool {
 	return false
 }
 
+// Init 填充 m
+func (m *MediaInfo) Init(d *MediaListData, sid string) {
+	m.App = d.App
+	m.Stream = d.Stream
+	m.Tracks = d.Tracks
+	m.IsRecordingHLS = d.IsRecordingHLS
+	m.IsRecordingMP4 = d.IsRecordingMP4
+	m.Timestamp = d.CreateStamp
+	m.TotalReaderCount = d.TotalReaderCount
+	m.OriginType = d.OriginType
+	m.OriginURL = d.OriginURL
+	m.Video, m.Audio = ParseTrack(d.Tracks)
+	if d.OriginSock != nil {
+		m.LocalIP = d.OriginSock.LocalIP
+		m.LocalPort = d.OriginSock.LocalPort
+		m.PeerIP = d.OriginSock.PeerIP
+		m.PeerPort = d.OriginSock.PeerPort
+	}
+	m.Server = sid
+}
+
 // MediaInfoVideoTrack 是 MediaInfo 的 Video 字段
 type MediaInfoVideoTrack struct {
 	// 编码类型名称
