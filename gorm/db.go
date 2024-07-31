@@ -156,13 +156,12 @@ func (m *DB[V]) BatchDelete(ctx context.Context, v V, query any) (int64, error) 
 }
 
 // Page 分页
-func (m *DB[V]) Page(ctx context.Context, v V, page *PageQuery, query any) (*PageResult[V], error) {
+func (m *DB[V]) Page(ctx context.Context, v V, page *PageQuery, query any, res *PageResult[V]) error {
 	db := m.D.WithContext(ctx).Model(v)
 	if query != nil {
 		db = InitQuery(db, query)
 	}
-	res := &PageResult[V]{}
-	return res, Page(db, page, res)
+	return Page(db, page, res)
 }
 
 // All 所有

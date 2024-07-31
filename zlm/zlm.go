@@ -45,10 +45,23 @@ var (
 	ErrMediaNotFound      = errors.New("media not found")
 )
 
+type ResponseData interface {
+	GetCode() int
+	GetMsg() string
+}
+
 // CodeMsg on_xx 的返回值
 type CodeMsg struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg,omitempty"`
+}
+
+func (e *CodeMsg) GetCode() int {
+	return e.Code
+}
+
+func (e *CodeMsg) GetMsg() string {
+	return e.Msg
 }
 
 func (e *CodeMsg) Error() string {
@@ -104,16 +117,24 @@ type Config interface {
 
 var (
 	// Request 请求函数，可以替换
-	Request = func(ctx context.Context, ser Server, apiPath string, query any, data any) error {
+	Request = func(ctx context.Context, ser Server, apiPath string, query any, data ResponseData) error {
 		return ghttp.JSONRequest(ctx, http.DefaultClient, http.MethodGet,
 			ser.BaseURL()+apiPath, ghttp.Query(query, NewRequestQuery(ser)), nil,
 			func(res *http.Response) error {
-				// 必须是 200
+				// 响应码
 				if res.StatusCode != http.StatusOK {
 					return ghttp.StatusError(res.StatusCode)
 				}
 				// 解析
-				return json.NewDecoder(res.Body).Decode(data)
+				if err := json.NewDecoder(res.Body).Decode(data); err != nil {
+					return err
+				}
+				// 错误码
+				if data.GetCode() != CodeOK {
+					return fmt.Errorf("code:%d, msg:%s", data.GetCode(), data.GetMsg())
+				}
+				//
+				return nil
 			})
 	}
 )

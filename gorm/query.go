@@ -219,7 +219,7 @@ func QueryNULL(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind
 		if v == "" {
 			return db
 		}
-		ok = v == "true"
+		ok = v == "1"
 	} else {
 		return db
 	}
