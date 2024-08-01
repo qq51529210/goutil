@@ -81,7 +81,7 @@ func IsDuplicateError(err error) bool {
 
 type DB[V any] struct {
 	D *gorm.DB
-	V V
+	M V
 }
 
 // Get 单个
@@ -152,7 +152,7 @@ func (m *DB[V]) Delete(ctx context.Context, v V) (int64, error) {
 
 // BatchDelete 批量删除，v 做为 table name 使用
 func (m *DB[V]) BatchDelete(ctx context.Context, query any) (int64, error) {
-	db := InitQuery(m.D.WithContext(ctx), query).Delete(m.V)
+	db := InitQuery(m.D.WithContext(ctx), query).Delete(m.M)
 	return db.RowsAffected, db.Error
 }
 
