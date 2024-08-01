@@ -82,7 +82,7 @@ func All[M any](db *gorm.DB, query any) (ms []M, err error) {
 		db = InitQuery(db, query)
 	}
 	// 查询
-	err = db.Scan(&ms).Error
+	err = db.Find(&ms).Error
 	return
 }
 
@@ -97,6 +97,6 @@ func AllOrder[M any](db *gorm.DB, query any, order string) (ms []M, err error) {
 		db = db.Order(order)
 	}
 	// 查询
-	err = db.Scan(&ms).Error
+	err = db.Find(&ms).Error
 	return
 }

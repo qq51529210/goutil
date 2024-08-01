@@ -81,6 +81,7 @@ func IsDuplicateError(err error) bool {
 
 type DB[V any] struct {
 	D *gorm.DB
+	V V
 }
 
 // Get 单个
@@ -150,14 +151,14 @@ func (m *DB[V]) Delete(ctx context.Context, v V) (int64, error) {
 }
 
 // BatchDelete 批量删除，v 做为 table name 使用
-func (m *DB[V]) BatchDelete(ctx context.Context, v V, query any) (int64, error) {
-	db := InitQuery(m.D.WithContext(ctx), query).Delete(v)
+func (m *DB[V]) BatchDelete(ctx context.Context, query any) (int64, error) {
+	db := InitQuery(m.D.WithContext(ctx), query).Delete(m.V)
 	return db.RowsAffected, db.Error
 }
 
 // Page 分页
-func (m *DB[V]) Page(ctx context.Context, v V, page *PageQuery, query any, res *PageResult[V]) error {
-	db := m.D.WithContext(ctx).Model(v)
+func (m *DB[V]) Page(ctx context.Context, page *PageQuery, query any, res *PageResult[V]) error {
+	db := m.D.WithContext(ctx)
 	if query != nil {
 		db = InitQuery(db, query)
 	}
@@ -165,6 +166,6 @@ func (m *DB[V]) Page(ctx context.Context, v V, page *PageQuery, query any, res *
 }
 
 // All 所有
-func (m *DB[V]) All(ctx context.Context, v V, query any) ([]V, error) {
-	return All[V](m.D.WithContext(ctx).Model(v), query)
+func (m *DB[V]) All(ctx context.Context, query any) ([]V, error) {
+	return All[V](m.D.WithContext(ctx), query)
 }
