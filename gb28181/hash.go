@@ -1,4 +1,4 @@
-package util
+package gb28181
 
 import (
 	"crypto"
@@ -7,29 +7,29 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"hash"
-	"strings"
 )
+
+type HashName string
 
 // hash 算法的名称
 const (
-	nameMD5    = "MD5"
-	nameSHA1   = "SHA1"
-	nameSHA256 = "SHA256"
-	nameSHA384 = "SHA384"
-	nameSHA512 = "SHA512"
+	HashMD5    HashName = "MD5"
+	HashSHA1   HashName = "SHA1"
+	HashSHA256 HashName = "SHA256"
+	HashSHA384 HashName = "SHA384"
+	HashSHA512 HashName = "SHA512"
 )
 
 // CryptoHash 获取  name 的 crypto.Hash ，默认是 MD5
-func CryptoHash(name string) crypto.Hash {
-	name = strings.TrimSpace(name)
+func CryptoHash(name HashName) crypto.Hash {
 	switch name {
-	case nameSHA1:
+	case HashSHA1:
 		return crypto.SHA1
-	case nameSHA256:
+	case HashSHA256:
 		return crypto.SHA256
-	case nameSHA384:
+	case HashSHA384:
 		return crypto.SHA384
-	case nameSHA512:
+	case HashSHA512:
 		return crypto.SHA512
 	default:
 		return crypto.MD5
@@ -37,18 +37,15 @@ func CryptoHash(name string) crypto.Hash {
 }
 
 // NewHash 返回 name 的 hash ，默认是 MD5
-func NewHash(name string) hash.Hash {
-	name = strings.ToUpper(name)
+func NewHash(name HashName) hash.Hash {
 	switch name {
-	case nameMD5:
-		return md5.New()
-	case nameSHA1:
+	case HashSHA1:
 		return sha1.New()
-	case nameSHA256:
+	case HashSHA256:
 		return sha256.New()
-	case nameSHA384:
+	case HashSHA384:
 		return sha512.New384()
-	case nameSHA512:
+	case HashSHA512:
 		return sha512.New()
 	default:
 		return md5.New()

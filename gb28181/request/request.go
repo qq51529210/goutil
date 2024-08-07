@@ -150,3 +150,11 @@ func SendSubscribe(ctx context.Context, ser *sip.Server, req Request, body *xml.
 	//
 	return ser.RequestWithContext(ctx, msg, addr, data)
 }
+
+// Invite 用于恢复 invite 消息
+// golang 不像 typescript 可以在接口直接定义字段，很烦
+type Invite interface {
+	GetFromTag() string
+	GetToTag() string
+	GetCallID() string
+}

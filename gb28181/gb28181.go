@@ -1,4 +1,4 @@
-package util
+package gb28181
 
 import (
 	"time"
@@ -34,11 +34,16 @@ func TimeFromTimestamp(ts int64) string {
 	return time.Unix(ts, 0).Format(TimeForamt)
 }
 
-// IsID 验证 id 是否国标编号
-func IsID(id string) bool {
+// CheckID 验证 id 是否国标编号
+func CheckID(id string) bool {
 	if len(id) != 20 {
 		return false
 	}
+	return IsNumber(id)
+}
+
+// IsNumber 验证 id 是否全数字
+func IsNumber(id string) bool {
 	for _, n := range id {
 		if n < '0' || n > '9' {
 			return false

@@ -1,4 +1,4 @@
-package model
+package register
 
 import (
 	"bufio"
@@ -8,9 +8,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	gbu "goutil/gb28181/util"
-	sip "goutil/sip"
-	gs "goutil/strings"
+	"goutil/gb28181"
+	"goutil/sip"
+	gstrings "goutil/strings"
 	"strings"
 )
 
@@ -43,9 +43,12 @@ const (
 // kvQuotationMark 解析 k="v" ，返回 k, v
 func kvQuotationMark(line string) (string, string) {
 	// k = "v"
-	k, v := gs.KeyValue(line)
+	k, v := gstrings.KeyValue(line)
 	// v 去 ""
-	return k, gs.TrimByte(v, gs.CharQuotationMark, gs.CharQuotationMark)
+	v = gstrings.TrimByte(v, gstrings.CharQuotationMark, gstrings.CharQuotationMark)
+	// v 去空白
+	v = strings.TrimSpace(v)
+	return k, v
 }
 
 // rsaGenNonce 返回 pri.sign(hash(rand)), pub.enc(pub.enc(rand)), rand
@@ -76,7 +79,7 @@ func rsaGenNonce(pri *rsa.PrivateKey, pub *rsa.PublicKey, hash crypto.Hash) ([]b
 // 算法 pub.verify(hash(pri.dec(base64.dec(nonce2))), base64.dec(nonce1))
 func rsaVerifyNonce(pri *rsa.PrivateKey, pub *rsa.PublicKey, hash crypto.Hash, nonce string) ([]byte, error) {
 	// 得到 a 和 b
-	p1, p2 := gs.Split(nonce, gs.CharAmpersand)
+	p1, p2 := gstrings.Split(nonce, gstrings.CharAmpersand)
 	a, err := base64.StdEncoding.DecodeString(p1)
 	if err != nil {
 		return nil, err
@@ -135,7 +138,7 @@ type RegisterHeaderWWWAuthenticate struct {
 
 // Parse 解析
 func (m *RegisterHeaderWWWAuthenticate) Parse(line string) bool {
-	prefix, suffix := gs.Split(line, gs.CharSpace)
+	prefix, suffix := gstrings.Split(line, gstrings.CharSpace)
 	// 类型，Digest/Asymmetric
 	switch prefix {
 	case StrDigest:
@@ -162,12 +165,12 @@ func (m *RegisterHeaderWWWAuthenticateDigest) Parse(line string) bool {
 	prefix, suffix := "", line
 	for {
 		// 去空白
-		suffix = gs.TrimByte(suffix, gs.CharSpace, gs.CharSpace)
+		suffix = gstrings.TrimByte(suffix, gstrings.CharSpace, gstrings.CharSpace)
 		if suffix == "" {
 			break
 		}
 		// kv,kv,
-		prefix, suffix = gs.Split(suffix, gs.CharComma)
+		prefix, suffix = gstrings.Split(suffix, gstrings.CharComma)
 		//
 		k, v := kvQuotationMark(prefix)
 		switch k {
@@ -205,12 +208,12 @@ type RegisterHeaderAuthorizationDigest struct {
 func (m *RegisterHeaderAuthorizationDigest) Parse(line string) bool {
 	prefix, suffix := "", line
 	for {
-		suffix = gs.TrimByte(suffix, gs.CharSpace, gs.CharSpace)
+		suffix = gstrings.TrimByte(suffix, gstrings.CharSpace, gstrings.CharSpace)
 		if suffix == "" {
 			break
 		}
 		// x , x
-		prefix, suffix = gs.Split(suffix, gs.CharComma)
+		prefix, suffix = gstrings.Split(suffix, gstrings.CharComma)
 		// k="v"
 		k, v := kvQuotationMark(prefix)
 		switch k {
@@ -240,7 +243,7 @@ func (m *RegisterHeaderAuthorizationDigest) Parse(line string) bool {
 // sign 返回签名
 // 算法 hex(hash(hash(username:realm:password):nonce:hash(method:uri)))
 func (m *RegisterHeaderAuthorizationDigest) sign(password string) string {
-	h := gbu.NewHash(m.Algorithm)
+	h := gb28181.NewHash(gb28181.HashName(m.Algorithm))
 	w := bufio.NewWriter(h)
 	// hash(username:realm:password)
 	fmt.Fprintf(w, "%s:%s:%s", m.Username, m.Realm, password)
@@ -323,12 +326,12 @@ func (m *RegisterHeaderWWWAuthenticateAsymmetric) Parse(line string) bool {
 	prefix, suffix := "", line
 	for {
 		// 去空白
-		suffix = gs.TrimByte(suffix, gs.CharSpace, gs.CharSpace)
+		suffix = gstrings.TrimByte(suffix, gstrings.CharSpace, gstrings.CharSpace)
 		if suffix == "" {
 			break
 		}
 		// x空白x
-		prefix, suffix = gs.Split(suffix, gs.CharSpace)
+		prefix, suffix = gstrings.Split(suffix, gstrings.CharSpace)
 		//
 		k, v := kvQuotationMark(prefix)
 		switch k {
@@ -345,12 +348,12 @@ func (m *RegisterHeaderWWWAuthenticateAsymmetric) Parse(line string) bool {
 func (m *RegisterHeaderWWWAuthenticateAsymmetric) parseAlgorithm(line string) bool {
 	prefix, suffix := "", line
 	for {
-		suffix = gs.TrimByte(suffix, gs.CharSpace, gs.CharSpace)
+		suffix = gstrings.TrimByte(suffix, gstrings.CharSpace, gstrings.CharSpace)
 		if suffix == "" {
 			break
 		}
-		prefix, suffix = gs.Split(suffix, gs.CharSemicolon)
-		prefix = gs.TrimByte(prefix, gs.CharSpace, gs.CharSpace)
+		prefix, suffix = gstrings.Split(suffix, gstrings.CharSemicolon)
+		prefix = gstrings.TrimByte(prefix, gstrings.CharSpace, gstrings.CharSpace)
 		str := strings.TrimPrefix(prefix, "A:")
 		if str != prefix {
 			m.A = str
@@ -388,7 +391,7 @@ func (m *RegisterHeaderWWWAuthenticateAsymmetric) String() string {
 // GenNonce 返回签名，服务端调用
 // 算法 base64(ser.sign(hash(rand)))&base64(cli.enc(rand))
 func (m *RegisterHeaderWWWAuthenticateAsymmetric) GenNonce(ser *rsa.PrivateKey, cli *rsa.PublicKey) error {
-	a, b, _, err := rsaGenNonce(ser, cli, gbu.CryptoHash(m.H))
+	a, b, _, err := rsaGenNonce(ser, cli, gb28181.CryptoHash(gb28181.HashName(m.H)))
 	if err != nil {
 		return err
 	}
@@ -401,7 +404,7 @@ func (m *RegisterHeaderWWWAuthenticateAsymmetric) GenNonce(ser *rsa.PrivateKey, 
 // Verify 验证并返回随机数，客户端使用
 // 算法 ser.verify(hash(cli.dec(base64.dec(nonce2))), base64.dec(nonce1))
 func (m *RegisterHeaderWWWAuthenticateAsymmetric) VerifyNonce(ser *rsa.PublicKey, cli *rsa.PrivateKey) ([]byte, error) {
-	return rsaVerifyNonce(cli, ser, gbu.CryptoHash(m.H), m.Nonce)
+	return rsaVerifyNonce(cli, ser, gb28181.CryptoHash(gb28181.HashName(m.H)), m.Nonce)
 }
 
 // RegisterHeaderAuthorization 表示
@@ -414,7 +417,7 @@ type RegisterHeaderAuthorization struct {
 
 // Parse 解析
 func (m *RegisterHeaderAuthorization) Parse(line string) bool {
-	prefix, suffix := gs.Split(line, gs.CharSpace)
+	prefix, suffix := gstrings.Split(line, gstrings.CharSpace)
 	// 类型，Digest/Capability/Asymmetric
 	switch prefix {
 	case StrDigest:
@@ -441,12 +444,12 @@ type RegisterHeaderAuthorizationCapability struct {
 func (m *RegisterHeaderAuthorizationCapability) Parse(line string) bool {
 	prefix, suffix := "", line
 	for {
-		suffix = gs.TrimByte(suffix, gs.CharSpace, gs.CharSpace)
+		suffix = gstrings.TrimByte(suffix, gstrings.CharSpace, gstrings.CharSpace)
 		if suffix == "" {
 			break
 		}
 		// x , x
-		prefix, suffix = gs.Split(suffix, gs.CharComma)
+		prefix, suffix = gstrings.Split(suffix, gstrings.CharComma)
 		// k="v"
 		k, v := kvQuotationMark(prefix)
 		switch k {
@@ -461,12 +464,12 @@ func (m *RegisterHeaderAuthorizationCapability) Parse(line string) bool {
 func (m *RegisterHeaderAuthorizationCapability) parseAlgorithm(line string) {
 	prefix, suffix := "", line
 	for {
-		suffix = gs.TrimByte(suffix, gs.CharSpace, gs.CharSpace)
+		suffix = gstrings.TrimByte(suffix, gstrings.CharSpace, gstrings.CharSpace)
 		if suffix == "" {
 			break
 		}
-		prefix, suffix = gs.Split(suffix, gs.CharSemicolon)
-		prefix = gs.TrimByte(prefix, gs.CharSpace, gs.CharSpace)
+		prefix, suffix = gstrings.Split(suffix, gstrings.CharSemicolon)
+		prefix = gstrings.TrimByte(prefix, gstrings.CharSpace, gstrings.CharSpace)
 		str := strings.TrimPrefix(prefix, "A:")
 		if str != prefix {
 			m.A = str
@@ -514,11 +517,11 @@ type RegisterHeaderAuthorizationAsymmetric struct {
 func (m *RegisterHeaderAuthorizationAsymmetric) Parse(line string) bool {
 	prefix, suffix := "", line
 	for {
-		suffix = gs.TrimByte(suffix, gs.CharSpace, gs.CharSpace)
+		suffix = gstrings.TrimByte(suffix, gstrings.CharSpace, gstrings.CharSpace)
 		if suffix == "" {
 			break
 		}
-		prefix, suffix = gs.Split(suffix, gs.CharComma)
+		prefix, suffix = gstrings.Split(suffix, gstrings.CharComma)
 		// k="v"
 		k, v := kvQuotationMark(prefix)
 		switch k {
@@ -536,7 +539,7 @@ func (m *RegisterHeaderAuthorizationAsymmetric) Parse(line string) bool {
 // GenResponse 生成 response ，客户端调用
 // 算法 hash(c+nonce)
 func (m *RegisterHeaderAuthorizationAsymmetric) GenResponse() (string, error) {
-	hash := gbu.CryptoHash(m.Algorithm)
+	hash := gb28181.CryptoHash(gb28181.HashName(m.Algorithm))
 	h := hash.New()
 	h.Reset()
 	h.Write(m.C)
@@ -548,7 +551,7 @@ func (m *RegisterHeaderAuthorizationAsymmetric) GenResponse() (string, error) {
 // Verify 验证 response ，服务端调用
 // 算法 cli.verify(hash(ser.dec(base64.dec(nonce2))), base64.dec(nonce1))
 func (m *RegisterHeaderAuthorizationAsymmetric) VerifyResponse(ser *rsa.PrivateKey, cli *rsa.PublicKey) (bool, error) {
-	hash := gbu.CryptoHash(m.Algorithm)
+	hash := gb28181.CryptoHash(gb28181.HashName(m.Algorithm))
 	// 验证 nonce
 	c, err := rsaVerifyNonce(ser, cli, hash, m.Nonce)
 	if err != nil {

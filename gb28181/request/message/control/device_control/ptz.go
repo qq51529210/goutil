@@ -1,8 +1,12 @@
-package model
+package devicecontrol
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"goutil/gb28181/request"
+	"goutil/gb28181/xml"
+	"goutil/sip"
 )
 
 // 云台控制命令
@@ -91,6 +95,16 @@ var (
 	errCmd = errors.New("error command")
 )
 
+// PTZScanSpeed 返回信令中的两个 byte
+func PTZScanSpeed(speed int16) (byte, byte) {
+	return byte(speed >> 4), byte(speed) & 0x0F
+}
+
+// PTZScanSpeedValue 返回从信令中的两个 byte 得到的数值
+func PTZScanSpeedValue(v6, v7 byte) int16 {
+	return int16(v6)<<4 | int16(v7&0x0F)
+}
+
 // PTZ 是 SendPTZ 的参数
 type PTZ struct {
 	// 命令
@@ -100,9 +114,12 @@ type PTZ struct {
 	// 原始指令
 	RawCmd string
 	// 数值
-	V1 byte
-	V2 byte
-	V3 byte
+	V1        byte
+	V2        byte
+	V3        byte
+	Ser       *sip.Server
+	Device    request.Request
+	ChannelID string
 }
 
 // Cmd 返回 cmd 字符串
@@ -280,12 +297,31 @@ func (m *PTZ) Cmd() (string, error) {
 	return fmt.Sprintf("A50F01%.2X%.2X%.2X%.2X%.2X", cmdCode, int(v1), int(v2), int(v3), code), nil
 }
 
-// PTZScanSpeed 返回信令中的两个 byte
-func PTZScanSpeed(speed int16) (byte, byte) {
-	return byte(speed >> 4), byte(speed) & 0x0F
+// SendPTZ 云台控制
+func SendPTZ(ctx context.Context, m *PTZ) error {
+	// 命令
+	cmd, err := m.Cmd()
+	if err != nil {
+		return err
+	}
+	m.RawCmd = cmd
+	return SendPTZRaw(ctx, m)
 }
 
-// PTZScanSpeedValue 返回从信令中的两个 byte 得到的数值
-func PTZScanSpeedValue(v6, v7 byte) int16 {
-	return int16(v6)<<4 | int16(v7&0x0F)
+// SendPTZRaw 云台控制
+func SendPTZRaw(ctx context.Context, m *PTZ) error {
+	// 消息
+	var body xml.Message
+	body.XMLName.Local = xml.TypeControl
+	body.CmdType = xml.CmdDeviceControl
+	// 这个应该是用的通道编号
+	body.DeviceID = m.ChannelID
+	body.SN = sip.GetSNString()
+	body.PTZCmd = m.RawCmd
+	if m.ControlPriority != "" {
+		body.Info = new(xml.MessageInfo)
+		body.Info.ControlPriority = m.ControlPriority
+	}
+	// 请求
+	return request.SendMessage(ctx, m.Ser, m.Device, &body, nil)
 }
