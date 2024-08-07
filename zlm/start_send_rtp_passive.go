@@ -20,10 +20,6 @@ type StartSendRTPPassiveReq struct {
 	UsePS RTPPayloadType `query:"use_ps"`
 	// es 方式打包是否只打包音频
 	OnlyAudio Boolean `query:"only_audio"`
-	// 是否推送本地 MP4 录像
-	FromMP4 Boolean `query:"from_mp4"`
-	// 接收流的标识，发送同时接收，一般用于双向语言对讲
-	RecvStreamID string `query:"recv_stream_id"`
 }
 
 // StartSendRTPPassiveRes 是 StartSendRTPPassive 返回值

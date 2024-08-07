@@ -110,7 +110,7 @@ func structToMap(v reflect.Value, tag string, m map[string]any) map[string]any {
 //	type S1 struct {
 //	   A string -> A=map["A"] 默认使用字段名称
 //	   B string `map:"b"` -> B=map["b"] 有 tag 则使用 tag
-//	   D *string -> D=map["D"]  指针不为 nil 不算零值
+//	   D *string -> D=map["D"]  指针 new
 //	   E string `map:"-"` -> 忽略
 //	}
 func StructFromMap(v any, m map[string]any) {

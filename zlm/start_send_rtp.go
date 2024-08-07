@@ -26,12 +26,6 @@ type StartSendRTPReq struct {
 	UsePS RTPPayloadType `query:"use_ps"`
 	// es 方式是否只打包音频
 	OnlyAudio Boolean `query:"only_audio"`
-	// 是否推送本地 MP4 录像
-	FromMP4 Boolean `query:"from_mp4"`
-	// udp 方式推流时，是否开启 rtcp 发送和 rtcp 接收超时判断，默认关闭
-	UDPRtcpTimeout Boolean `query:"udp_rtcp_timeout"`
-	// 接收流的标识，发送同时接收，一般用于双向语言对讲
-	RecvStreamID string `query:"recv_stream_id"`
 }
 
 // StartSendRTPRes 是 StartSendRTP 返回值

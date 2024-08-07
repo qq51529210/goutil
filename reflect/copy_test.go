@@ -83,3 +83,25 @@ func Test_StructCopy(t *testing.T) {
 	//
 	fmt.Println(dst)
 }
+
+type sc1 struct {
+	F  *int
+	F1 int
+}
+
+type sc2 struct {
+	F  *int
+	F1 int `copy:"omitempty"`
+}
+
+func Test_StructCopy1(t *testing.T) {
+	var s1 sc1
+	s1.F1 = 2
+	var s2 sc2
+	s2.F = new(int)
+	*s2.F = 2
+	StructCopy(&s1, &s2)
+	fmt.Println(s1, s2)
+	*s2.F = 3
+	fmt.Println(s1, s2)
+}
