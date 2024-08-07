@@ -145,6 +145,17 @@ func NewInvite(req Request, channelID string) (*sip.Message, net.Addr) {
 	return New(req, channelID, sip.MethodInvite, ContentTypeSDP)
 }
 
+// NewAck 返回新的 ack 方法的请求
+func NewAck(req Request, channelID string, invite Invite) (*sip.Message, net.Addr) {
+	msg, addr := New(req, channelID, sip.MethodACK, "")
+	//
+	msg.Header.From.Tag = invite.GetFromTag()
+	msg.Header.To.Tag = invite.GetToTag()
+	msg.Header.CallID = invite.GetCallID()
+	//
+	return msg, addr
+}
+
 // NewRegister 返回新的 register 方法的请求
 func NewRegister(req Request, expires string) (*sip.Message, net.Addr) {
 	msg, addr := New(req, "", sip.MethodRegister, "")
