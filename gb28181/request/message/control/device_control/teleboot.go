@@ -19,7 +19,7 @@ func SendTeleBoot(ctx context.Context, m *TeleBoot) error {
 	var body xml.Message
 	body.XMLName.Local = xml.TypeControl
 	body.CmdType = xml.CmdDeviceControl
-	body.DeviceID = m.Device.GetRemoteID()
+	body.DeviceID = m.Device.GetToID()
 	body.SN = sip.GetSNString()
 	body.TeleBoot = "Boot"
 	// 请求

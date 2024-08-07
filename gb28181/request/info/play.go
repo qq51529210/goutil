@@ -2,15 +2,13 @@ package info
 
 import (
 	"context"
+	"goutil/gb28181/request"
 )
 
 // SendInfoPlay 发送 Request-Info-Play 请求消息
 func SendInfoPlay(ctx context.Context, m *Info) error {
 	// 消息
-	msg, addr, err := m.Message()
-	if err != nil {
-		return err
-	}
+	msg, addr := request.NewInfo(m.Device, m.ChannelID, m.Invite)
 	// body
 	m.encStartLline(&msg.Body, InfoMethodPlay)
 	msg.Body.WriteString("Range: npt=now-\r\n")

@@ -23,7 +23,7 @@ func SendCatalog(ctx context.Context, m *Catalog) ([]*xml.Device, error) {
 	var body xml.Message
 	body.XMLName.Local = xml.TypeQuery
 	body.CmdType = xml.CmdCatalog
-	body.DeviceID = m.Device.GetRemoteID()
+	body.DeviceID = m.Device.GetToID()
 	body.SN = sip.GetSNString()
 	body.StartTime = m.StartTime
 	body.EndTime = m.EndTime

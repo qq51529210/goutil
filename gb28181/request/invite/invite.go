@@ -63,12 +63,9 @@ type Invite struct {
 
 func (m *Invite) Message(sdp *sdp.Session, action, downloadSpeed string) (*sip.Message, net.Addr, error) {
 	// 消息
-	msg, addr, err := request.New(m.Device, m.ChannelID, sip.MethodInvite, request.ContentTypeSDP)
-	if err != nil {
-		return nil, nil, err
-	}
+	msg, addr := request.NewInvite(m.Device, m.ChannelID)
 	// subject
-	msg.Header.Set("Subject", fmt.Sprintf("%s:%s,%s:0", m.ChannelID, m.Invite.GetSSRC(), m.Device.GetLocalID()))
+	msg.Header.Set("Subject", fmt.Sprintf("%s:%s,%s:0", m.ChannelID, m.Invite.GetSSRC(), m.Device.GetFromID()))
 	// sdp
 	m.initSDP(sdp, action, downloadSpeed)
 	//

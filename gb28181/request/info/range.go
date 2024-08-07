@@ -3,15 +3,13 @@ package info
 import (
 	"context"
 	"fmt"
+	"goutil/gb28181/request"
 )
 
 // SendInfoRange 发送 Request-Info-Range 请求消息
 func SendInfoRange(ctx context.Context, m *Info, sec int64) error {
 	// 消息
-	msg, addr, err := m.Message()
-	if err != nil {
-		return err
-	}
+	msg, addr := request.NewInfo(m.Device, m.ChannelID, m.Invite)
 	// body
 	m.encStartLline(&msg.Body, InfoMethodPlay)
 	if sec > 0 {

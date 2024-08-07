@@ -20,7 +20,7 @@ func SendKeepalive(ctx context.Context, m *Keepalive) error {
 	body.XMLName.Local = xml.TypeNotify
 	body.CmdType = xml.CmdKeepalive
 	body.SN = sip.GetSNString()
-	body.DeviceID = m.Cascade.GetLocalID()
+	body.DeviceID = m.Cascade.GetFromID()
 	body.Status = "OK"
 	// 请求
 	return request.SendMessage(ctx, m.Ser, m.Cascade, &body, m)

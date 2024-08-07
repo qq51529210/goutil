@@ -18,16 +18,10 @@ type Register struct {
 
 // SendRegister 注册
 func SendRegister(ctx context.Context, m *Register) error {
-	msg, addr, err := request.New(m.Cascade, "", sip.MethodRegister, "")
-	if err != nil {
-		return err
-	}
+	msg, addr := request.NewRegister(m.Cascade, m.Expires)
 	if m.Authorization != "" {
 		msg.Header.Set(StrAuthorization, m.Authorization)
 	}
-	// 这两个是一样的
-	msg.Header.To.URI = msg.Header.From.URI
-	msg.Header.Expires = m.Expires
 	//
 	return m.Ser.RequestWithContext(ctx, msg, addr, m)
 }

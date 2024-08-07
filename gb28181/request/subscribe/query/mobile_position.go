@@ -29,7 +29,7 @@ func SendMobilePosition(ctx context.Context, m *MobilePosition) (string, error) 
 	var body xml.Subscribe
 	body.XMLName.Local = xml.TypeQuery
 	body.CmdType = xml.CmdMobilePosition
-	body.DeviceID = m.Device.GetRemoteID()
+	body.DeviceID = m.Device.GetToID()
 	body.SN = sip.GetSNString()
 	body.Interval = m.Interval
 	//

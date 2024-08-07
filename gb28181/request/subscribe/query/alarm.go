@@ -51,7 +51,7 @@ func SendAlarm(ctx context.Context, m *Alarm) (string, error) {
 	var body xml.Subscribe
 	body.XMLName.Local = xml.TypeQuery
 	body.CmdType = xml.CmdAlarm
-	body.DeviceID = m.Device.GetRemoteID()
+	body.DeviceID = m.Device.GetToID()
 	body.SN = sip.GetSNString()
 	body.StartAlarmPriority = m.StartAlarmPriority
 	body.EndAlarmPriority = m.EndAlarmPriority
