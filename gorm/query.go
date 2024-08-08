@@ -86,6 +86,10 @@ func initQuery(db *gorm.DB, v reflect.Value, tag string) *gorm.DB {
 			}
 			fk = fv.Kind()
 		}
+		// 是零值不处理
+		if fv.IsZero() {
+			continue
+		}
 		// 嵌入不是结构不处理
 		if ft.Anonymous {
 			if fk == reflect.Struct {
@@ -125,9 +129,7 @@ func initQuery(db *gorm.DB, v reflect.Value, tag string) *gorm.DB {
 // QueryIN field in ?
 func QueryIN(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 	if kind == reflect.Slice || kind == reflect.Array {
-		if !value.IsZero() {
-			return db.Where(fmt.Sprintf("`%s` IN ?", field), value.Interface())
-		}
+		return db.Where(fmt.Sprintf("`%s` IN ?", field), value.Interface())
 	}
 	return db
 }
@@ -135,9 +137,7 @@ func QueryIN(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) 
 // QueryNIN field not in ?
 func QueryNIN(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 	if kind == reflect.Slice || kind == reflect.Array {
-		if !value.IsZero() {
-			return db.Where(fmt.Sprintf("`%s` NOT IN ?", field), value.Interface())
-		}
+		return db.Where(fmt.Sprintf("`%s` NOT IN ?", field), value.Interface())
 	}
 	return db
 }
@@ -155,10 +155,7 @@ func QueryNEQ(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind)
 // QueryLIKE field like %?%
 func QueryLIKE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 	if kind == reflect.String {
-		s := value.String()
-		if s != "" {
-			return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%s%%", s))
-		}
+		return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%s%%", value.String()))
 	}
 	return db
 }
@@ -166,10 +163,7 @@ func QueryLIKE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind
 // QueryLLIKE field like %?
 func QueryLLIKE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 	if kind == reflect.String {
-		s := value.String()
-		if s != "" {
-			return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%s", s))
-		}
+		return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%%%s", value.String()))
 	}
 	return db
 }
@@ -177,10 +171,7 @@ func QueryLLIKE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kin
 // QueryRLIKE field like ?%
 func QueryRLIKE(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
 	if kind == reflect.String {
-		s := value.String()
-		if s != "" {
-			return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%s%%", s))
-		}
+		return db.Where(fmt.Sprintf("`%s` LIKE ?", field), fmt.Sprintf("%s%%", value.String()))
 	}
 	return db
 }
@@ -215,11 +206,7 @@ func QueryNULL(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind
 	} else if kind == reflect.Bool {
 		ok = value.Interface().(bool)
 	} else if kind == reflect.String {
-		v := value.String()
-		if v == "" {
-			return db
-		}
-		ok = v == "1"
+		ok = value.String() == "1"
 	} else {
 		return db
 	}
