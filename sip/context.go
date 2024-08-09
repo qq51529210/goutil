@@ -56,6 +56,11 @@ func (c *Request) Next() {
 	c.f.Next(c)
 }
 
+// IsResponsed 返回是否已经响应
+func (c *Request) IsResponsed() bool {
+	return c.f.IsAbort()
+}
+
 // Change 将当前的中断并改为执行新的回调
 func (c *Request) Change(funcs ...HandleRequestFunc) {
 	c.f.Abort()

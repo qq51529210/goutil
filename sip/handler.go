@@ -72,6 +72,11 @@ func (c *reqFuncChain) Abort() {
 	c.i = len(c.f)
 }
 
+// IsAbort 返回调用链是否结束
+func (c *reqFuncChain) IsAbort() bool {
+	return c.i == len(c.f)
+}
+
 // resFuncChain 响应调用链
 type resFuncChain struct {
 	// 保存调用链函数
