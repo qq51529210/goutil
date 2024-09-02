@@ -84,6 +84,13 @@ type DB[V any] struct {
 	M V
 }
 
+// Init 初始化，创建表
+func (m *DB[V]) Init(db *gorm.DB, v V) error {
+	m.D = db
+	m.M = v
+	return db.AutoMigrate(m.M)
+}
+
 // Get 单个
 func (m *DB[V]) Get(ctx context.Context, v V, fields ...string) error {
 	db := m.D.WithContext(ctx)
