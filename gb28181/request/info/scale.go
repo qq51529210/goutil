@@ -8,13 +8,13 @@ import (
 
 // SendInfoScale 发送 Request-Info-Scale 请求消息
 func SendInfoScale(ctx context.Context, m *Info, scale string) error {
-	// 消息
-	msg := request.NewInfo(m.Device, m.ChannelID, m.Invite)
 	// 网络地址
 	addr, err := m.Device.GetNetAddr()
 	if err != nil {
 		return err
 	}
+	// 消息
+	msg := request.NewInfo(m.Device, addr.Network(), m.ChannelID, m.Invite)
 	// body
 	m.encStartLline(&msg.Body, InfoMethodPlay)
 	fmt.Fprintf(&msg.Body, "Scale: %s\r\n", scale)

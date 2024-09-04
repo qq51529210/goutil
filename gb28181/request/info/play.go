@@ -7,13 +7,13 @@ import (
 
 // SendInfoPlay 发送 Request-Info-Play 请求消息
 func SendInfoPlay(ctx context.Context, m *Info) error {
-	// 消息
-	msg := request.NewInfo(m.Device, m.ChannelID, m.Invite)
 	// 网络地址
 	addr, err := m.Device.GetNetAddr()
 	if err != nil {
 		return err
 	}
+	// 消息
+	msg := request.NewInfo(m.Device, addr.Network(), m.ChannelID, m.Invite)
 	// body
 	m.encStartLline(&msg.Body, InfoMethodPlay)
 	msg.Body.WriteString("Range: npt=now-\r\n")

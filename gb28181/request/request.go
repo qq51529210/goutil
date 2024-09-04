@@ -28,10 +28,12 @@ type Invite interface {
 
 // Request 用于组装 sip.Message
 type Request interface {
-	// 网络类型
-	GetNetwork() string
+	MsgFmt
 	// 网络地址
 	GetNetAddr() (net.Addr, error)
+}
+
+type MsgFmt interface {
 	// 本地国标编号
 	GetFromID() string
 	// 本地国标域名
@@ -46,30 +48,29 @@ type Request interface {
 	GetXMLEncoding() string
 }
 
-// New 创建新的请求消息，toID 用于自定义，传空字符串使用 req.GetToID()
-// toID 覆盖 req.GetToID() 的值
-// tcpProto 是 tcp/udp
-func New(req Request, toID, method, contentType string) *sip.Message {
+// New 创建新的请求消息
+// toID 传空字符串使用 hd.GetToID() ，否则覆盖
+func New(hd MsgFmt, network, toID, method, contentType string) *sip.Message {
 	// 消息
 	m := new(sip.Message)
 	// from
-	fromID := req.GetFromID()
-	fromDomain := req.GetFromDomain()
+	fromID := hd.GetFromID()
+	fromDomain := hd.GetFromDomain()
 	// to
-	_toID := req.GetToID()
+	_toID := hd.GetToID()
 	// 如果指定，使用指定
 	if toID != "" {
 		_toID = toID
 	}
-	toDomain := req.GetToDomain()
-	contact := req.GetContactAddress()
+	toDomain := hd.GetToDomain()
+	contact := hd.GetContactAddress()
 	// start line
 	m.StartLine[0] = method
 	m.StartLine[1] = fmt.Sprintf("sip:%s@%s", _toID, toDomain)
 	m.StartLine[2] = sip.SIPVersion
 	// via
 	var proto string
-	if req.GetNetwork() == "tcp" {
+	if network == "tcp" {
 		proto = sip.TCP
 	} else {
 		proto = sip.UDP
@@ -106,9 +107,9 @@ func New(req Request, toID, method, contentType string) *sip.Message {
 }
 
 // NewBye 返回新的 bye 方法的请求
-func NewBye(req Request, channelID string, invite Invite) *sip.Message {
+func NewBye(hd MsgFmt, network, channelID string, invite Invite) *sip.Message {
 	// 消息
-	msg := New(req, channelID, sip.MethodBye, "")
+	msg := New(hd, network, channelID, sip.MethodBye, "")
 	// 重新设置头
 	msg.Header.From.Tag = invite.GetFromTag()
 	msg.Header.To.Tag = invite.GetToTag()
@@ -125,15 +126,15 @@ func SendBye(ctx context.Context, ser *sip.Server, req Request, channelID string
 		return err
 	}
 	// 消息
-	msg := NewBye(req, channelID, invite)
+	msg := NewBye(req, addr.Network(), channelID, invite)
 	// 发送
 	return ser.RequestWithContext(ctx, msg, addr, data)
 }
 
 // NewInfo 返回新的 info 方法的请求
-func NewInfo(req Request, channelID string, invite Invite) *sip.Message {
+func NewInfo(hd MsgFmt, network, channelID string, invite Invite) *sip.Message {
 	// 消息
-	msg := New(req, channelID, sip.MethodInfo, ContentTypeMANSRTSP)
+	msg := New(hd, network, channelID, sip.MethodInfo, ContentTypeMANSRTSP)
 	// 重新设置头
 	msg.Header.From.Tag = invite.GetFromTag()
 	msg.Header.To.Tag = invite.GetToTag()
@@ -150,7 +151,7 @@ func SendInfo(ctx context.Context, ser *sip.Server, req Request, channelID strin
 		return err
 	}
 	// 消息
-	msg := NewInfo(req, channelID, invite)
+	msg := NewInfo(req, addr.Network(), channelID, invite)
 	// body
 	if _, err := io.Copy(&msg.Body, body); err != nil {
 		return err
@@ -160,14 +161,14 @@ func SendInfo(ctx context.Context, ser *sip.Server, req Request, channelID strin
 }
 
 // NewInvite 返回新的 invite 方法的请求
-func NewInvite(req Request, channelID string) *sip.Message {
-	return New(req, channelID, sip.MethodInvite, ContentTypeSDP)
+func NewInvite(hd MsgFmt, network, channelID string) *sip.Message {
+	return New(hd, network, channelID, sip.MethodInvite, ContentTypeSDP)
 }
 
 // NewAck 返回新的 ack 方法的请求
-func NewAck(req Request, channelID string, invite Invite) *sip.Message {
+func NewAck(hd MsgFmt, network, channelID string, invite Invite) *sip.Message {
 	// 消息
-	msg := New(req, channelID, sip.MethodACK, "")
+	msg := New(hd, network, channelID, sip.MethodACK, "")
 	// 重新设置头
 	msg.Header.From.Tag = invite.GetFromTag()
 	msg.Header.To.Tag = invite.GetToTag()
@@ -177,9 +178,9 @@ func NewAck(req Request, channelID string, invite Invite) *sip.Message {
 }
 
 // NewRegister 返回新的 register 方法的请求
-func NewRegister(req Request, expires string) *sip.Message {
+func NewRegister(hd MsgFmt, network, expires string) *sip.Message {
 	// 消息
-	msg := New(req, "", sip.MethodRegister, "")
+	msg := New(hd, network, "", sip.MethodRegister, "")
 	// 重新设置头 from 和 to 一样
 	msg.Header.To.URI = msg.Header.From.URI
 	msg.Header.Expires = expires
@@ -188,11 +189,11 @@ func NewRegister(req Request, expires string) *sip.Message {
 }
 
 // NewMessage 返回新的 message 方法的请求
-func NewMessage(req Request, body *xml.Message) *sip.Message {
+func NewMessage(hd MsgFmt, network string, body *xml.Message) *sip.Message {
 	// 消息
-	msg := New(req, "", sip.MethodMessage, ContentTypeXML)
+	msg := New(hd, network, "", sip.MethodMessage, ContentTypeXML)
 	// body
-	xml.Encode(&msg.Body, req.GetXMLEncoding(), body)
+	xml.Encode(&msg.Body, hd.GetXMLEncoding(), body)
 	return msg
 }
 
@@ -204,7 +205,7 @@ func SendMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Me
 		return err
 	}
 	// 消息
-	msg := NewMessage(req, body)
+	msg := NewMessage(req, addr.Network(), body)
 	// 发送
 	return ser.RequestWithContext(ctx, msg, addr, data)
 }
@@ -228,11 +229,11 @@ func SendReplyMessage(ctx context.Context, ser *sip.Server, req Request, body *x
 }
 
 // NewSubscribe 返回新的 subscribe 方法的请求
-func NewSubscribe(req Request, body *xml.Subscribe) *sip.Message {
+func NewSubscribe(hd MsgFmt, network string, body *xml.Subscribe) *sip.Message {
 	// 消息
-	msg := New(req, "", sip.MethodSubscribe, ContentTypeXML)
+	msg := New(hd, network, "", sip.MethodSubscribe, ContentTypeXML)
 	// body
-	xml.Encode(&msg.Body, req.GetXMLEncoding(), body)
+	xml.Encode(&msg.Body, hd.GetXMLEncoding(), body)
 	//
 	return msg
 }
@@ -245,7 +246,7 @@ func SendSubscribe(ctx context.Context, ser *sip.Server, req Request, body *xml.
 		return err
 	}
 	// 消息
-	msg := NewSubscribe(req, body)
+	msg := NewSubscribe(req, addr.Network(), body)
 	// 特别的
 	msg.Header.Expires = fmt.Sprintf("%d", expire)
 	msg.Header.Set("Event", "presence")
