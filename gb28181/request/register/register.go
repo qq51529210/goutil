@@ -18,7 +18,12 @@ type Register struct {
 
 // SendRegister 注册
 func SendRegister(ctx context.Context, m *Register) error {
-	msg, addr := request.NewRegister(m.Cascade, m.Expires)
+	msg := request.NewRegister(m.Cascade, m.Expires)
+	// 网络地址
+	addr, err := m.Cascade.GetNetAddr()
+	if err != nil {
+		return err
+	}
 	if m.Authorization != "" {
 		msg.Header.Set(StrAuthorization, m.Authorization)
 	}
