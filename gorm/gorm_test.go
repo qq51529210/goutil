@@ -27,6 +27,8 @@ type InitMysqlJSONSetTJF1 struct {
 	InitMysqlJSONSetJF2
 	// 测试结构
 	F5 InitMysqlJSONSetJF2
+	// 空指针，不处理
+	F6 *InitMysqlJSONSetJF2
 }
 
 type InitMysqlJSONSetJF2 struct {
@@ -47,8 +49,8 @@ func Test_InitMysqlJSONSet(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		m.ID = 2
-		m.JF = []byte(`{"a1":1,"F5":{}}`)
+		m.ID = 4
+		m.JF = []byte(`{"a1":1,"F5":{},"F6":{"a1":22}}`)
 		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(m).Error; err != nil {
 			t.Fatal(err)
 		}

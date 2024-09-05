@@ -308,8 +308,8 @@ func initMysqlJSON(sv reflect.Value, pname string, tag string, data map[string]a
 		fv := sv.Field(i)
 		fk := fv.Kind()
 		if fk == reflect.Pointer {
-			// 忽略零值
-			if fv.IsNil() && omitempty {
+			// 空指针就算了
+			if fv.IsNil() {
 				continue
 			}
 			// 有指针，就不算零值
