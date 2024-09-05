@@ -51,10 +51,13 @@ func structToSlice(v reflect.Value, m []any, tag string) []any {
 		// 类型
 		ft := st.Field(i)
 		// tag
-		name, omitempty, ignore := parseTag(&ft, tag)
+		name, omitempty, ignore := ParseTag(&ft, tag)
 		// 忽略
 		if ignore {
 			continue
+		}
+		if name == "" {
+			name = ft.Name
 		}
 		// 值
 		fv := v.Field(i)

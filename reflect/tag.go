@@ -5,30 +5,23 @@ import (
 	"strings"
 )
 
-// parseTag 解析 tag 的封装
-func parseTag(f *reflect.StructField, tagName string) (name string, omitempty, ignore bool) {
-	name = f.Name
+// ParseTag 解析 "name,omitempty","-",",omitempty"
+func ParseTag(f *reflect.StructField, tagName string) (name string, omitempty, ignore bool) {
 	tag := f.Tag.Get(tagName)
-	for tag != "" {
-		var s string
-		i := strings.IndexByte(tag, ',')
-		if i < 0 {
-			s = tag
-			tag = ""
-		} else {
-			s = tag[:i]
-			tag = tag[i+1:]
-		}
-		switch s {
-		case "omitempty":
-			omitempty = true
-		case "-":
-			ignore = true
-		default:
-			if s != "" {
-				name = s
-			}
-		}
+	// ignore
+	if tag == "-" {
+		ignore = true
+		return
 	}
+	// name
+	i := strings.IndexByte(tag, ',')
+	if i < 0 {
+		name = tag
+		return
+	}
+	name = tag[:i]
+	// omitempty
+	omitempty = tag[i+1:] == "omitempty"
+	//
 	return
 }

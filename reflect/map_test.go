@@ -6,109 +6,118 @@ import (
 	"testing"
 )
 
-type StructFromMap1 struct {
-	F11 string
-	F12 *string
-	F13 *float64 `fm:"ff"`
-	F14 int      `fm:"-"`
-	*StructFromMap2
-	StructFromMap3
-	F15 *StructFromMap2 `fm:"-"`
-	F16 StructFromMap2  `fm:"f6"`
-	F17 *StructFromMap2
+type stFromMap struct {
+	// 测试不可导出
+	s1 string
+	// 测试名称
+	S1 string `map:"ss"`
+	// 测试零值
+	S2 int64
+	// 测试数据类型
+	S3 int64
+	// 测试忽略
+	S4 string `map:"-"`
+	// 测试空指针自动 new
+	S5 *string
+	// 测试 nil 不影响指针
+	S6 *string
+	// 测试嵌入
+	*SstFromMap1
+	// 测试结构字段
+	S7 *SstFromMap1
 }
 
-type StructFromMap2 struct {
-	F21 string
-	F22 *string
+type SstFromMap1 struct {
+	SstFromMap2
+	// 同名嵌入，类型不同，不会影响
+	S1 int64 `map:"ss"`
+	// 同名嵌入，类型相同，会被赋值
+	S3 string
 }
 
-type StructFromMap3 struct {
-	F31 string
-	F32 *string
+type SstFromMap2 struct {
+	S4 int64
+	S5 string
+	S3 string
 }
 
 func Test_StructFromMap(t *testing.T) {
-	m := make(map[string]any)
-	m["F11"] = "a1"
-	m["F12"] = "a2"
-	m["F13"] = "a3"
-	m["ff"] = 1.9
-	m["F14"] = 3
-	m["F21"] = "21a"
-	m["F22"] = "22a"
-	m["F22"] = "22a"
-	m["F22"] = "22a"
-	m["F15"] = map[string]any{
-		"F21": "1",
-		"F22": "1",
+	data := make(map[string]any)
+	data["s1"] = "ss"
+	data["ss"] = "s1"
+	data["S3"] = "s3"
+	data["S4"] = "s4"
+	data["S5"] = "s5"
+	data["S6"] = nil
+	data["S7"] = map[string]any{
+		"S1": 123,
+		"S3": "S333",
+		"S4": 412,
+		"S5": "s55",
 	}
-	m["f6"] = map[string]any{
-		"F21": "1",
-		"F22": "1",
-	}
-	m["F17"] = map[string]any{
-		"F21": "21",
-		"F22": "21",
-	}
-	s := new(StructFromMap1)
-	StructFromMapWithTag(s, m, "fm")
-	fmt.Println(s)
+	var s stFromMap
+	s.S6 = new(string)
+	StructFromMap(&s, data)
+	//
+	d, _ := json.MarshalIndent(&s, "", " ")
+	fmt.Println(string(d))
 }
 
-type structToMapS1 struct {
-	string
-	S1F1 string  `tm:"s1f1"`
-	S1F2 *string `tm:"omitempty"`
-	S1F3 string  `tm:"omitempty"`
-	S1F4 *string `tm:"-"`
-	S1F5 any
-	s1F6 string
+type stToMap struct {
+	// 测试不可导出
+	s1 string
+	// 测试名称
+	S1 string `map:"ss"`
+	// 测试零值
+	S2 int64
+	// 测试忽略零值
+	S3 int64 `map:",omitempty"`
+	// 测试忽略
+	S4 string `map:"-"`
+	// 不是空指针就不算零值
+	S5 *string
+	S6 *string `map:",omitempty"`
+	// 测试嵌入
+	SstToMap1
+	// *SstToMap
+	// 测试嵌入其他
+	int
+	// 测试结构字段
+	S7 SstToMap1
+	// 测试空指针 null
+	S8 *SstToMap1
 }
 
-type structToMapS2 struct {
-	S2F1 int
-	S2F2 *string
+type SstToMap1 struct {
+	// 测试嵌入名称覆盖，不会
+	S1 string `map:",omitempty"`
+	// 测试嵌入覆盖
+	S2 string `map:",omitempty"`
+	// 三层
+	S3 SstToMap2
 }
 
-type StructToMapS3 struct {
-	S3F1 int
-	S3F2 *string
-}
-
-type structToMapS struct {
-	string
-	*int
-	A *int
-	B int
-	structToMapS1
-	*structToMapS2
-	*StructToMapS3
-	SF1 *StructToMapS3 `tm:"omitempty"`
-	SF2 structToMapS2
+type SstToMap2 struct {
+	S1 string `map:",omitempty"`
+	S2 string
 }
 
 func Test_StructToMap(t *testing.T) {
-	var s structToMapS
-	//
-	s.string = "0"
-	s.S1F1 = `tm:"s1f1"`
-	s.S1F4 = new(string)
-	*s.S1F4 = `tm:"-"`
-	s.S1F5 = 123.123
-	s.s1F6 = "6"
-	//
-	s.structToMapS2 = new(structToMapS2)
-	s.structToMapS2.S2F1 = 111
-	s.structToMapS2.S2F2 = new(string)
-	*s.structToMapS2.S2F2 = "s."
-	//
-	s.SF2.S2F1 = 13333
-	s.SF2.S2F2 = new(string)
-	*s.SF2.S2F2 = "sf2."
-	//
-	d, _ := json.Marshal(s)
+	var s stToMap
+	s.s1 = "s"
+	s.S1 = "S1"
+	s.S2 = 0
+	s.S3 = 0
+	s.S4 = "s4"
+	s.S5 = new(string)
+	s.S6 = nil
+	// s.SstToMap.S1 = "s.s1"
+	// s.SstToMap.S2 = "s.s2"
+	s.int = 123
+	s.S7.S1 = "s7.s1"
+	s.S7.S3.S1 = "s7.s3.s1"
+	// s.S7.S2 = "s7.s2"
+	data := StructToMap(&s)
+	d, _ := json.MarshalIndent(data, "", " ")
 	fmt.Println(string(d))
-	m := StructToMapWithTag(s, "tm")
-	fmt.Println(m)
 }

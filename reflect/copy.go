@@ -78,10 +78,13 @@ func structCopy(dstStructValue, srcStructValue reflect.Value, tag string) {
 		// src 字段类型
 		srcFieldType := srcStructType.Field(i)
 		// tag
-		name, omitempty, ignore := parseTag(&srcFieldType, tag)
+		name, omitempty, ignore := ParseTag(&srcFieldType, tag)
 		// 忽略字段
 		if ignore {
 			continue
+		}
+		if name == "" {
+			name = srcFieldType.Name
 		}
 		// src 字段值
 		srcFieldValue := srcStructValue.Field(i)

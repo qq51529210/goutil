@@ -29,52 +29,60 @@ func StructToMap(v any) map[string]any {
 
 // StructToMapWithTag 使用自定义 tag
 func StructToMapWithTag(v any, tag string) map[string]any {
-	vv := reflect.ValueOf(v)
-	if vv.Kind() == reflect.Pointer {
-		vv = vv.Elem()
+	sv := reflect.ValueOf(v)
+	if sv.Kind() == reflect.Pointer {
+		sv = sv.Elem()
 	}
-	if vv.Kind() != reflect.Struct {
+	if sv.Kind() != reflect.Struct {
 		panic("v must be struct")
 	}
 	m := make(map[string]any)
-	return structToMap(vv, tag, m)
+	return structToMap(sv, tag, m)
 }
 
 // structToMap 封装 StructToMap 的代码
-func structToMap(v reflect.Value, tag string, m map[string]any) map[string]any {
+func structToMap(sv reflect.Value, tag string, m map[string]any) map[string]any {
 	// 类型
-	st := v.Type()
+	st := sv.Type()
 	// 所有字段
 	for i := 0; i < st.NumField(); i++ {
 		// 类型
 		ft := st.Field(i)
+		// 不可导出
+		if !ft.IsExported() {
+			continue
+		}
 		// tag
-		name, omitempty, ignore := parseTag(&ft, tag)
+		name, omitempty, ignore := ParseTag(&ft, tag)
 		// 忽略
 		if ignore {
 			continue
 		}
-		// 值
-		fv := v.Field(i)
-		// 数据类型
-		fk := ft.Type.Kind()
+		// 值类型
+		fv := sv.Field(i)
+		fk := fv.Kind()
 		if fk == reflect.Pointer {
-			fk = ft.Type.Elem().Kind()
-			// nil 指针
+			// 空指针
 			if fv.IsNil() {
-				// 忽略
+				// 忽略零值
 				if omitempty {
 					continue
 				}
-				// 嵌入不处理 / 不可导出
-				if ft.Anonymous || !ft.IsExported() {
+				// 嵌入的空指针，不处理
+				if ft.Anonymous {
 					continue
 				}
-				// 不是嵌入
-				m[ft.Name] = nil
+				// 设置
+				if name != "" {
+					m[name] = nil
+				} else {
+					m[ft.Name] = nil
+				}
 				continue
 			}
+			// 有指针，就不算零值
 			fv = fv.Elem()
+			fk = fv.Kind()
 		} else {
 			// 忽略零值
 			if fv.IsZero() && omitempty {
@@ -90,17 +98,24 @@ func structToMap(v reflect.Value, tag string, m map[string]any) map[string]any {
 			// 嵌入的不是结构不处理
 			continue
 		}
-		// 不可导出
-		if !ft.IsExported() {
-			continue
-		}
 		// 结构
 		if fk == reflect.Struct {
-			m[name] = structToMap(fv, tag, make(map[string]any))
+			_data := structToMap(fv, tag, make(map[string]any))
+			if len(_data) > 0 {
+				if name != "" {
+					m[name] = _data
+				} else {
+					m[ft.Name] = _data
+				}
+			}
 			continue
 		}
 		// 其他
-		m[name] = fv.Interface()
+		if name != "" {
+			m[name] = fv.Interface()
+		} else {
+			m[ft.Name] = fv.Interface()
+		}
 	}
 	return m
 }
@@ -113,83 +128,147 @@ func structToMap(v reflect.Value, tag string, m map[string]any) map[string]any {
 //	   D *string -> D=map["D"]  指针 new
 //	   E string `map:"-"` -> 忽略
 //	}
+//
+// 使用 slice，map 做值等等可能会有问题
 func StructFromMap(v any, m map[string]any) {
 	StructFromMapWithTag(v, m, StructToMapTagName)
 }
 
 // StructFromMapWithTag 使用自定义 tag
 func StructFromMapWithTag(v any, m map[string]any, tag string) {
-	vv := reflect.ValueOf(v)
-	if vv.Kind() == reflect.Pointer {
-		vv = vv.Elem()
-		if vv.Kind() == reflect.Struct {
-			structFromMap(vv, tag, m)
+	sv := reflect.ValueOf(v)
+	if sv.Kind() == reflect.Pointer {
+		sv = sv.Elem()
+		if sv.Kind() == reflect.Struct {
+			structFromMap(sv, tag, m)
 			return
 		}
 	}
 	panic("v must be struct pointer")
 }
 
-var (
-	structFromMapType = reflect.TypeOf(make(map[string]any))
-)
-
 // structFromMap 封装 StructFromMap 的代码
-func structFromMap(v reflect.Value, tag string, m map[string]any) {
+func structFromMap(sv reflect.Value, tag string, data map[string]any) bool {
+	hasValue := false
 	// 类型
-	st := v.Type()
+	st := sv.Type()
 	// 所有字段
 	for i := 0; i < st.NumField(); i++ {
 		// 类型
 		ft := st.Field(i)
+		// 不可导出
+		if !ft.IsExported() {
+			continue
+		}
 		// tag
-		name, _, ignore := parseTag(&ft, tag)
+		name, _, ignore := ParseTag(&ft, tag)
 		// 忽略
 		if ignore {
 			continue
 		}
-		// 值
-		fv := v.Field(i)
-		// 数据类型是否一致
-		fk := ft.Type.Kind()
+		// 字段值类型
+		fv := sv.Field(i)
+		fk := fv.Kind()
+		isNil := false
+		// 指针类型，可能需要 new
 		if fk == reflect.Pointer {
-			// 空指针
 			if fv.IsNil() {
-				fv.Set(reflect.New(ft.Type.Elem()))
+				isNil = true
+				fk = ft.Type.Elem().Kind()
+			} else {
+				fv = fv.Elem()
+				fk = fv.Kind()
 			}
-			fv = fv.Elem()
-			fk = fv.Kind()
 		}
 		// 嵌入
 		if ft.Anonymous {
-			// 必须是结构
-			if fk == reflect.Struct {
-				structFromMap(fv, tag, m)
+			if isNil {
+				// 空指针，new
+				nfv := reflect.New(ft.Type.Elem())
+				if structFromMap(nfv.Elem(), tag, data) {
+					// 有值才设置
+					fv.Set(nfv)
+					hasValue = true
+				}
+			} else {
+				// 只处理结构
+				if fk == reflect.Struct {
+					structFromMap(fv, tag, data)
+				}
 			}
 			continue
 		}
-		// map 值
-		mv, ok := m[name]
-		if !ok {
+		// map 的值
+		if name == "" {
+			name = ft.Name
+		}
+		mv, ok := data[name]
+		if !ok || mv == nil {
+			// 不存在/或者是
 			continue
 		}
+		// 结构
+		if fk == reflect.Struct {
+			// 那么 mv 是 map[string]any 才能继续
+			if _v, ok := mv.(map[string]any); ok {
+				if isNil {
+					// 空指针
+					nfv := reflect.New(ft.Type.Elem())
+					if structFromMap(nfv.Elem(), tag, _v) {
+						// 有值才设置
+						fv.Set(nfv)
+						hasValue = true
+					}
+				} else {
+					structFromMap(fv, tag, _v)
+				}
+			}
+			continue
+		}
+		// mvv 是指针
 		mvv := reflect.ValueOf(mv)
 		mvk := mvv.Kind()
 		if mvk == reflect.Pointer {
 			mvv = mvv.Elem()
 			mvk = mvv.Kind()
 		}
-		// 结构对应 map
-		if fk == reflect.Struct {
-			if mvv.Type() == structFromMapType {
-				structFromMap(fv, tag, mv.(map[string]any))
+		// 整形
+		if (fk == reflect.Int || fk == reflect.Int8 || fk == reflect.Int16 || fk == reflect.Int32 || fk == reflect.Int64) &&
+			(mvk == reflect.Int || mvk == reflect.Int8 || mvk == reflect.Int16 || mvk == reflect.Int32 || mvk == reflect.Int64) {
+			if isNil {
+				fv.Set(reflect.New(ft.Type.Elem()))
 			}
+			fv.SetInt(mvv.Int())
 			continue
 		}
-		// 数据类型是否一致
-		if fk != mvk {
+		if (fk == reflect.Uint || fk == reflect.Uint8 || fk == reflect.Uint16 || fk == reflect.Uint32 || fk == reflect.Uint64) &&
+			(mvk == reflect.Uint || mvk == reflect.Uint8 || mvk == reflect.Uint16 || mvk == reflect.Uint32 || mvk == reflect.Uint64) {
+			if isNil {
+				fv.Set(reflect.New(ft.Type.Elem()))
+			}
+			fv.SetUint(mvv.Uint())
 			continue
 		}
-		fv.Set(mvv)
+		// 浮点
+		if (fk == reflect.Float32 || fk == reflect.Float64) && (mvk == reflect.Float32 || mvk == reflect.Float64) {
+			fv.SetFloat(mvv.Float())
+			continue
+		}
+		// 其他的类型相同才赋值
+		if isNil {
+			ftt := ft.Type.Elem()
+			if ftt == mvv.Type() {
+				nfv := reflect.New(ftt).Elem()
+				nfv.Set(mvv)
+				sv.Field(i).Set(nfv.Addr())
+			}
+		} else {
+			if ft.Type == mvv.Type() {
+				fv.Set(mvv)
+			}
+		}
+		//
+		hasValue = true
 	}
+	return hasValue
 }

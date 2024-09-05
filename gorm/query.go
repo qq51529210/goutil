@@ -2,10 +2,12 @@ package gorm
 
 import (
 	"fmt"
+	gr "goutil/reflect"
 	"reflect"
 	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -234,4 +236,158 @@ func QueryOmit(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind
 		}
 	}
 	return db
+}
+
+// InitQuery 将 v 格式化到 where ，全部是 AND ，略过空值
+// 其他条件，自己添加 InitQueryFunc
+//
+//	type query struct {
+//	  F1 *int64 `json:"f1,omitempty"`
+//	  F2 string `json:"ff"`
+//	}
+//
+//	gorm.Expr("JSON_SET(`f1`, '$.f1', ?, '$.ff', ?)", F1, F2)
+//
+// 先这样，以后遇到再加
+func InitMysqlJSONSet(sv any, field string) clause.Expr {
+	return InitMysqlJSONSetWithTag(sv, field, "json")
+}
+
+func InitMysqlJSONSetWithTag(sv any, field string, tag string) clause.Expr {
+	v := reflect.ValueOf(sv)
+	k := v.Kind()
+	if k == reflect.Pointer {
+		// 空指针
+		if v.IsNil() {
+			panic("nil pointer")
+		}
+		v = v.Elem()
+		k = v.Kind()
+	}
+	if k != reflect.Struct {
+		panic("input must be struct")
+	}
+	// 检索
+	data := initMysqlJSON(v, "", tag, make(map[string]any))
+	if len(data) < 1 {
+		panic("invalid input struct")
+	}
+	//
+	return initMysqlJSONSetExpr(data)
+}
+
+// sv 解析的结构
+// pname 所属的结构名称，sv 是字段
+// tag 就是 tag
+// data 用于装结果
+func initMysqlJSON(sv reflect.Value, pname string, tag string, data map[string]any) map[string]any {
+	st := sv.Type()
+	for i := 0; i < st.NumField(); i++ {
+		ft := st.Field(i)
+		// 不可导出
+		if !ft.IsExported() {
+			continue
+		}
+		// tag
+		name, omitempty, ignore := gr.ParseTag(&ft, tag)
+		// 忽略字段
+		if ignore {
+			continue
+		}
+		fv := sv.Field(i)
+		fk := fv.Kind()
+		if fk == reflect.Pointer {
+			// 忽略零值
+			if fv.IsNil() && omitempty {
+				continue
+			}
+			// 有指针，就不算零值
+			fv = fv.Elem()
+			fk = fv.Kind()
+		} else {
+			// 忽略零值
+			if fv.IsZero() && omitempty {
+				continue
+			}
+		}
+		// 嵌入
+		if ft.Anonymous {
+			// 嵌入只处理结构
+			if fk == reflect.Struct {
+				// 虽然是嵌入，但是 tag 有名称
+				if name != "" {
+					if pname != "" {
+						_name := pname + "." + name
+						_data := initMysqlJSON(fv, _name, tag, make(map[string]any))
+						if len(_data) > 0 {
+							data[_name] = _data
+						}
+					} else {
+						data[name] = initMysqlJSON(fv, "", tag, make(map[string]any))
+					}
+				} else {
+					initMysqlJSON(fv, pname, tag, data)
+				}
+			}
+			continue
+		}
+		// 没有 tag ，使用字段名称
+		if name == "" {
+			name = ft.Name
+		}
+		// 结构
+		if fk == reflect.Struct {
+			if pname != "" {
+				_name := pname + "." + name
+				_data := initMysqlJSON(fv, _name, tag, make(map[string]any))
+				if len(_data) > 0 {
+					data[_name] = _data
+				}
+			} else {
+				data[name] = initMysqlJSON(fv, "", tag, make(map[string]any))
+			}
+			continue
+		}
+		// 其他
+		if pname != "" {
+			data[pname+"."+name] = fv.Interface()
+		} else {
+			data[name] = fv.Interface()
+		}
+	}
+	return data
+}
+
+func initMysqlJSONSetExpr(kv map[string]any) clause.Expr {
+	var str strings.Builder
+	var vs []any
+	for k, v := range kv {
+		if _v, ok := v.(map[string]any); ok {
+			vs = append(vs, initMysqlJSONBuild2(&str, "$."+k, _v)...)
+		} else {
+			str.WriteString(",'$.")
+			str.WriteString(k)
+			str.WriteString("',?")
+			vs = append(vs, v)
+		}
+	}
+	str.WriteString(")")
+	return gorm.Expr(str.String(), vs...)
+}
+
+func initMysqlJSONBuild2(str *strings.Builder, pname string, kv map[string]any) []any {
+	var vs []any
+	for k, v := range kv {
+		if _v, ok := v.(map[string]any); ok {
+			vs = append(vs, initMysqlJSONBuild2(str, "."+k, _v)...)
+		} else {
+			str.WriteString(",'")
+			str.WriteString(pname)
+			str.WriteString(".")
+			str.WriteString(k)
+			str.WriteString("',?")
+			vs = append(vs, v)
+		}
+	}
+	return vs
 }

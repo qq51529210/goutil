@@ -34,10 +34,13 @@ func structFieldName(st reflect.Type, a []string, tag string) []string {
 		// 类型
 		ft := st.Field(i)
 		// tag
-		name, _, ignore := parseTag(&ft, tag)
+		name, _, ignore := ParseTag(&ft, tag)
 		// 忽略 / 不可导出
 		if ignore || !ft.IsExported() {
 			continue
+		}
+		if name == "" {
+			name = ft.Name
 		}
 		// 嵌入
 		if ft.Anonymous {
