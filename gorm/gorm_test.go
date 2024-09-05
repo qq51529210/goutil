@@ -1,8 +1,10 @@
 package gorm
 
 import (
-	"encoding/json"
+	"fmt"
 	"testing"
+
+	"gorm.io/gorm/clause"
 )
 
 type InitMysqlJSONSetT struct {
@@ -10,18 +12,27 @@ type InitMysqlJSONSetT struct {
 	JF []byte `gorm:"type:json"`
 }
 
-type InitMysqlJSONSet1 struct {
-	S2 InitMysqlJSONSet2 `json:",omitempty"`
-	InitMysqlJSONSet2
-	F1 int    `json:""`
+type InitMysqlJSONSetTJF1 struct {
+	// 测试不可导出
+	f1 string
+	// 正常测试
+	F1 int
+	// 测试忽略零值
 	F2 string `json:",omitempty"`
+	// 测试忽略
 	F3 string `json:"-"`
-	F4 string `json:"F3,omitempty"`
+	// 测试名称
+	F4 string `json:"ff"`
+	// 测试嵌入
+	InitMysqlJSONSetJF2
+	// 测试结构
+	F5 InitMysqlJSONSetJF2
 }
 
-type InitMysqlJSONSet2 struct {
-	F1 string `json:",omitempty"`
-	F2 float64
+type InitMysqlJSONSetJF2 struct {
+	// 嵌入同名，直接覆盖
+	F1 string
+	F2 int64 `json:",omitempty"`
 }
 
 func Test_InitMysqlJSONSet(t *testing.T) {
@@ -31,35 +42,29 @@ func Test_InitMysqlJSONSet(t *testing.T) {
 	}
 	//
 	m := &InitMysqlJSONSetT{}
-	err = db.AutoMigrate(m)
-	if err != nil {
-		t.Fatal(err)
+	{
+		err = db.AutoMigrate(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m.ID = 2
+		m.JF = []byte(`{"a1":1,"F5":{}}`)
+		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(m).Error; err != nil {
+			t.Fatal(err)
+		}
 	}
-	m1 := &InitMysqlJSONSet1{}
-	m1.S2.F1 = "s2.f1"
-	m1.S2.F2 = 2.2
-	m1.InitMysqlJSONSet2.F1 = "f1"
-	m1.InitMysqlJSONSet2.F2 = 2
-	m1.F1 = 1
-	m1.F2 = "s1.f1"
-	m.JF, _ = json.Marshal(m1)
-	//
-	if err := db.Create(m).Error; err != nil {
-		t.Fatal(err)
+	{
+		d1 := &InitMysqlJSONSetTJF1{}
+		// d1.f1 = "f1"
+		d1.F1 = 1
+		// d1.F3 = "f3"
+		// d1.F4 = "f4"
+		d1.InitMysqlJSONSetJF2.F1 = "conv"
+		d1.F5.F1 = "f5.f1"
+		d1.F5.F2 = 123
+		if err := db.Model(m).UpdateColumn("JF", InitMysqlJSONSet(d1, "JF")).Error; err != nil {
+			t.Fatal(err)
+		}
 	}
-	//
-	m2 := &InitMysqlJSONSet1{}
-	// m2.S2.F1 = "s2.f12"
-	// m2.S2.F2 = 22.2
-	// m2.InitMysqlJSONSet2.F1 = "f12"
-	// m2.F4 = "s1.4223"
-	m2.F3 = "12312"
-	m2.InitMysqlJSONSet2.F2 = 22
-	// m2.F1 = 12
-	m2.F2 = "s1.f123123"
-	//
-	m.ID = 1
-	if err := db.Model(m).UpdateColumn("JF", InitMysqlJSONSet(m2, "`JF`")).Error; err != nil {
-		t.Fatal(err)
-	}
+	fmt.Println()
 }

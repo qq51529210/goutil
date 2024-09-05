@@ -10,6 +10,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
 )
 
@@ -115,6 +116,11 @@ func (m *DB[V]) First(ctx context.Context, v V, q any, fields ...string) error {
 // Add 添加
 func (m *DB[V]) Add(ctx context.Context, v V) error {
 	return m.D.WithContext(ctx).Create(v).Error
+}
+
+// AddIgnore 添加，如果唯一键存在则放弃
+func (m *DB[V]) AddIgnore(ctx context.Context, v V) error {
+	return m.D.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(v).Error
 }
 
 // BatchAdd 批量添加

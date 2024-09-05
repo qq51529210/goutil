@@ -268,19 +268,30 @@ func InitMysqlJSONSetWithTag(sv any, field string, tag string) clause.Expr {
 		panic("input must be struct")
 	}
 	// 检索
-	data := initMysqlJSON(v, "", tag, make(map[string]any))
+	data := make(map[string]any)
+	initMysqlJSON(v, "", tag, data)
 	if len(data) < 1 {
 		panic("invalid input struct")
 	}
 	//
-	return initMysqlJSONSetExpr(data)
+	var str strings.Builder
+	fmt.Fprintf(&str, "JSON_SET(`%s`", field)
+	var vs []any
+	for k, v := range data {
+		str.WriteString(",'$.")
+		str.WriteString(k)
+		str.WriteString("',?")
+		vs = append(vs, v)
+	}
+	str.WriteString(")")
+	return gorm.Expr(str.String(), vs...)
 }
 
 // sv 解析的结构
 // pname 所属的结构名称，sv 是字段
 // tag 就是 tag
 // data 用于装结果
-func initMysqlJSON(sv reflect.Value, pname string, tag string, data map[string]any) map[string]any {
+func initMysqlJSON(sv reflect.Value, pname string, tag string, data map[string]any) {
 	st := sv.Type()
 	for i := 0; i < st.NumField(); i++ {
 		ft := st.Field(i)
@@ -317,13 +328,9 @@ func initMysqlJSON(sv reflect.Value, pname string, tag string, data map[string]a
 				// 虽然是嵌入，但是 tag 有名称
 				if name != "" {
 					if pname != "" {
-						_name := pname + "." + name
-						_data := initMysqlJSON(fv, _name, tag, make(map[string]any))
-						if len(_data) > 0 {
-							data[_name] = _data
-						}
+						initMysqlJSON(fv, pname+"."+name, tag, data)
 					} else {
-						data[name] = initMysqlJSON(fv, "", tag, make(map[string]any))
+						initMysqlJSON(fv, name, tag, data)
 					}
 				} else {
 					initMysqlJSON(fv, pname, tag, data)
@@ -338,13 +345,9 @@ func initMysqlJSON(sv reflect.Value, pname string, tag string, data map[string]a
 		// 结构
 		if fk == reflect.Struct {
 			if pname != "" {
-				_name := pname + "." + name
-				_data := initMysqlJSON(fv, _name, tag, make(map[string]any))
-				if len(_data) > 0 {
-					data[_name] = _data
-				}
+				initMysqlJSON(fv, pname+"."+name, tag, data)
 			} else {
-				data[name] = initMysqlJSON(fv, "", tag, make(map[string]any))
+				initMysqlJSON(fv, name, tag, data)
 			}
 			continue
 		}
@@ -355,39 +358,4 @@ func initMysqlJSON(sv reflect.Value, pname string, tag string, data map[string]a
 			data[name] = fv.Interface()
 		}
 	}
-	return data
-}
-
-func initMysqlJSONSetExpr(kv map[string]any) clause.Expr {
-	var str strings.Builder
-	var vs []any
-	for k, v := range kv {
-		if _v, ok := v.(map[string]any); ok {
-			vs = append(vs, initMysqlJSONBuild2(&str, "$."+k, _v)...)
-		} else {
-			str.WriteString(",'$.")
-			str.WriteString(k)
-			str.WriteString("',?")
-			vs = append(vs, v)
-		}
-	}
-	str.WriteString(")")
-	return gorm.Expr(str.String(), vs...)
-}
-
-func initMysqlJSONBuild2(str *strings.Builder, pname string, kv map[string]any) []any {
-	var vs []any
-	for k, v := range kv {
-		if _v, ok := v.(map[string]any); ok {
-			vs = append(vs, initMysqlJSONBuild2(str, "."+k, _v)...)
-		} else {
-			str.WriteString(",'")
-			str.WriteString(pname)
-			str.WriteString(".")
-			str.WriteString(k)
-			str.WriteString("',?")
-			vs = append(vs, v)
-		}
-	}
-	return vs
 }
