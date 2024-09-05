@@ -13,6 +13,14 @@ type TimeoutContextPool struct {
 	d Map[string, *TimeoutContext]
 }
 
+// NewTimeoutContextPool 返回，然后做了初始化
+func NewTimeoutContextPool() *TimeoutContextPool {
+	p := new(TimeoutContextPool)
+	p.d.Init()
+	go p.routine()
+	return p
+}
+
 func (txp *TimeoutContextPool) routine() {
 	for {
 		now := time.Now()
