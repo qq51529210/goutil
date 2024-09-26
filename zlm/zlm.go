@@ -36,7 +36,7 @@ const (
 	// VHost 默认的 vhost
 	VHost = "__defaultVhost__"
 	// api path 前缀
-	apiPathPrefix = "/api/index"
+	apiPathPrefix = "/index/api"
 )
 
 // 定义一些错误以便全局使用，看名称猜意思
