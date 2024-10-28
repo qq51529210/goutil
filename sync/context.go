@@ -65,6 +65,7 @@ func (txp *TimeoutContextPool) New(id string, data any, dur time.Duration) (*Tim
 		tx.dur = dur
 		tx.UpdateDeadlineTime()
 		tx.done = make(chan struct{})
+		txp.d.D[id] = tx
 		return tx, true
 	}
 	return tx, false

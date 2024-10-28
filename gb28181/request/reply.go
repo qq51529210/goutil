@@ -1,25 +1,25 @@
 package request
 
 import (
-	gs "goutil/sync"
+	gsync "goutil/sync"
 	"time"
 )
 
 var (
-	replys gs.TimeoutContextPool
+	replys = gsync.NewTimeoutContextPool()
 )
 
 // Reply 用于有应答的请求，同步等待结果
-type Reply gs.TimeoutContext
+type Reply gsync.TimeoutContext
 
 // AddReply 添加
-func AddReply(deviceID, sn string, data any, timeout time.Duration) *gs.TimeoutContext {
+func AddReply(deviceID, sn string, data any, timeout time.Duration) *gsync.TimeoutContext {
 	tx, _ := replys.New(deviceID+sn, data, timeout)
 	return tx
 }
 
 // GetReply 获取
-func GetReply(deviceID, sn string) *gs.TimeoutContext {
+func GetReply(deviceID, sn string) *gsync.TimeoutContext {
 	return replys.Get(deviceID + sn)
 }
 
