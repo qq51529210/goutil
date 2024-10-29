@@ -15,15 +15,9 @@ func isNilOrEmpty(v reflect.Value) bool {
 		return true
 	}
 	k := v.Kind()
-	pk := k
-	// 指针
+	// 指针不是 nil 就不是零
 	if k == reflect.Pointer {
-		v = v.Elem()
-		k = v.Kind()
-		// nil
-		if !v.IsValid() {
-			return true
-		}
+		return !v.IsNil()
 	}
 	// 类型
 	switch k {
@@ -39,10 +33,6 @@ func isNilOrEmpty(v reflect.Value) bool {
 		}
 		return true
 	default:
-		// 其他，指针不是 nil 就不是零
-		if pk == reflect.Pointer {
-			return false
-		}
 		return v.IsZero()
 	}
 }
