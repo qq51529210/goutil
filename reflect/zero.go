@@ -17,7 +17,7 @@ func isNilOrEmpty(v reflect.Value) bool {
 	k := v.Kind()
 	// 指针不是 nil 就不是零
 	if k == reflect.Pointer {
-		return !v.IsNil()
+		return v.IsNil()
 	}
 	// 类型
 	switch k {
