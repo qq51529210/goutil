@@ -53,24 +53,32 @@ func (s *Chan[T]) Send(v T) bool {
 }
 
 // Signal 用于信号退出之类的
-type Signal struct {
+type Signal[T any] struct {
 	// 信号
 	C chan struct{}
+	// 并发
 	o int32
+	// 通知的数据
+	d T
 }
 
 // NewSignal 返回新的 Signal
-func NewSignal() *Signal {
-	s := new(Signal)
+func NewSignal[T any]() *Signal[T] {
+	s := new(Signal[T])
 	s.C = make(chan struct{})
 	return s
 }
 
 // Close 关闭，第一次关闭返回 true
-func (s *Signal) Close() bool {
+func (s *Signal[T]) Close(d T) bool {
 	if atomic.CompareAndSwapInt32(&s.o, 0, 1) {
+		s.d = d
 		close(s.C)
 		return true
 	}
 	return false
+}
+
+func (s *Signal[T]) Result() T {
+	return s.d
 }
