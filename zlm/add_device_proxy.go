@@ -9,7 +9,7 @@ type AddDeviceProxyReq struct {
 	// 流应用
 	App string `query:"app"`
 	// 流标识
-	Straem string `query:"stream"`
+	Stream string `query:"stream"`
 	// 拉流超时时间，单位秒，float类型
 	Timeout string `query:"timeout_sec"`
 	// 拉流重试次数,不传此参数或传值<=0时，则无限重试
