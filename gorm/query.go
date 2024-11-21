@@ -104,21 +104,21 @@ func initQuery(db *gorm.DB, v reflect.Value, tag string) *gorm.DB {
 			continue
 		}
 		// 没有 tag 不处理
-		tag := ft.Tag.Get(tag)
-		if tag == "" {
+		_tag := ft.Tag.Get(tag)
+		if _tag == "" {
 			continue
 		}
 		// eq=F
 		var name string
-		j := strings.Index(tag, "=")
+		j := strings.Index(_tag, "=")
 		if j < 0 {
 			name = ft.Name
 		} else {
-			name = tag[j+1:]
-			tag = tag[:j]
+			name = _tag[j+1:]
+			_tag = _tag[:j]
 		}
 		// 处理
-		fun := InitQueryFunc[tag]
+		fun := InitQueryFunc[_tag]
 		if fun == nil {
 			continue
 		}
