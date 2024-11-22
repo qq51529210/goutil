@@ -8,6 +8,8 @@ import (
 type Result[T any] struct {
 	// 追踪标识，用于日志快速定位
 	Trace string `json:"trace,omitempty"`
+	// 服务类型，用于日志快速定位发生错误的服务
+	Service string `json:"service,omitempty"`
 	// 错误码
 	Code int `json:"code"`
 	// 正确时返回的数据
