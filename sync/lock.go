@@ -44,11 +44,11 @@ func (l *Locker) routine() {
 		// 异常
 		l.Logger.Recover(recover())
 		// 日志
-		l.Logger.InfoTrace(l.Trace, "stop")
+		l.Logger.Debug(l.Trace, 0, "stop")
 	}()
 	defaultInterval := time.Second * 3
 	// 执行
-	l.Logger.InfoTrace(l.Trace, "start")
+	l.Logger.Debug(l.Trace, 0, "start")
 	timer := time.NewTimer(0)
 	for {
 		now := <-timer.C
@@ -72,7 +72,7 @@ func (l *Locker) handle(now *time.Time) {
 	var err error
 	l.locked, err = l.Lock()
 	if err != nil {
-		l.Logger.ErrorTrace(l.Trace, err)
+		l.Logger.Errorf(l.Trace, 0, "get lock error: %v", err)
 		return
 	}
 	// 抢到

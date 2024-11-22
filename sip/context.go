@@ -81,7 +81,7 @@ func (c *Request) Response(msg *Message) error {
 		return nil
 	}
 	// 日志
-	c.Ser.logger.DebugfTrace(c.ID(), "response to %s %s\n%v", c.RemoteNetwork, c.RemoteAddr, msg)
+	c.Ser.logger.DebugfStack(1, c.ID(), 0, "response to %s %s\n%v", c.RemoteNetwork, c.RemoteAddr, msg)
 	// 发送
 	return c.tx.writeMsg(c.conn, msg)
 }

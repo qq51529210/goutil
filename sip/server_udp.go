@@ -65,7 +65,7 @@ func (s *udpServer) Serve(address string) error {
 	s.w.Add(1)
 	go s.checkRTORoutine()
 	// 日志
-	s.s.logger.Infof("listen udp %s, read routine %d", address, n)
+	s.s.logger.Infof("", 0, "listen udp %s, read routine %d", address, n)
 	// 状态
 	atomic.StoreInt32(&s.ok, 1)
 	//
@@ -100,7 +100,7 @@ func (s *udpServer) readRoutine() {
 		// 读取 udp 数据
 		d.n, d.a, err = s.conn.ReadFromUDP(d.b)
 		if err != nil {
-			s.s.logger.Errorf("udp read data %v", err)
+			s.s.logger.Errorf("", 0, "udp read data error: %v", err)
 			continue
 		}
 		// 初始化准备解析
@@ -118,7 +118,7 @@ func (s *udpServer) readRoutine() {
 			m := new(Message)
 			if err = m.Dec(r, s.s.maxMessageLen); err != nil {
 				if err != io.EOF {
-					s.s.logger.Errorf("udp parse message %v", err)
+					s.s.logger.Errorf("", 0, "udp parse message error: %v", err)
 				}
 				break
 			}
@@ -139,12 +139,12 @@ func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 			t := s.newPassiveTx(msg.TxKey())
 			// 已经完成处理
 			if atomic.LoadInt32(&t.ok) == 1 {
-				s.s.logger.ErrorfTrace(t.id, "rewrite response")
+				s.s.logger.Debug(t.id, 0, "rewrite response cache")
 				// 有响应缓存，发送
 				d := t.dataBuff
 				if d != nil {
 					if err := conn.write(d.Bytes()); err != nil {
-						s.s.logger.ErrorfTrace(t.id, "rewrite response %v", err)
+						s.s.logger.Errorf(t.id, 0, "rewrite response cache error: %v", err)
 					}
 				}
 				return
@@ -185,12 +185,12 @@ func (s *udpServer) handleRequestRoutine(c *udpConn, t *udpPassiveTx, m *Message
 		// 结束
 		s.w.Done()
 		// 日志
-		s.s.logger.DebugfTrace(t.id, "cost %v", time.Since(cost))
+		s.s.logger.Debug(t.id, time.Since(cost), "handle done")
 		// 异常
 		s.s.logger.Recover(recover())
 	}()
 	// 日志
-	s.s.logger.DebugfTrace(t.id, "request from udp %s \n%v", c.remoteAddr, m)
+	s.s.logger.Debugf(t.id, 0, "request from udp %s \n%v", c.remoteAddr, m)
 	// 上下文
 	var ctx Request
 	ctx.tx = t
@@ -221,7 +221,7 @@ func (s *udpServer) handleResponseRoutine(c *udpConn, t *udpActiveTx, m *Message
 		s.s.logger.Recover(recover())
 	}()
 	// 日志
-	s.s.logger.DebugfTrace(t.id, "response from udp %s \n%v", c.remoteAddr, m)
+	s.s.logger.Debugf(t.id, 0, "response from udp %s \n%v", c.remoteAddr, m)
 	// 上下文
 	var ctx Response
 	ctx.tx = t
@@ -300,9 +300,10 @@ func (s *udpServer) rtoRoutine(wg *sync.WaitGroup, ts []*udpActiveTx, now time.T
 		// 是否超时
 		if now.Sub(*tt) >= t.rto {
 			if err := t.conn.write(d.Bytes()); err != nil {
-				s.s.logger.Errorf("rto %v", err)
+				s.s.logger.Errorf(t.id, 0, "rto rewrite error: %v", err)
 				continue
 			}
+			s.s.logger.Debug(t.id, 0, "rto rewrite")
 			// 保存发送时间
 			t.rtoTime = &now
 			// 如果没有到达最大值
@@ -507,7 +508,7 @@ func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr
 		}
 	}
 	// 日志
-	s.s.logger.DebugfTrace(t.id, "request to udp %s \n%v", conn.remoteAddr, msg)
+	s.s.logger.DebugfStack(1, t.id, 0, "request to udp %s \n%v", conn.remoteAddr, msg)
 	// 等待
 	var err error
 	select {
@@ -519,7 +520,7 @@ func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr
 		err = t.Err()
 	}
 	// 日志
-	s.s.logger.DebugfTrace(t.id, "cost %v", time.Since(cost))
+	s.s.logger.Debug(t.id, time.Since(cost), "done")
 	// 移除
 	s.deleteActiveTx(t, err)
 	if err == ErrFinish {

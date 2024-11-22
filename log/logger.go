@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"time"
 )
 
 const (
@@ -15,7 +16,8 @@ type Logger struct {
 	// 输出
 	io.Writer
 	// 头格式
-	Header FormatHeader
+	FormatHeader      FormatHeader
+	FormatStackHeader FormatStackHeader
 	// 是否禁止 debug
 	DisableDebug bool
 	// 是否禁止 info
@@ -32,10 +34,11 @@ type Logger struct {
 
 // NewLogger 返回默认的 Logger
 // 格式 "[name] [level] Header [tracID] text"
-func NewLogger(writer io.Writer, header FormatHeader, name, module string, disableLevels []string) *Logger {
+func NewLogger(writer io.Writer, name, module string, disableLevels ...string) *Logger {
 	lg := new(Logger)
 	lg.Writer = writer
-	lg.Header = header
+	lg.FormatHeader = DefaultHeader
+	lg.FormatStackHeader = FilePathHeader
 	//
 	if name != "" {
 		lg.name = fmt.Sprintf("[%s]", name)
@@ -45,7 +48,7 @@ func NewLogger(writer io.Writer, header FormatHeader, name, module string, disab
 	}
 	// 禁用级别
 	if len(disableLevels) > 0 {
-		lg.DisableLevels(disableLevels)
+		lg.DisableLevels(disableLevels...)
 	}
 	//
 	return lg
@@ -72,7 +75,7 @@ func (lg *Logger) DisableLevelBelow(level string) {
 }
 
 // DisableLevels 禁用级别，[debug,info,warn,error]
-func (lg *Logger) DisableLevels(levels []string) {
+func (lg *Logger) DisableLevels(levels ...string) {
 	for i := 0; i < len(levels); i++ {
 		switch levels[i] {
 		case "debug":
@@ -87,78 +90,25 @@ func (lg *Logger) DisableLevels(levels []string) {
 	}
 }
 
-func (lg *Logger) print(depth, level int, args ...any) {
-	l := logPool.Get().(*Log)
-	l.b = l.b[:0]
-	// 头
-	lg.Header(l, lg.name, lg.module, level, depth)
-	l.b = append(l.b, ' ')
-	// 日志
-	fmt.Fprint(l, args...)
-	// 换行
-	l.b = append(l.b, '\n')
-	// 输出
-	lg.Writer.Write(l.b)
-	// 回收
-	logPool.Put(l)
-}
-
-func (lg *Logger) printf(depth, level int, format string, args ...any) {
-	l := logPool.Get().(*Log)
-	l.b = l.b[:0]
-	// 头
-	lg.Header(l, lg.name, lg.module, level, depth)
-	l.b = append(l.b, ' ')
-	// 日志
-	fmt.Fprintf(l, format, args...)
-	// 换行
-	l.b = append(l.b, '\n')
-	// 输出
-	lg.Writer.Write(l.b)
-	// 回收
-	logPool.Put(l)
-}
-
-func (lg *Logger) printTrace(depth, level int, trace string, args ...any) {
-	l := logPool.Get().(*Log)
-	l.b = l.b[:0]
-	// 头
-	lg.Header(l, lg.name, lg.module, level, depth)
-	l.b = append(l.b, ' ')
-	// 追踪
-	l.b = append(l.b, '[')
-	l.b = append(l.b, trace...)
-	l.b = append(l.b, ']')
-	l.b = append(l.b, ' ')
-	// 日志
-	fmt.Fprint(l, args...)
-	// 换行
-	l.b = append(l.b, '\n')
-	// 输出
-	lg.Writer.Write(l.b)
-	// 回收
-	logPool.Put(l)
-}
-
-func (lg *Logger) printfTrace(depth, level int, trace, format string, args ...any) {
-	l := logPool.Get().(*Log)
-	l.b = l.b[:0]
-	// 头
-	lg.Header(l, lg.name, lg.module, level, depth)
-	l.b = append(l.b, ' ')
-	// 追踪
-	l.b = append(l.b, '[')
-	l.b = append(l.b, trace...)
-	l.b = append(l.b, ']')
-	l.b = append(l.b, ' ')
-	// 日志
-	fmt.Fprintf(l, format, args...)
-	// 换行
-	l.b = append(l.b, '\n')
-	// 输出
-	lg.Writer.Write(l.b)
-	// 回收
-	logPool.Put(l)
+func hasPanicGO(line []byte) bool {
+	for i := len(line) - 1; i > 1; i-- {
+		if line[i] == '/' {
+			for j := i; j < len(line); j++ {
+				if line[j] == 'p' &&
+					line[j+1] == 'a' &&
+					line[j+2] == 'n' &&
+					line[j+3] == 'i' &&
+					line[j+4] == 'c' &&
+					line[j+5] == '.' &&
+					line[j+6] == 'g' &&
+					line[j+7] == 'o' {
+					return true
+				}
+			}
+			return false
+		}
+	}
+	return false
 }
 
 // Recover 如果 recover 不为 nil，输出堆栈
@@ -181,7 +131,7 @@ func (lg *Logger) Recover(v any) bool {
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 头
-	lg.Header(l, lg.name, lg.module, panicLevel, -1)
+	lg.FormatHeader(l, lg.name, lg.module, _PanicLevel)
 	l.b = append(l.b, ' ')
 	// 日志
 	fmt.Fprintf(l, "%v", v)
@@ -232,247 +182,156 @@ func (lg *Logger) Recover(v any) bool {
 	return true
 }
 
-func hasPanicGO(line []byte) bool {
-	for i := len(line) - 1; i > 1; i-- {
-		if line[i] == '/' {
-			for j := i; j < len(line); j++ {
-				if line[j] == 'p' &&
-					line[j+1] == 'a' &&
-					line[j+2] == 'n' &&
-					line[j+3] == 'i' &&
-					line[j+4] == 'c' &&
-					line[j+5] == '.' &&
-					line[j+6] == 'g' &&
-					line[j+7] == 'o' {
-					return true
-				}
-			}
-			return false
-		}
+func (lg *Logger) log(level int, trace string, cost time.Duration, text string) {
+	l := logPool.Get().(*Log)
+	l.b = l.b[:0]
+	// 头
+	lg.FormatHeader(l, lg.name, lg.module, level)
+	// trace
+	if trace != "" {
+		l.b = append(l.b, ' ')
+		l.b = append(l.b, '[')
+		l.b = append(l.b, trace...)
+		l.b = append(l.b, ']')
 	}
-	return false
+	// cost
+	if cost > 0 {
+		l.b = append(l.b, ' ')
+		l.b = append(l.b, '[')
+		l.b = append(l.b, cost.String()...)
+		l.b = append(l.b, ']')
+	}
+	l.b = append(l.b, ' ')
+	l.b = append(l.b, text...)
+	// 换行
+	l.b = append(l.b, '\n')
+	// 输出
+	lg.Writer.Write(l.b)
+	// 回收
+	logPool.Put(l)
 }
 
-// Debug 输出日志
-func (lg *Logger) Debug(args ...any) {
+func (lg *Logger) stackLog(depth, level int, trace string, cost time.Duration, text string) {
+	l := logPool.Get().(*Log)
+	l.b = l.b[:0]
+	// 头
+	lg.FormatStackHeader(l, lg.name, lg.module, level, depth)
+	// trace
+	if trace != "" {
+		l.b = append(l.b, ' ')
+		l.b = append(l.b, '[')
+		l.b = append(l.b, trace...)
+		l.b = append(l.b, ']')
+	}
+	// cost
+	if cost > 0 {
+		l.b = append(l.b, ' ')
+		l.b = append(l.b, '[')
+		l.b = append(l.b, cost.String()...)
+		l.b = append(l.b, ']')
+	}
+	l.b = append(l.b, ' ')
+	l.b = append(l.b, text...)
+	// 换行
+	l.b = append(l.b, '\n')
+	// 输出
+	lg.Writer.Write(l.b)
+	// 回收
+	logPool.Put(l)
+}
+
+func (lg *Logger) Debug(trace string, cost time.Duration, args ...any) {
 	if !lg.DisableDebug {
-		lg.print(loggerDepth, debugLevel, args...)
+		lg.log(_DebugLevel, trace, cost, fmt.Sprint(args...))
 	}
 }
 
-// Debugf 输出日志
-func (lg *Logger) Debugf(format string, args ...any) {
+func (lg *Logger) Debugf(trace string, cost time.Duration, format string, args ...any) {
 	if !lg.DisableDebug {
-		lg.printf(loggerDepth, debugLevel, format, args...)
+		lg.log(_DebugLevel, trace, cost, fmt.Sprintf(format, args...))
 	}
 }
 
-// DebugDepth 输出日志
-func (lg *Logger) DebugDepth(depth int, args ...any) {
+func (lg *Logger) DebugStack(depth int, trace string, cost time.Duration, args ...any) {
 	if !lg.DisableDebug {
-		lg.print(loggerDepth+depth, debugLevel, args...)
+		lg.stackLog(loggerDepth+depth, _DebugLevel, trace, cost, fmt.Sprint(args...))
 	}
 }
 
-// DebugfDepth 输出日志
-func (lg *Logger) DebugfDepth(depth int, format string, args ...any) {
+func (lg *Logger) DebugfStack(depth int, trace string, cost time.Duration, format string, args ...any) {
 	if !lg.DisableDebug {
-		lg.printf(loggerDepth+depth, debugLevel, format, args...)
+		lg.stackLog(loggerDepth+depth, _DebugLevel, trace, cost, fmt.Sprintf(format, args...))
 	}
 }
 
-// DebugTrace 输出日志
-func (lg *Logger) DebugTrace(traceID string, args ...any) {
-	if !lg.DisableDebug {
-		lg.printTrace(loggerDepth, debugLevel, traceID, args...)
-	}
-}
-
-// DebugfTrace 输出日志
-func (lg *Logger) DebugfTrace(traceID, format string, args ...any) {
-	if !lg.DisableDebug {
-		lg.printfTrace(loggerDepth, debugLevel, traceID, format, args...)
-	}
-}
-
-// DebugDepthTrace 输出日志
-func (lg *Logger) DebugDepthTrace(depth int, traceID string, args ...any) {
-	if !lg.DisableDebug {
-		lg.printTrace(loggerDepth+depth, debugLevel, traceID, args...)
-	}
-}
-
-// DebugfDepthTrace 输出日志
-func (lg *Logger) DebugfDepthTrace(depth int, traceID, format string, args ...any) {
-	if !lg.DisableDebug {
-		lg.printfTrace(loggerDepth+depth, debugLevel, traceID, format, args...)
-	}
-}
-
-// Info 输出日志
-func (lg *Logger) Info(args ...any) {
+func (lg *Logger) Info(trace string, cost time.Duration, args ...any) {
 	if !lg.DisableInfo {
-		lg.print(loggerDepth, infoLevel, args...)
+		lg.log(_InfoLevel, trace, cost, fmt.Sprint(args...))
 	}
 }
 
-// Infof 输出日志
-func (lg *Logger) Infof(format string, args ...any) {
+func (lg *Logger) Infof(trace string, cost time.Duration, format string, args ...any) {
 	if !lg.DisableInfo {
-		lg.printf(loggerDepth, infoLevel, format, args...)
+		lg.log(_InfoLevel, trace, cost, fmt.Sprintf(format, args...))
 	}
 }
 
-// InfoDepth 输出日志
-func (lg *Logger) InfoDepth(depth int, args ...any) {
+func (lg *Logger) InfoStack(depth int, trace string, cost time.Duration, args ...any) {
 	if !lg.DisableInfo {
-		lg.print(loggerDepth+depth, infoLevel, args...)
+		lg.stackLog(loggerDepth+depth, _InfoLevel, trace, cost, fmt.Sprint(args...))
 	}
 }
 
-// InfofDepth 输出日志
-func (lg *Logger) InfofDepth(depth int, format string, args ...any) {
+func (lg *Logger) InfofStack(depth int, trace string, cost time.Duration, format string, args ...any) {
 	if !lg.DisableInfo {
-		lg.printf(loggerDepth+depth, infoLevel, format, args...)
+		lg.stackLog(loggerDepth+depth, _InfoLevel, trace, cost, fmt.Sprintf(format, args...))
 	}
 }
 
-// InfoTrace 输出日志
-func (lg *Logger) InfoTrace(traceID string, args ...any) {
-	if !lg.DisableInfo {
-		lg.printTrace(loggerDepth, infoLevel, traceID, args...)
-	}
-}
-
-// InfofTrace 输出日志
-func (lg *Logger) InfofTrace(traceID, format string, args ...any) {
-	if !lg.DisableInfo {
-		lg.printfTrace(loggerDepth, infoLevel, traceID, format, args...)
-	}
-}
-
-// InfoDepthTrace 输出日志
-func (lg *Logger) InfoDepthTrace(depth int, traceID string, args ...any) {
-	if !lg.DisableInfo {
-		lg.printTrace(loggerDepth+depth, infoLevel, traceID, args...)
-	}
-}
-
-// InfofDepthTrace 输出日志
-func (lg *Logger) InfofDepthTrace(depth int, traceID, format string, args ...any) {
-	if !lg.DisableInfo {
-		lg.printfTrace(loggerDepth+depth, infoLevel, traceID, format, args...)
-	}
-}
-
-// Warn 输出日志
-func (lg *Logger) Warn(args ...any) {
+func (lg *Logger) Warn(trace string, cost time.Duration, args ...any) {
 	if !lg.DisableWarn {
-		lg.print(loggerDepth, warnLevel, args...)
+		lg.log(_WarnLevel, trace, cost, fmt.Sprint(args...))
 	}
 }
 
-// Warnf 输出日志
-func (lg *Logger) Warnf(format string, args ...any) {
+func (lg *Logger) Warnf(trace string, cost time.Duration, format string, args ...any) {
 	if !lg.DisableWarn {
-		lg.printf(loggerDepth, warnLevel, format, args...)
+		lg.log(_WarnLevel, trace, cost, fmt.Sprintf(format, args...))
 	}
 }
 
-// WarnDepth 输出日志
-func (lg *Logger) WarnDepth(depth int, args ...any) {
+func (lg *Logger) WarnStack(depth int, trace string, cost time.Duration, args ...any) {
 	if !lg.DisableWarn {
-		lg.print(loggerDepth+depth, warnLevel, args...)
+		lg.stackLog(loggerDepth+depth, _WarnLevel, trace, cost, fmt.Sprint(args...))
 	}
 }
 
-// WarnfDepth 输出日志
-func (lg *Logger) WarnfDepth(depth int, format string, args ...any) {
+func (lg *Logger) WarnfStack(depth int, trace string, cost time.Duration, format string, args ...any) {
 	if !lg.DisableWarn {
-		lg.printf(loggerDepth+depth, warnLevel, format, args...)
+		lg.stackLog(loggerDepth+depth, _WarnLevel, trace, cost, fmt.Sprintf(format, args...))
 	}
 }
 
-// WarnTrace 输出日志
-func (lg *Logger) WarnTrace(traceID string, args ...any) {
-	if !lg.DisableWarn {
-		lg.printTrace(loggerDepth, warnLevel, traceID, args...)
-	}
-}
-
-// WarnfTrace 输出日志
-func (lg *Logger) WarnfTrace(traceID, format string, args ...any) {
-	if !lg.DisableWarn {
-		lg.printfTrace(loggerDepth, warnLevel, traceID, format, args...)
-	}
-}
-
-// WarnDepthTrace 输出日志
-func (lg *Logger) WarnDepthTrace(depth int, traceID string, args ...any) {
-	if !lg.DisableWarn {
-		lg.printTrace(loggerDepth+depth, warnLevel, traceID, args...)
-	}
-}
-
-// WarnfDepthTrace 输出日志
-func (lg *Logger) WarnfDepthTrace(depth int, traceID, format string, args ...any) {
-	if !lg.DisableWarn {
-		lg.printfTrace(loggerDepth+depth, warnLevel, traceID, format, args...)
-	}
-}
-
-// Error 输出日志
-func (lg *Logger) Error(args ...any) {
+func (lg *Logger) Error(trace string, cost time.Duration, args ...any) {
 	if !lg.DisableError {
-		lg.print(loggerDepth, errorLevel, args...)
+		lg.log(_ErrorLevel, trace, cost, fmt.Sprint(args...))
 	}
 }
 
-// Errorf 输出日志
-func (lg *Logger) Errorf(format string, args ...any) {
+func (lg *Logger) Errorf(trace string, cost time.Duration, format string, args ...any) {
 	if !lg.DisableError {
-		lg.printf(loggerDepth, errorLevel, format, args...)
+		lg.log(_ErrorLevel, trace, cost, fmt.Sprintf(format, args...))
 	}
 }
 
-// ErrorDepth 输出日志
-func (lg *Logger) ErrorDepth(depth int, args ...any) {
+func (lg *Logger) ErrorStack(depth int, trace string, cost time.Duration, args ...any) {
 	if !lg.DisableError {
-		lg.print(loggerDepth+depth, errorLevel, args...)
+		lg.stackLog(loggerDepth+depth, _ErrorLevel, trace, cost, fmt.Sprint(args...))
 	}
 }
 
-// ErrorfDepth 输出日志
-func (lg *Logger) ErrorfDepth(depth int, format string, args ...any) {
+func (lg *Logger) ErrorfStack(depth int, trace string, cost time.Duration, format string, args ...any) {
 	if !lg.DisableError {
-		lg.printf(loggerDepth+depth, errorLevel, format, args...)
-	}
-}
-
-// ErrorTrace 输出日志
-func (lg *Logger) ErrorTrace(traceID string, args ...any) {
-	if !lg.DisableError {
-		lg.printTrace(loggerDepth, errorLevel, traceID, args...)
-	}
-}
-
-// ErrorfTrace 输出日志
-func (lg *Logger) ErrorfTrace(traceID, format string, args ...any) {
-	if !lg.DisableError {
-		lg.printfTrace(loggerDepth, errorLevel, traceID, format, args...)
-	}
-}
-
-// ErrorDepthTrace 输出日志
-func (lg *Logger) ErrorDepthTrace(depth int, traceID string, args ...any) {
-	if !lg.DisableError {
-		lg.printTrace(loggerDepth+depth, errorLevel, traceID, args...)
-	}
-}
-
-// ErrorfDepthTrace 输出日志
-func (lg *Logger) ErrorfDepthTrace(depth int, traceID, format string, args ...any) {
-	if !lg.DisableError {
-		lg.printfTrace(loggerDepth+depth, errorLevel, traceID, format, args...)
+		lg.stackLog(loggerDepth+depth, _ErrorLevel, trace, cost, fmt.Sprintf(format, args...))
 	}
 }

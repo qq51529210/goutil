@@ -20,8 +20,8 @@ func FormatTime(log *Log) {
 	log.IntRightAlign(int(month), 2)
 	log.b = append(log.b, '-')
 	log.IntRightAlign(day, 2)
-	log.b = append(log.b, ' ')
 	// Time
+	log.b = append(log.b, ' ')
 	log.IntRightAlign(hour, 2)
 	log.b = append(log.b, ':')
 	log.IntRightAlign(minute, 2)
@@ -33,12 +33,82 @@ func FormatTime(log *Log) {
 	log.b = append(log.b, ']')
 }
 
+type StatckError[T any] struct {
+	// 追踪
+	Trace string
+	// 文件名
+	Name string
+	// 行号
+	Line int
+	// 错误字符串
+	Err string
+	// 自定义数据
+	Data T
+}
+
+// Error 实现接口
+func (e *StatckError[T]) Error() string {
+	return e.Err
+}
+
+// String 返回 [Name:Line] [Trace] Err
+func (e *StatckError[T]) String() string {
+	if e.Name == "" {
+		if e.Trace == "" {
+			return e.Err
+		}
+		return fmt.Sprintf("[%s] %s", e.Trace, e.Err)
+	}
+	if e.Trace == "" {
+		return fmt.Sprintf("[%s:%d] %s", e.Name, e.Line, e.Err)
+	}
+	return fmt.Sprintf("[%s:%d] [%s] %s", e.Name, e.Line, e.Trace, e.Err)
+}
+
+func NewFileNameError[T any](depth int, trace string, data T, err error) *StatckError[T] {
+	_, path, line, ok := runtime.Caller(depth + 1)
+	if !ok {
+		path = "???"
+		line = -1
+	} else {
+		for i := len(path) - 1; i > 0; i-- {
+			if os.IsPathSeparator(path[i]) {
+				path = path[i+1:]
+				break
+			}
+		}
+	}
+	return &StatckError[T]{
+		Trace: trace,
+		Name:  path,
+		Line:  line,
+		Err:   err.Error(),
+		Data:  data,
+	}
+}
+
+func NewFilePathError[T any](depth int, trace string, data T, err error) *StatckError[T] {
+	_, path, line, ok := runtime.Caller(depth + 1)
+	if !ok {
+		path = "???"
+		line = -1
+	}
+	return &StatckError[T]{
+		Trace: trace,
+		Name:  path,
+		Line:  line,
+		Err:   err.Error(),
+		Data:  data,
+	}
+}
+
 // FormatHeader 用于格式化日志头
 // depth < 0 用于表示没有堆栈，用于 panic 的
-type FormatHeader func(log *Log, name, module string, level, depth int)
+type FormatHeader func(log *Log, name, module string, level int)
+type FormatStackHeader func(log *Log, name, module string, level, depth int)
 
 // DefaultHeader 输出 [level] [2006-01-02 15:04:05.000000000] [name] [module]
-func DefaultHeader(log *Log, name, module string, level, depth int) {
+func DefaultHeader(log *Log, name, module string, level int) {
 	// 级别
 	log.b = append(log.b, levels[level]...)
 	// 时间
@@ -53,10 +123,6 @@ func DefaultHeader(log *Log, name, module string, level, depth int) {
 		log.b = append(log.b, ' ')
 		log.b = append(log.b, module...)
 	}
-	// // []
-	// log.b = append(log.b, ' ')
-	// log.b = append(log.b, '[')
-	// log.b = append(log.b, ']')
 }
 
 // FileNameHeader 输出 [level] [2006-01-02 15:04:05.000000000] [name] [module] [fileName:fileLine]
@@ -130,73 +196,4 @@ func FilePathHeader(log *Log, name, module string, level, depth int) {
 	log.b = append(log.b, ':')
 	log.Int(line)
 	log.b = append(log.b, ']')
-}
-
-type StatckError[T any] struct {
-	// 追踪
-	Trace string
-	// 文件名
-	Name string
-	// 行号
-	Line int
-	// 错误字符串
-	Err string
-	// 自定义数据
-	Data T
-}
-
-// Error 实现接口
-func (e *StatckError[T]) Error() string {
-	return e.Err
-}
-
-// String 返回 [Name:Line] [Trace] Err
-func (e *StatckError[T]) String() string {
-	if e.Name == "" {
-		if e.Trace == "" {
-			return e.Err
-		}
-		return fmt.Sprintf("[%s] %s", e.Trace, e.Err)
-	}
-	if e.Trace == "" {
-		return fmt.Sprintf("[%s:%d] %s", e.Name, e.Line, e.Err)
-	}
-	return fmt.Sprintf("[%s:%d] [%s] %s", e.Name, e.Line, e.Trace, e.Err)
-}
-
-func NewFileNameError[T any](depth int, trace string, data T, err error) *StatckError[T] {
-	_, path, line, ok := runtime.Caller(depth + 1)
-	if !ok {
-		path = "???"
-		line = -1
-	} else {
-		for i := len(path) - 1; i > 0; i-- {
-			if os.IsPathSeparator(path[i]) {
-				path = path[i+1:]
-				break
-			}
-		}
-	}
-	return &StatckError[T]{
-		Trace: trace,
-		Name:  path,
-		Line:  line,
-		Err:   err.Error(),
-		Data:  data,
-	}
-}
-
-func NewFilePathError[T any](depth int, trace string, data T, err error) *StatckError[T] {
-	_, path, line, ok := runtime.Caller(depth + 1)
-	if !ok {
-		path = "???"
-		line = -1
-	}
-	return &StatckError[T]{
-		Trace: trace,
-		Name:  path,
-		Line:  line,
-		Err:   err.Error(),
-		Data:  data,
-	}
 }

@@ -1,6 +1,9 @@
 package log
 
-import "os"
+import (
+	"os"
+	"time"
+)
 
 var (
 	// 级别
@@ -11,111 +14,64 @@ var (
 
 // 包接口
 var (
-	// Debug
-	Debug            func(args ...any)
-	Debugf           func(format string, args ...any)
-	DebugDepth       func(depth int, args ...any)
-	DebugfDepth      func(depth int, format string, args ...any)
-	DebugTrace       func(traceID string, args ...any)
-	DebugfTrace      func(traceID, format string, args ...any)
-	DebugDepthTrace  func(depth int, traceID string, args ...any)
-	DebugfDepthTrace func(depth int, traceID, format string, args ...any)
-	// Info
-	Info            func(args ...any)
-	Infof           func(format string, args ...any)
-	InfoDepth       func(depth int, args ...any)
-	InfofDepth      func(depth int, format string, args ...any)
-	InfoTrace       func(traceID string, args ...any)
-	InfofTrace      func(traceID, format string, args ...any)
-	InfoDepthTrace  func(depth int, traceID string, args ...any)
-	InfofDepthTrace func(depth int, traceID, format string, args ...any)
-	// Warn
-	Warn            func(args ...any)
-	Warnf           func(format string, args ...any)
-	WarnDepth       func(depth int, args ...any)
-	WarnfDepth      func(depth int, format string, args ...any)
-	WarnTrace       func(traceID string, args ...any)
-	WarnfTrace      func(traceID, format string, args ...any)
-	WarnDepthTrace  func(depth int, traceID string, args ...any)
-	WarnfDepthTrace func(depth int, traceID, format string, args ...any)
-	// Error
-	Error            func(args ...any)
-	Errorf           func(format string, args ...any)
-	ErrorDepth       func(depth int, args ...any)
-	ErrorfDepth      func(depth int, format string, args ...any)
-	ErrorTrace       func(traceID string, args ...any)
-	ErrorfTrace      func(traceID, format string, args ...any)
-	ErrorDepthTrace  func(depth int, traceID string, args ...any)
-	ErrorfDepthTrace func(depth int, traceID, format string, args ...any)
-	// Recover
+	Debug func(trace string, cost time.Duration, args ...any)
+	Info  func(trace string, cost time.Duration, args ...any)
+	Warn  func(trace string, cost time.Duration, args ...any)
+	Error func(trace string, cost time.Duration, args ...any)
+	//
+	Debugf func(trace string, cost time.Duration, format string, args ...any)
+	Infof  func(trace string, cost time.Duration, format string, args ...any)
+	Warnf  func(trace string, cost time.Duration, format string, args ...any)
+	Errorf func(trace string, cost time.Duration, format string, args ...any)
+	//
+	DebugStack func(depth int, trace string, cost time.Duration, args ...any)
+	InfoStack  func(depth int, trace string, cost time.Duration, args ...any)
+	WarnStack  func(depth int, trace string, cost time.Duration, args ...any)
+	ErrorStack func(depth int, trace string, cost time.Duration, args ...any)
+	//
+	DebugfStack func(depth int, trace string, cost time.Duration, format string, args ...any)
+	InfofStack  func(depth int, trace string, cost time.Duration, format string, args ...any)
+	WarnfStack  func(depth int, trace string, cost time.Duration, format string, args ...any)
+	ErrorfStack func(depth int, trace string, cost time.Duration, format string, args ...any)
+	//
 	Recover func(recover any) bool
 )
 
 const (
-	debugLevel = iota
-	infoLevel
-	warnLevel
-	errorLevel
-	panicLevel
+	_DebugLevel = iota
+	_InfoLevel
+	_WarnLevel
+	_ErrorLevel
+	_PanicLevel
 )
 
 func init() {
-	SetLogger(NewLogger(os.Stdout, DefaultHeader, "", "", nil))
+	SetLogger(NewLogger(os.Stdout, "", ""))
 }
 
 // SetLogger 设置默认的 Logger 和所有的包函数
 func SetLogger(lg *Logger) {
-	// Debug
-	Debug = lg.Debug
-	Debugf = lg.Debugf
-	DebugDepth = lg.DebugDepth
-	DebugfDepth = lg.DebugfDepth
-	DebugTrace = lg.DebugTrace
-	DebugfTrace = lg.DebugfTrace
-	DebugDepthTrace = lg.DebugDepthTrace
-	DebugfDepthTrace = lg.DebugfDepthTrace
-	// Info
-	Info = lg.Info
-	Infof = lg.Infof
-	InfoDepth = lg.InfoDepth
-	InfofDepth = lg.InfofDepth
-	InfoTrace = lg.InfoTrace
-	InfofTrace = lg.InfofTrace
-	InfoDepthTrace = lg.InfoDepthTrace
-	InfofDepthTrace = lg.InfofDepthTrace
-	// Warn
-	Warn = lg.Warn
-	Warnf = lg.Warnf
-	WarnDepth = lg.WarnDepth
-	WarnfDepth = lg.WarnfDepth
-	WarnTrace = lg.WarnTrace
-	WarnfTrace = lg.WarnfTrace
-	WarnDepthTrace = lg.WarnDepthTrace
-	WarnfDepthTrace = lg.WarnfDepthTrace
-	// Error
-	Error = lg.Error
-	Errorf = lg.Errorf
-	ErrorDepth = lg.ErrorDepth
-	ErrorfDepth = lg.ErrorfDepth
-	ErrorTrace = lg.ErrorTrace
-	ErrorfTrace = lg.ErrorfTrace
-	ErrorDepthTrace = lg.ErrorDepthTrace
-	ErrorfDepthTrace = lg.ErrorfDepthTrace
-	// Recover
 	Recover = lg.Recover
 	//
+	Debug = lg.Debug
+	Info = lg.Info
+	Warn = lg.Warn
+	Error = lg.Error
+	//
+	Debugf = lg.Debugf
+	Infof = lg.Infof
+	Warnf = lg.Warnf
+	Errorf = lg.Errorf
+	//
+	DebugStack = lg.DebugStack
+	InfoStack = lg.InfoStack
+	WarnStack = lg.WarnStack
+	ErrorStack = lg.ErrorStack
+	//
+	DebugfStack = lg.DebugfStack
+	InfofStack = lg.InfofStack
+	WarnfStack = lg.WarnfStack
+	ErrorfStack = lg.ErrorfStack
+	//
 	DefaultLogger = lg
-}
-
-// Header 返回日志头格式化函数
-// name: fileName/filePath/default
-func Header(name string) FormatHeader {
-	switch name {
-	case "fileName":
-		return FileNameHeader
-	case "filePath":
-		return FilePathHeader
-	default:
-		return DefaultHeader
-	}
 }

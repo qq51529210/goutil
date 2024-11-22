@@ -31,6 +31,8 @@ func Logger(ctx *gin.Context) {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 		}
 	}()
+	// 时间
+	old := time.Now()
 	// 追踪 id
 	traceID := ctx.GetHeader(LogHeaderTrace)
 	if traceID == "" {
@@ -41,11 +43,8 @@ func Logger(ctx *gin.Context) {
 	if addr := ctx.GetHeader(LogHeaderRemoteAddr); addr != "" {
 		ctx.Request.RemoteAddr = addr
 	}
-	// 日志
-	LogLogger.DebugfTrace(traceID, "%s %s %s", ctx.Request.RemoteAddr, ctx.Request.Method, ctx.Request.URL.Path)
 	// 执行
-	old := time.Now()
 	ctx.Next()
 	// 日志
-	LogLogger.DebugfTrace(traceID, "cost %v", time.Since(old))
+	LogLogger.Debugf(traceID, time.Since(old), "%s %s %s", ctx.Request.RemoteAddr, ctx.Request.Method, ctx.Request.URL.Path)
 }
