@@ -9,9 +9,9 @@ import (
 	"net/url"
 )
 
-var (
+const (
 	// ContentTypeJSON header Content-Type
-	ContentTypeJSON = []string{"application/json; charset=utf-8"}
+	ContentTypeJSON = "application/json; charset=utf-8"
 )
 
 // JSONClient 封装 http 请求代码
@@ -38,15 +38,18 @@ func JSONRequest(ctx context.Context, client *http.Client, method, url string, q
 		json.NewEncoder(buf).Encode(data)
 		body = buf
 	}
-	return Request(ctx, client, method, url, query, body, onResponse)
+	return Request(ctx, client, method, url, query, map[string]string{"Content-Type": ContentTypeJSON}, body, onResponse)
 }
 
 // Request 封装 http 请求
-func Request(ctx context.Context, client *http.Client, method, url string, query url.Values, body io.Reader, onResponse func(res *http.Response) error) error {
+func Request(ctx context.Context, client *http.Client, method, url string, query url.Values, header map[string]string, body io.Reader, onResponse func(res *http.Response) error) error {
 	// 请求
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return err
+	}
+	for k, v := range header {
+		req.Header.Set(k, v)
 	}
 	// 参数
 	if query != nil {
