@@ -31,17 +31,26 @@ func SendRecordInfo(ctx context.Context, m *RecordInfo) error {
 	if body.SumNum == 0 {
 		return request.SendMessage(ctx, m.Ser, m.Cascade, &body, m)
 	}
-	// 一条一条的发送
-	body.RecordList.Item = make([]*xml.Record, 1)
+	// 3 条一起吧，差不多 1500 了
+	body.RecordList.Item = make([]*xml.Record, 0, 3)
 	body.RecordList.Num = int64(len(body.RecordList.Item))
 	for len(items) > 0 {
-		body.RecordList.Item[0] = items[0]
+		body.RecordList.Item = body.RecordList.Item[:0]
+		body.RecordList.Num = 0
+		for i := 0; i < cap(body.RecordList.Item); i++ {
+			if len(items) < 1 {
+				break
+			}
+			body.RecordList.Item = append(body.RecordList.Item, items[0])
+			body.RecordList.Num++
+			items = items[1:]
+			// 这个要替换一下
+			body.RecordList.Item[i].DeviceID = m.DeviceID
+		}
 		// 这个要替换一下
-		body.RecordList.Item[0].DeviceID = m.DeviceID
 		if err := request.SendMessage(ctx, m.Ser, m.Cascade, &body, m); err != nil {
 			return err
 		}
-		items = items[1:]
 	}
 	return nil
 }

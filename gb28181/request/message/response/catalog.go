@@ -31,7 +31,7 @@ func SendCatalog(ctx context.Context, m *Catalog) error {
 	if body.SumNum == 0 {
 		return request.SendMessage(ctx, m.Ser, m.Cascade, &body, m)
 	}
-	// 一条一条的发送
+	// 一条一条的发送，2 条就可能超 1500 了
 	body.DeviceList.Item = make([]*xml.Device, 1)
 	body.DeviceList.Num = int64(len(body.DeviceList.Item))
 	for len(items) > 0 {
