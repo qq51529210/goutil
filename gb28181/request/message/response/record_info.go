@@ -13,7 +13,6 @@ type RecordInfo struct {
 	Cascade  request.Request
 	SN       string
 	DeviceID string
-	SumNum   int64
 	Items    []*xml.Record
 }
 
@@ -26,7 +25,7 @@ func SendRecordInfo(ctx context.Context, m *RecordInfo) error {
 	body.CmdType = xml.CmdRecordInfo
 	body.SN = m.SN
 	body.DeviceID = m.DeviceID
-	body.SumNum = m.SumNum
+	body.SumNum = int64(len(items))
 	body.RecordList = new(xml.MessageRecordList)
 	// 发送
 	if body.SumNum == 0 {
