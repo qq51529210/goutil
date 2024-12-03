@@ -35,6 +35,8 @@ type Server struct {
 	udp udpServer
 	// tcp 服务
 	tcp tcpServer
+	// 用户上下文数据
+	Data any
 }
 
 // NewServer 必须用这个创建
