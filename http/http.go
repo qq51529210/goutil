@@ -18,6 +18,8 @@ type Result[T any] struct {
 	Msg string `json:"msg,omitempty"`
 	// 错误详细
 	Err string `json:"err,omitempty"`
+	// 额外的数据，用户自定义
+	Ext string `json:"ext,omitempty"`
 }
 
 // Error 实现 error 接口
