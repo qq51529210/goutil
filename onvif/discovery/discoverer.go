@@ -60,31 +60,6 @@ type discoverer struct {
 	data map[string]int
 }
 
-func (d *discoverer) init(iface, addr string) error {
-	// 网卡
-	ifa, err := net.InterfaceByName(iface)
-	if err != nil {
-		return err
-	}
-	// 多播地址
-	a, err := net.ResolveUDPAddr("udp4", addr)
-	if err != nil {
-		return err
-	}
-	d.addr = a
-	// 底层连接
-	c, err := net.ListenMulticastUDP(d.addr.Network(), ifa, &net.UDPAddr{
-		IP:   d.addr.IP,
-		Port: 0,
-	})
-	if err != nil {
-		return err
-	}
-	d.conn = c
-	//
-	return nil
-}
-
 func (d *discoverer) writeRoutine(wg *sync.WaitGroup) {
 	// 计时器
 	timer := time.NewTimer(0)
@@ -190,11 +165,48 @@ func (d *discoverer) discover(ctx context.Context, duration time.Duration) ([]st
 	return ms, nil
 }
 
-// Discover 发现一次，然后关闭 conn
-func Discover(ctx context.Context, iface, addr string, duration time.Duration) ([]string, error) {
+// DiscoverMulticast 使用组播地址发现
+func DiscoverMulticast(ctx context.Context, iface, addr string, duration time.Duration) ([]string, error) {
 	d := new(discoverer)
-	if err := d.init(iface, addr); err != nil {
+	// 网卡
+	ifa, err := net.InterfaceByName(iface)
+	if err != nil {
 		return nil, err
 	}
+	// 多播地址
+	a, err := net.ResolveUDPAddr("udp4", addr)
+	if err != nil {
+		return nil, err
+	}
+	d.addr = a
+	// 底层连接
+	c, err := net.ListenMulticastUDP(d.addr.Network(), ifa, &net.UDPAddr{
+		IP:   d.addr.IP,
+		Port: 0,
+	})
+	if err != nil {
+		return nil, err
+	}
+	d.conn = c
+	//
+	return d.discover(ctx, duration)
+}
+
+// DiscoverAddress 使用指定地址发现
+func DiscoverAddress(ctx context.Context, addr string, duration time.Duration) ([]string, error) {
+	d := new(discoverer)
+	// 多播地址
+	a, err := net.ResolveUDPAddr("udp4", addr)
+	if err != nil {
+		return nil, err
+	}
+	d.addr = a
+	// 底层连接
+	c, err := net.ListenUDP(d.addr.Network(), nil)
+	if err != nil {
+		return nil, err
+	}
+	d.conn = c
+	//
 	return d.discover(ctx, duration)
 }
