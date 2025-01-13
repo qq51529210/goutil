@@ -465,7 +465,7 @@ func (s *tcpServer) Request(ctx context.Context, msg *Message, addr *net.TCPAddr
 		}
 	}
 	// 日志
-	s.s.logger.DebugfStack(1, t.id, 0, "request to tcp %s \n%v", conn.remoteAddr, msg)
+	s.s.logger.Debugf(t.id, 0, "request to tcp %s \n%v", conn.remoteAddr, msg)
 	// 等待
 	var err error
 	select {
