@@ -27,6 +27,7 @@ var (
 		"lt":     QueryLT,
 		"lte":    QueryLTE,
 		"null":   QueryNULL,
+		"nnull":  QueryNotNULL,
 		"select": QuerySelect,
 		"omit":   QueryOmit,
 	}
@@ -213,6 +214,26 @@ func QueryNULL(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind
 		return db
 	}
 	if ok {
+		return db.Where(fmt.Sprintf("`%s` IS NOT NULL", field))
+	}
+	return db.Where(fmt.Sprintf("`%s` IS NULL", field))
+}
+
+// QueryNotNULL field IS [NOT]NULL
+func QueryNotNULL(db *gorm.DB, field string, value reflect.Value, kind reflect.Kind) *gorm.DB {
+	ok := false
+	if kind >= reflect.Int && kind <= reflect.Int64 {
+		ok = value.Int() == 1
+	} else if kind >= reflect.Uint && kind <= reflect.Uint64 {
+		ok = value.Uint() == 1
+	} else if kind == reflect.Bool {
+		ok = value.Interface().(bool)
+	} else if kind == reflect.String {
+		ok = value.String() == "1"
+	} else {
+		return db
+	}
+	if !ok {
 		return db.Where(fmt.Sprintf("`%s` IS NOT NULL", field))
 	}
 	return db.Where(fmt.Sprintf("`%s` IS NULL", field))
