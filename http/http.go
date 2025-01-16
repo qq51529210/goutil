@@ -24,7 +24,13 @@ type Result[T any] struct {
 
 // Error 实现 error 接口
 func (c *Result[T]) Error() string {
-	return c.Err
+	if c.Err != "" {
+		return c.Err
+	}
+	if c.Msg != "" {
+		return c.Msg
+	}
+	return fmt.Sprintf("code %d", c.Code)
 }
 
 // StatusError 表示状态错误
