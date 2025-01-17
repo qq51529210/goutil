@@ -26,7 +26,7 @@ const (
 	LoadHTTPMP4FilePath = apiPathPrefix + "/loadHttpMP4File"
 )
 
-// LoadHTTPMP4File 调用 /index/api/loadHttpMP4File ，加载本地的 mp4 文件，主要用于推流
+// LoadHTTPMP4File 调用 /index/api/loadHttpMP4File ，加载 http mp4 文件，主要用于推流
 func LoadHTTPMP4File(ctx context.Context, ser Server, req *LoadHTTPMP4FileReq, res *LoadHTTPMP4FileRes) error {
 	return Request(ctx, ser, LoadHTTPMP4FilePath, req, res)
 }
