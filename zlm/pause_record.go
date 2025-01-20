@@ -6,6 +6,8 @@ import (
 
 // PauseRecordReq 是 PauseRecord 参数
 type PauseRecordReq struct {
+	// 协议，这个不添不行
+	Schema string `query:"schema"`
 	// 筛选应用名，例如 live
 	App string `query:"app"`
 	// 筛选流id，例如 test
