@@ -30,6 +30,8 @@ type OpenRTPServerReq struct {
 	SSRC string `query:"ssrc"`
 	// 是否只有音频
 	OnlyAudio Boolean `query:"only_audio"`
+	// 自定义上下文数据
+	UserData string `query:"userdata"`
 }
 
 // OpenRTPServerRes 是 OpenRTPServer 的返回值

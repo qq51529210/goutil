@@ -18,6 +18,8 @@ type AddFFMPEGSourceReq struct {
 	EnableMP4 Boolean `query:"enable_mp4"`
 	// 置空则采用默认模板: ffmpeg.cmd
 	CmdKey string `query:"ffmpeg_cmd_key"`
+	// 自定义上下文数据
+	UserData string `query:"userdata"`
 }
 
 // AddFFMPEGSourceRes 是 AddFFMPEGSource 返回值

@@ -18,6 +18,8 @@ type OnPlayReq struct {
 	Stream string `query:"stream"`
 	// url 查询字符串
 	Params string `json:"params"`
+	// 自定义上下文数据
+	UserData string `query:"userdata"`
 	// 日志追踪
 	TraceID string `json:"-"`
 }

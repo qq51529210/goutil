@@ -40,6 +40,8 @@ type AddStreamProxyReq struct {
 	MP4MaxSecond string `query:"mp4_max_second"`
 	// hls 文件保存保存根目录，置空使用默认
 	HLSSavePath string `query:"hls_save_path"`
+	// 自定义上下文数据
+	UserData string `query:"userdata"`
 }
 
 // addStreamProxyRes 是 AddStreamProxy 返回值

@@ -50,6 +50,8 @@ type AddDeviceProxyReq struct {
 	Manufacturer int `query:"manufacturer"`
 	// 码流，0-主，1-辅
 	Subtype int `query:"subtype"`
+	// 自定义上下文数据
+	UserData string `query:"userdata"`
 }
 
 // addDeviceProxyRes 是 AddDeviceProxy 返回值

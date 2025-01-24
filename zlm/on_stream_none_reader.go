@@ -16,13 +16,15 @@ type OnStreamNoneReaderReq struct {
 	App string `query:"app"`
 	// 流标识
 	Stream string `query:"stream"`
+	// 自定义上下文数据
+	UserData string `query:"userdata"`
 	// 日志追踪
 	TraceID string `json:"-"`
 }
 
 // OnStreamNoneReaderRes 表示 on_stream_none_reader 返回值
 type OnStreamNoneReaderRes struct {
-	Close bool `json:"close,omitempty"`
+	Close bool `json:"close"`
 	Code  int  `json:"code"`
 }
 
