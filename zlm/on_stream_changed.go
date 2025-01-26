@@ -13,7 +13,7 @@ type OnStreamChangedReq struct {
 	// 流的媒体信息
 	MediaListData
 	// 自定义上下文数据
-	UserData string `query:"userdata"`
+	UserData string `json:"userdata"`
 	// 日志追踪
 	TraceID string `json:"-"`
 }

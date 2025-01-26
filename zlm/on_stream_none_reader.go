@@ -11,13 +11,13 @@ type OnStreamNoneReaderReq struct {
 	// 服务标识
 	MediaServerID string `json:"mediaServerId"`
 	// 协议
-	Schema string `query:"schema"`
+	Schema string `json:"schema"`
 	// 流应用
-	App string `query:"app"`
+	App string `json:"app"`
 	// 流标识
-	Stream string `query:"stream"`
+	Stream string `json:"stream"`
 	// 自定义上下文数据
-	UserData string `query:"userdata"`
+	UserData string `json:"userdata"`
 	// 日志追踪
 	TraceID string `json:"-"`
 }

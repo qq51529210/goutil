@@ -11,11 +11,11 @@ type OnStreamNotFoundReq struct {
 	// 服务标识
 	MediaServerID string `json:"mediaServerId"`
 	// 协议
-	Schema string `query:"schema"`
+	Schema string `json:"schema"`
 	// 流应用
-	App string `query:"app"`
+	App string `json:"app"`
 	// 流标识
-	Stream string `query:"stream"`
+	Stream string `json:"stream"`
 	// url 查询字符串
 	Params string `json:"params"`
 	// 日志追踪

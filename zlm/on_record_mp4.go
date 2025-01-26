@@ -11,11 +11,11 @@ type OnRecordMP4Req struct {
 	// 服务标识
 	MediaServerID string `json:"mediaServerId"`
 	// 协议
-	Schema string `query:"schema"`
+	Schema string `json:"schema"`
 	// 流应用
-	App string `query:"app"`
+	App string `json:"app"`
 	// 流标识
-	Stream string `query:"stream"`
+	Stream string `json:"stream"`
 	// 录像文件名
 	FileName string `json:"file_name"`
 	// 录像文件绝对路径
