@@ -40,6 +40,8 @@ type MediaListData struct {
 	IsRecordingHLS bool `json:"isRecordingHLS"`
 	// 是否正在录制 mp4
 	IsRecordingMP4 bool `json:"isRecordingMP4"`
+	// 自定义数据
+	UserData string `json:"userdata"`
 	// 音视频轨道
 	Tracks []map[string]any `json:"tracks"`
 	// 连接信息
