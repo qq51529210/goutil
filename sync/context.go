@@ -7,9 +7,6 @@ import (
 )
 
 type TimeoutContextPool struct {
-	// 是否启动协程
-	r int32
-	// 数据
 	d Map[string, *TimeoutContext]
 }
 
@@ -49,10 +46,6 @@ func (txp *TimeoutContextPool) routine() {
 // New 获取/创建，返回 true 表示新的
 // name 唯一标识，data 携带的数据，dur 超时时间
 func (txp *TimeoutContextPool) New(id string, data any, dur time.Duration) (*TimeoutContext, bool) {
-	// 协程懒启动
-	if atomic.CompareAndSwapInt32(&txp.r, 0, 1) {
-		go txp.routine()
-	}
 	// 锁
 	txp.d.Lock()
 	defer txp.d.Unlock()
@@ -63,7 +56,7 @@ func (txp *TimeoutContextPool) New(id string, data any, dur time.Duration) (*Tim
 		tx.id = id
 		tx.data = data
 		tx.dur = dur
-		tx.UpdateDeadlineTime()
+		tx.ResetDeadline()
 		tx.done = make(chan struct{})
 		txp.d.D[id] = tx
 		return tx, true
@@ -118,8 +111,8 @@ func (tc *TimeoutContext) Done() <-chan struct{} {
 	return tc.done
 }
 
-// UpdateTime 更新超时时间
-func (tc *TimeoutContext) UpdateDeadlineTime() {
+// ResetDeadline 更新超时时间
+func (tc *TimeoutContext) ResetDeadline() {
 	t := time.Now().Add(tc.dur)
 	tc.deadline = &t
 }

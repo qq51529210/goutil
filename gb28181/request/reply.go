@@ -9,9 +9,6 @@ var (
 	replys = gsync.NewTimeoutContextPool()
 )
 
-// Reply 用于有应答的请求，同步等待结果
-type Reply gsync.TimeoutContext
-
 // AddReply 添加
 func AddReply(deviceID, sn string, data any, timeout time.Duration) *gsync.TimeoutContext {
 	tx, _ := replys.New(deviceID+sn, data, timeout)
