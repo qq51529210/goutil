@@ -7,8 +7,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// HSetNx 存在才设置
-func HSetNx(ctx context.Context, db redis.UniversalClient, key string, value ...any) (bool, error) {
+// HSetEx 存在才设置
+func HSetEx(ctx context.Context, db redis.UniversalClient, key string, value ...any) (bool, error) {
 	//
 	res, err := redis.NewScript(`
 local result = redis.call("EXISTS", KEYS[1])
@@ -25,8 +25,8 @@ return result`).Run(ctx, db, []string{key}, value...).Result()
 	return res.(int64) == 1, nil
 }
 
-// HMSetNxEx 存在才设置
-func HSetNxEx(ctx context.Context, db redis.UniversalClient, key string, expire time.Duration, values ...any) (bool, error) {
+// HMSetExEx 存在才设置
+func HSetExEx(ctx context.Context, db redis.UniversalClient, key string, expire time.Duration, values ...any) (bool, error) {
 	var args []any
 	args = append(args, expire/time.Second)
 	args = append(args, values...)
