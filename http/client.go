@@ -25,12 +25,12 @@ type JSONClient struct {
 }
 
 // Do 发送请求
-func (c *JSONClient) Do(ctx context.Context, method string, query url.Values, body any) error {
-	return JSONRequest(ctx, c.C, method, c.URL, query, body, c.OnRes)
+func (c *JSONClient) Do(ctx context.Context, method string, header map[string]string, query url.Values, body any) error {
+	return JSONRequest(ctx, c.C, method, c.URL, query, header, body, c.OnRes)
 }
 
 // JSONRequest 封装 http json 请求
-func JSONRequest(ctx context.Context, client *http.Client, method, url string, query url.Values, data any, onResponse func(res *http.Response) error) error {
+func JSONRequest(ctx context.Context, client *http.Client, method, url string, query url.Values, header map[string]string, data any, onResponse func(res *http.Response) error) error {
 	// body
 	var body io.Reader = nil
 	if data != nil {
@@ -38,7 +38,11 @@ func JSONRequest(ctx context.Context, client *http.Client, method, url string, q
 		json.NewEncoder(buf).Encode(data)
 		body = buf
 	}
-	return Request(ctx, client, method, url, query, map[string]string{"Content-Type": ContentTypeJSON}, body, onResponse)
+	if header == nil {
+		header = make(map[string]string)
+		header["Content-Type"] = ContentTypeJSON
+	}
+	return Request(ctx, client, method, url, query, header, body, onResponse)
 }
 
 // Request 封装 http 请求

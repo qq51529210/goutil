@@ -29,7 +29,7 @@ func FormatTime(log *Log) {
 	log.IntRightAlign(second, 2)
 	// Nanosecond
 	log.b = append(log.b, '.')
-	log.IntLeftAlign(t.Nanosecond(), 9)
+	log.IntRightAlign(t.Nanosecond(), 9)
 	log.b = append(log.b, ']')
 }
 

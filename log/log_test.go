@@ -72,3 +72,12 @@ func StatckError4() *StatckError[int] {
 func StatckError5() *StatckError[int] {
 	return &StatckError[int]{Err: io.EOF.Error()}
 }
+
+func Test_Log_IntRightAlign(t *testing.T) {
+	l := new(Log)
+	l.IntLeftAlign(123456, 9)
+	fmt.Println(string(l.b))
+	l.Reset()
+	l.IntRightAlign(123456, 8)
+	fmt.Println(string(l.b))
+}
