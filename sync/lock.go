@@ -72,7 +72,7 @@ func (l *Locker) handle(now *time.Time) {
 	var err error
 	l.locked, err = l.Lock()
 	if err != nil {
-		l.Logger.Error(-1, l.Trace, 0, "get lock error: %v", err)
+		l.Logger.Errorf(-1, l.Trace, 0, "get lock error: %v", err)
 		return
 	}
 	// 抢到

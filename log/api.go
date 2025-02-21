@@ -12,7 +12,8 @@ var (
 	DefaultLogger *Logger
 )
 
-type LogFunc func(stack int, trace string, cost time.Duration, formatOrText string, args ...any)
+type LogFunc func(stack int, trace string, cost time.Duration, text string)
+type LogfFunc func(stack int, trace string, cost time.Duration, formatOrText string, args ...any)
 
 // 包接口
 var (
@@ -20,6 +21,10 @@ var (
 	Info    LogFunc
 	Warn    LogFunc
 	Error   LogFunc
+	Debugf  LogfFunc
+	Infof   LogfFunc
+	Warnf   LogfFunc
+	Errorf  LogfFunc
 	Recover func(recover any) bool
 )
 
@@ -42,5 +47,9 @@ func SetLogger(lg *Logger) {
 	Info = lg.Info
 	Warn = lg.Warn
 	Error = lg.Error
+	Debugf = lg.Debugf
+	Infof = lg.Infof
+	Warnf = lg.Warnf
+	Errorf = lg.Errorf
 	DefaultLogger = lg
 }

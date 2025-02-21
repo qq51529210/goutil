@@ -240,7 +240,17 @@ func (lg *Logger) stackLog(depth, level int, trace string, cost time.Duration, t
 	logPool.Put(l)
 }
 
-func (lg *Logger) Debug(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
+func (lg *Logger) Debug(stack int, trace string, cost time.Duration, text string) {
+	if !lg.DisableDebug {
+		if stack < 0 {
+			lg.log(_DebugLevel, trace, cost, text)
+		} else {
+			lg.stackLog(stack, _DebugLevel, trace, cost, text)
+		}
+	}
+}
+
+func (lg *Logger) Debugf(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
 	if !lg.DisableDebug {
 		var s string
 		if len(args) > 0 {
@@ -256,7 +266,17 @@ func (lg *Logger) Debug(stack int, trace string, cost time.Duration, formatOrTex
 	}
 }
 
-func (lg *Logger) Info(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
+func (lg *Logger) Info(stack int, trace string, cost time.Duration, text string) {
+	if !lg.DisableInfo {
+		if stack < 0 {
+			lg.log(_InfoLevel, trace, cost, text)
+		} else {
+			lg.stackLog(stack, _InfoLevel, trace, cost, text)
+		}
+	}
+}
+
+func (lg *Logger) Infof(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
 	if !lg.DisableInfo {
 		var s string
 		if len(args) > 0 {
@@ -272,7 +292,17 @@ func (lg *Logger) Info(stack int, trace string, cost time.Duration, formatOrText
 	}
 }
 
-func (lg *Logger) Warn(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
+func (lg *Logger) Warn(stack int, trace string, cost time.Duration, text string) {
+	if !lg.DisableWarn {
+		if stack < 0 {
+			lg.log(_WarnLevel, trace, cost, text)
+		} else {
+			lg.stackLog(stack, _WarnLevel, trace, cost, text)
+		}
+	}
+}
+
+func (lg *Logger) Warnf(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
 	if !lg.DisableWarn {
 		var s string
 		if len(args) > 0 {
@@ -288,7 +318,7 @@ func (lg *Logger) Warn(stack int, trace string, cost time.Duration, formatOrText
 	}
 }
 
-func (lg *Logger) Error(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
+func (lg *Logger) Errorf(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
 	if !lg.DisableError {
 		var s string
 		if len(args) > 0 {
@@ -300,6 +330,16 @@ func (lg *Logger) Error(stack int, trace string, cost time.Duration, formatOrTex
 			lg.log(_ErrorLevel, trace, cost, s)
 		} else {
 			lg.stackLog(stack, _ErrorLevel, trace, cost, s)
+		}
+	}
+}
+
+func (lg *Logger) Error(stack int, trace string, cost time.Duration, text string) {
+	if !lg.DisableError {
+		if stack < 0 {
+			lg.log(_ErrorLevel, trace, cost, text)
+		} else {
+			lg.stackLog(stack, _ErrorLevel, trace, cost, text)
 		}
 	}
 }

@@ -19,11 +19,11 @@ func TestPrint(t *testing.T) {
 
 func print(lg *Logger) {
 	lg.Debug(-1, "", 0, "1")
-	lg.Debug(-1, "", 0, "%d", 2)
+	lg.Debugf(-1, "", 0, "%d", 2)
 	lg.Debug(-1, "t1", 0, "3")
-	lg.Debug(-1, "t2", 0, "%d", 4)
+	lg.Debugf(-1, "t2", 0, "%d", 4)
 	lg.Debug(0, "t3", time.Microsecond, "4")
-	lg.Debug(0, "t4", time.Microsecond, "%d", 5)
+	lg.Debugf(0, "t4", time.Microsecond, "%d", 5)
 	//
 	printPanic(lg)
 	lg.Debug(-1, "", 0, "--------------------------------------------")

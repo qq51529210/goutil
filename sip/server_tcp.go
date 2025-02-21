@@ -61,7 +61,7 @@ func (s *tcpServer) Serve(address string) error {
 	go s.checkActiveTxRoutine()
 	go s.checkPassiveTxRoutine()
 	// 日志
-	s.s.logger.Info(-1, "", 0, "listen tcp %s", address)
+	s.s.logger.Infof(-1, "", 0, "listen tcp %s", address)
 	// 状态
 	atomic.StoreInt32(&s.ok, 1)
 	// 返回
@@ -82,7 +82,7 @@ func (s *tcpServer) listenRoutine() {
 		// 接受
 		conn, err := s.listener.AcceptTCP()
 		if err != nil {
-			s.s.logger.Error(-1, "", 0, "tcp accept error: %v", err)
+			s.s.logger.Errorf(-1, "", 0, "tcp accept error: %v", err)
 			continue
 		}
 		// 开协程处理处理
@@ -144,13 +144,13 @@ func (s *tcpServer) handleConnRoutine(c *tcpConn) {
 	for s.isOK() {
 		// 设置超时
 		if err := c.conn.SetReadDeadline(time.Now().Add(s.maxIdleTime)); err != nil {
-			s.s.logger.Error(-1, "", 0, "tcp set read deadline error: %v", err)
+			s.s.logger.Errorf(-1, "", 0, "tcp set read deadline error: %v", err)
 			return
 		}
 		// 解析，错误直接返回关闭连接
 		m := new(Message)
 		if err := m.Dec(r, s.s.maxMessageLen); err != nil {
-			s.s.logger.Error(-1, "", 0, "tcp parse message error: %v", err)
+			s.s.logger.Errorf(-1, "", 0, "tcp parse message error: %v", err)
 			return
 		}
 		// 处理
@@ -208,7 +208,7 @@ func (s *tcpServer) handleRequestRoutine(c *tcpConn, t *tcpPassiveTx, m *Message
 		s.s.logger.Recover(recover())
 	}()
 	// 日志
-	s.s.logger.Debug(-1, t.trace, 0, "request from tcp %s \n%v", c.remoteAddr, m)
+	s.s.logger.Debugf(-1, t.trace, 0, "request from tcp %s \n%v", c.remoteAddr, m)
 	// 上下文
 	var ctx Request
 	ctx.tx = t
@@ -242,7 +242,7 @@ func (s *tcpServer) handleResponseRoutine(c *tcpConn, t *tcpActiveTx, m *Message
 		s.s.logger.Recover(recover())
 	}()
 	// 日志
-	s.s.logger.Debug(-1, t.trace, 0, "response from tcp %s \n%v", c.remoteAddr, m)
+	s.s.logger.Debugf(-1, t.trace, 0, "response from tcp %s \n%v", c.remoteAddr, m)
 	// 上下文
 	var ctx Response
 	ctx.tx = t
@@ -474,7 +474,7 @@ func (s *tcpServer) Request(ctx context.Context, trace string, msg *Message, add
 		}
 	}
 	// 日志
-	s.s.logger.Debug(-1, t.trace, 0, "request to tcp %s \n%v", conn.remoteAddr, msg)
+	s.s.logger.Debugf(-1, t.trace, 0, "request to tcp %s \n%v", conn.remoteAddr, msg)
 	// 等待
 	var err error
 	select {
