@@ -22,6 +22,8 @@ type Guard struct {
 	ChannelID string
 	// 命令
 	Cmd GuardCmd
+	// 追踪标识
+	TraceID string
 }
 
 // SendGuard 布防/撤防
@@ -36,5 +38,5 @@ func SendGuard(ctx context.Context, m *Guard) (string, error) {
 	body.GuardCmd = string(m.Cmd)
 	// 请求
 	var res request.XMLResult
-	return res.Result, request.SendReplyMessage(ctx, m.Ser, m.Device, &body, &res)
+	return res.Result, request.SendReplyMessage(ctx, m.TraceID, m.Ser, m.Device, &body, &res)
 }

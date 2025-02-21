@@ -59,6 +59,8 @@ type Invite struct {
 	// sdp: u=
 	SDPU  string
 	AckID string
+	// 追踪标识
+	TraceID string
 }
 
 func (m *Invite) Message(sdp *sdp.Session, action, downloadSpeed string) (*sip.Message, net.Addr, error) {

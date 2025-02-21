@@ -13,8 +13,8 @@ type tx interface {
 	Err() error
 	// context.Context 接口
 	Deadline() (time.Time, bool)
-	// 返回事务的标识
-	ID() string
+	// 返回追踪标识
+	Trace() string
 	// 完成通知
 	finish(error)
 	// 为了在处理 Request 中进行抽象调用
@@ -25,6 +25,8 @@ type tx interface {
 
 type baseTx struct {
 	id string
+	// 追踪
+	trace string
 	// 状态
 	ok int32
 	// 信号
@@ -52,6 +54,10 @@ func (t *baseTx) Deadline() (time.Time, bool) {
 
 func (t *baseTx) ID() string {
 	return t.id
+}
+
+func (t *baseTx) Trace() string {
+	return t.trace
 }
 
 func (t *baseTx) finish(err error) {

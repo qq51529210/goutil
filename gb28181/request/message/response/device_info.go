@@ -17,6 +17,8 @@ type DeviceInfo struct {
 	Model        string
 	Firmware     string
 	Result       string
+	// 追踪标识
+	TraceID string
 }
 
 // SendDeviceInfo 设备信息结果应答
@@ -32,5 +34,5 @@ func SendDeviceInfo(ctx context.Context, m *DeviceInfo) error {
 	body.Firmware = m.Firmware
 	body.Result = m.Result
 	// 发送
-	return request.SendMessage(ctx, m.Ser, m.Cascade, &body, m)
+	return request.SendMessage(ctx, m.TraceID, m.Ser, m.Cascade, &body, m)
 }

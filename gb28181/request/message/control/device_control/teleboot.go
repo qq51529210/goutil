@@ -11,6 +11,8 @@ import (
 type TeleBoot struct {
 	Ser    *sip.Server
 	Device request.Request
+	// 追踪标识
+	TraceID string
 }
 
 // SendTeleBoot 远程启动
@@ -23,5 +25,5 @@ func SendTeleBoot(ctx context.Context, m *TeleBoot) error {
 	body.SN = sip.GetSNString()
 	body.TeleBoot = "Boot"
 	// 请求
-	return request.SendMessage(ctx, m.Ser, m.Device, &body, nil)
+	return request.SendMessage(ctx, m.TraceID, m.Ser, m.Device, &body, nil)
 }

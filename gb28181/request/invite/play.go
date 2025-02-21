@@ -16,5 +16,5 @@ func SendPlay(ctx context.Context, m *Invite) error {
 	}
 	sdp.FormatTo(&msg.Body)
 	// 请求
-	return m.Ser.RequestWithContext(ctx, msg, addr, m)
+	return m.Ser.RequestWithContext(ctx, m.TraceID, msg, addr, m)
 }

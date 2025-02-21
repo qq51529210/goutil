@@ -17,6 +17,8 @@ type DeviceStatus struct {
 	Result   string
 	Online   string
 	Status   string
+	// 追踪标识
+	TraceID string
 }
 
 // SendDeviceStatus 设备状态结果应答
@@ -32,5 +34,5 @@ func SendDeviceStatus(ctx context.Context, m *DeviceStatus) error {
 	body.Online = m.Online
 	body.DeviceTime = gb28181.Time()
 	// 发送
-	return request.SendMessage(ctx, m.Ser, m.Cascade, &body, m)
+	return request.SendMessage(ctx, m.TraceID, m.Ser, m.Cascade, &body, m)
 }

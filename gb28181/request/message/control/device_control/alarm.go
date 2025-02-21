@@ -46,6 +46,8 @@ type Alarm struct {
 	// 1: 存储设备磁盘故障报警
 	// 2: 存储设备风扇故障报警
 	AlarmType string `json:"alarmType" binding:"omitempty,oneof=1 2 3 4 5 6 7 8 9 10 11 12"`
+	// 追踪标识
+	TraceID string
 }
 
 // SendAlarm 报警复位
@@ -62,5 +64,5 @@ func SendAlarm(ctx context.Context, m *Alarm) (string, error) {
 	body.Info.AlarmType = m.AlarmType
 	// 请求
 	var res request.XMLResult
-	return res.Result, request.SendReplyMessage(ctx, m.Ser, m.Device, &body, &res)
+	return res.Result, request.SendReplyMessage(ctx, m.TraceID, m.Ser, m.Device, &body, &res)
 }

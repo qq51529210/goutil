@@ -14,6 +14,8 @@ type Catalog struct {
 	SN       string
 	DeviceID string
 	Items    []*xml.Device
+	// 追踪标识
+	TraceID string
 }
 
 // SendCatalog 目录查询结果应答
@@ -29,14 +31,14 @@ func SendCatalog(ctx context.Context, m *Catalog) error {
 	body.DeviceList = new(xml.MessageDeviceList)
 	// 发送
 	if body.SumNum == 0 {
-		return request.SendMessage(ctx, m.Ser, m.Cascade, &body, m)
+		return request.SendMessage(ctx, m.TraceID, m.Ser, m.Cascade, &body, m)
 	}
 	// 一条一条的发送，2 条就可能超 1500 了
 	body.DeviceList.Item = make([]*xml.Device, 1)
 	body.DeviceList.Num = int64(len(body.DeviceList.Item))
 	for len(items) > 0 {
 		body.DeviceList.Item[0] = items[0]
-		if err := request.SendMessage(ctx, m.Ser, m.Cascade, &body, m); err != nil {
+		if err := request.SendMessage(ctx, m.TraceID, m.Ser, m.Cascade, &body, m); err != nil {
 			return err
 		}
 		items = items[1:]

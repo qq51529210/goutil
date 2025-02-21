@@ -46,5 +46,5 @@ func Logger(ctx *gin.Context) {
 	// 执行
 	ctx.Next()
 	// 日志
-	LogLogger.Debugf(traceID, time.Since(old), "%s %s %s", ctx.Request.RemoteAddr, ctx.Request.Method, ctx.Request.URL.Path)
+	LogLogger.Debug(-1, traceID, time.Since(old), "%s %s %s", ctx.Request.RemoteAddr, ctx.Request.Method, ctx.Request.URL.Path)
 }

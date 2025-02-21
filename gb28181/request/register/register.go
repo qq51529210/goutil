@@ -14,6 +14,8 @@ type Register struct {
 	Expires string
 	// Header.Authorization
 	Authorization string
+	// 追踪标识
+	TraceID string
 }
 
 // SendRegister 注册
@@ -29,5 +31,5 @@ func SendRegister(ctx context.Context, m *Register) error {
 		msg.Header.Set(StrAuthorization, m.Authorization)
 	}
 	//
-	return m.Ser.RequestWithContext(ctx, msg, addr, m)
+	return m.Ser.RequestWithContext(ctx, m.TraceID, msg, addr, m)
 }

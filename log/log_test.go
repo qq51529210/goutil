@@ -18,15 +18,15 @@ func TestPrint(t *testing.T) {
 }
 
 func print(lg *Logger) {
-	lg.Debug("", 0, "1")
-	lg.Debugf("", 0, "%d", 2)
-	lg.Debug("t1", 0, "3")
-	lg.Debugf("t2", 0, "%d", 4)
-	lg.DebugStack(0, "t3", time.Microsecond, 4)
-	lg.DebugfStack(0, "t4", time.Microsecond, "%d", 5)
+	lg.Debug(-1, "", 0, "1")
+	lg.Debug(-1, "", 0, "%d", 2)
+	lg.Debug(-1, "t1", 0, "3")
+	lg.Debug(-1, "t2", 0, "%d", 4)
+	lg.Debug(0, "t3", time.Microsecond, "4")
+	lg.Debug(0, "t4", time.Microsecond, "%d", 5)
 	//
 	printPanic(lg)
-	lg.Debug("", 0, "--------------------------------------------")
+	lg.Debug(-1, "", 0, "--------------------------------------------")
 }
 
 func printPanic(lg *Logger) {
@@ -48,9 +48,9 @@ func TestError(t *testing.T) {
 	DefaultLogger.name = "[app]"
 	DefaultLogger.module = "[test]"
 
-	DefaultLogger.Debug("TestError", 0, StatckError3().String())
-	DefaultLogger.Debug("TestError", 0, StatckError4().String())
-	DefaultLogger.Debug("TestError", 0, StatckError5().String())
+	DefaultLogger.Debug(0, "TestError", 0, StatckError3().String())
+	DefaultLogger.Debug(0, "TestError", 0, StatckError4().String())
+	DefaultLogger.Debug(0, "TestError", 0, StatckError5().String())
 }
 
 func StatckError1() error {

@@ -39,6 +39,8 @@ type Alarm struct {
 	AlarmMethod string `json:"alarmMethod" binding:"omitempty,oneof=0 1 2 3 4 5 6 7"`
 	// 结果
 	result string
+	// 追踪标识
+	TraceID string
 }
 
 func (m *Alarm) SetResult(s string) {
@@ -58,5 +60,5 @@ func SendAlarm(ctx context.Context, m *Alarm) (string, error) {
 	body.AlarmMethod = m.AlarmMethod
 	//
 	var result request.XMLResult
-	return result.Result, request.SendSubscribe(ctx, m.Ser, m.Device, &body, m.Expire, &result)
+	return result.Result, request.SendSubscribe(ctx, m.TraceID, m.Ser, m.Device, &body, m.Expire, &result)
 }

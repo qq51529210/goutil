@@ -19,6 +19,8 @@ type Catalog struct {
 	EndTime string `json:"endTime" binding:"omitempty,gb_time"`
 	// 结果
 	result string
+	// 追踪标识
+	TraceID string
 }
 
 func (m *Catalog) SetResult(s string) {
@@ -37,5 +39,5 @@ func SendCatalog(ctx context.Context, m *Catalog) (string, error) {
 	body.EndTime = m.EndTime
 	//
 	var result request.XMLResult
-	return result.Result, request.SendSubscribe(ctx, m.Ser, m.Device, &body, m.Expire, &result)
+	return result.Result, request.SendSubscribe(ctx, m.TraceID, m.Ser, m.Device, &body, m.Expire, &result)
 }

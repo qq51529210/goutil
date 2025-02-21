@@ -79,8 +79,8 @@ func (s *Server) Shutdown() {
 }
 
 // Request 使用 context.Background() 调用 RequestWithContext
-func (s *Server) Request(msg *Message, addr net.Addr, data any) error {
-	return s.RequestWithContext(context.Background(), msg, addr, data)
+func (s *Server) Request(trace string, msg *Message, addr net.Addr, data any) error {
+	return s.RequestWithContext(context.Background(), trace, msg, addr, data)
 }
 
 // RequestWithContext 向发送请求，阻塞等待异步响应的通知
@@ -89,14 +89,14 @@ func (s *Server) Request(msg *Message, addr net.Addr, data any) error {
 // addr 是对方的地址，如果是 tcp 类型，而且不存在连接池中，则主动创建连接
 // data 是需要传递的上下文数据，可以在异步响应的回调函数 Context.Value(nil) 拿到
 // 返回的错误是 Context.Err() 或者是 ctx.Err()
-func (s *Server) RequestWithContext(ctx context.Context, msg *Message, addr net.Addr, data any) error {
+func (s *Server) RequestWithContext(ctx context.Context, trace string, msg *Message, addr net.Addr, data any) error {
 	// tcp
 	if a, ok := addr.(*net.TCPAddr); ok {
-		return s.tcp.Request(ctx, msg, a, data)
+		return s.tcp.Request(ctx, trace, msg, a, data)
 	}
 	// udp
 	if a, ok := addr.(*net.UDPAddr); ok {
-		return s.udp.Request(ctx, msg, a, data)
+		return s.udp.Request(ctx, trace, msg, a, data)
 	}
 	// 其他
 	return ErrUnknownAddress

@@ -17,6 +17,8 @@ type MobilePosition struct {
 	Interval int64
 	// 结果
 	result string
+	// 追踪标识
+	TraceID string
 }
 
 func (m *MobilePosition) SetResult(s string) {
@@ -34,5 +36,5 @@ func SendMobilePosition(ctx context.Context, m *MobilePosition) (string, error) 
 	body.Interval = m.Interval
 	//
 	var result request.XMLResult
-	return result.Result, request.SendSubscribe(ctx, m.Ser, m.Device, &body, m.Expire, &result)
+	return result.Result, request.SendSubscribe(ctx, m.TraceID, m.Ser, m.Device, &body, m.Expire, &result)
 }

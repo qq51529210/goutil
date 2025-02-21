@@ -18,5 +18,5 @@ func SendInfoTeardown(ctx context.Context, m *Info) error {
 	m.encStartLline(&msg.Body, InfoMethodTeardown)
 	msg.Body.WriteString("\r\n")
 	// 请求
-	return m.Ser.RequestWithContext(ctx, msg, addr, m)
+	return m.Ser.RequestWithContext(ctx, m.TraceID, msg, addr, m)
 }

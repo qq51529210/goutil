@@ -14,6 +14,8 @@ type HomePosition struct {
 	ChannelID string
 	//
 	Data *xml.MessageHomePosition
+	// 追踪标识
+	TraceID string
 }
 
 // SendHomePosition 设置看守位
@@ -28,5 +30,5 @@ func SendHomePosition(ctx context.Context, m *HomePosition) (string, error) {
 	body.HomePosition = m.Data
 	// 请求
 	var res request.XMLResult
-	return res.Result, request.SendReplyMessage(ctx, m.Ser, m.Device, &body, &res)
+	return res.Result, request.SendReplyMessage(ctx, m.TraceID, m.Ser, m.Device, &body, &res)
 }

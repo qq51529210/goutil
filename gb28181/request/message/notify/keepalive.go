@@ -11,6 +11,8 @@ import (
 type Keepalive struct {
 	Ser     *sip.Server
 	Cascade request.Request
+	// 追踪标识
+	TraceID string
 }
 
 // SendKeepalive 心跳
@@ -23,5 +25,5 @@ func SendKeepalive(ctx context.Context, m *Keepalive) error {
 	body.DeviceID = m.Cascade.GetFromID()
 	body.Status = "OK"
 	// 请求
-	return request.SendMessage(ctx, m.Ser, m.Cascade, &body, m)
+	return request.SendMessage(ctx, m.TraceID, m.Ser, m.Cascade, &body, m)
 }

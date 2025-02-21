@@ -14,6 +14,8 @@ type DragZoom struct {
 	ChannelID string
 	//
 	Data *xml.MessageDragZoom
+	// 追踪标识
+	TraceID string
 }
 
 // SendDragZoomIn 拉框放大
@@ -39,5 +41,5 @@ func sendDragZoom(ctx context.Context, m *DragZoom, body *xml.Message) error {
 	body.DeviceID = m.ChannelID
 	body.SN = sip.GetSNString()
 	// 请求
-	return request.SendMessage(ctx, m.Ser, m.Device, body, nil)
+	return request.SendMessage(ctx, m.TraceID, m.Ser, m.Device, body, nil)
 }

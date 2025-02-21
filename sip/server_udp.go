@@ -65,7 +65,7 @@ func (s *udpServer) Serve(address string) error {
 	s.w.Add(1)
 	go s.checkRTORoutine()
 	// 日志
-	s.s.logger.Infof("", 0, "listen udp %s, read routine %d", address, n)
+	s.s.logger.Info(-1, "", 0, "listen udp %s, read routine %d", address, n)
 	// 状态
 	atomic.StoreInt32(&s.ok, 1)
 	//
@@ -78,7 +78,7 @@ func (s *udpServer) initConn(c *udpConn, a *net.UDPAddr) {
 	c.addr = a
 	c.remoteIP = a.IP.String()
 	c.remotePort = a.Port
-	c.remoteAddr = fmt.Sprintf("%s:%d", c.remoteIP, c.remotePort)
+	c.remoteAddr = fmt.Sprint(-1, "%s:%d", c.remoteIP, c.remotePort)
 }
 
 // readUDPRoutine 读取 udp 数据，解析成 Message ，然后处理
@@ -100,7 +100,7 @@ func (s *udpServer) readRoutine() {
 		// 读取 udp 数据
 		d.n, d.a, err = s.conn.ReadFromUDP(d.b)
 		if err != nil {
-			s.s.logger.Errorf("", 0, "udp read data error: %v", err)
+			s.s.logger.Error(-1, "", 0, "udp read data error: %v", err)
 			continue
 		}
 		// 初始化准备解析
@@ -118,7 +118,7 @@ func (s *udpServer) readRoutine() {
 			m := new(Message)
 			if err = m.Dec(r, s.s.maxMessageLen); err != nil {
 				if err != io.EOF {
-					s.s.logger.Errorf("", 0, "udp parse message error: %v", err)
+					s.s.logger.Error(-1, "", 0, "udp parse message error: %v", err)
 				}
 				break
 			}
@@ -139,12 +139,12 @@ func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 			t := s.newPassiveTx(msg.TxKey())
 			// 已经完成处理
 			if atomic.LoadInt32(&t.ok) == 1 {
-				s.s.logger.Debug(t.id, 0, "rewrite response cache")
+				s.s.logger.Debug(-1, t.trace, 0, "rewrite response cache")
 				// 有响应缓存，发送
 				d := t.dataBuff
 				if d != nil {
 					if err := conn.write(d.Bytes()); err != nil {
-						s.s.logger.Errorf(t.id, 0, "rewrite response cache error: %v", err)
+						s.s.logger.Error(-1, t.id, 0, "rewrite response cache error: %v", err)
 					}
 				}
 				return
@@ -185,12 +185,12 @@ func (s *udpServer) handleRequestRoutine(c *udpConn, t *udpPassiveTx, m *Message
 		// 结束
 		s.w.Done()
 		// 日志
-		s.s.logger.Debug(t.id, time.Since(cost), "handle done")
+		s.s.logger.Debug(-1, t.trace, time.Since(cost), "handle done")
 		// 异常
 		s.s.logger.Recover(recover())
 	}()
 	// 日志
-	s.s.logger.Debugf(t.id, 0, "request from udp %s \n%v", c.remoteAddr, m)
+	s.s.logger.Debug(-1, t.trace, 0, "request from udp %s \n%v", c.remoteAddr, m)
 	// 上下文
 	var ctx Request
 	ctx.tx = t
@@ -212,16 +212,19 @@ func (s *udpServer) handleRequestRoutine(c *udpConn, t *udpPassiveTx, m *Message
 
 // handleResponseRoutine 在协程中处理响应消息
 func (s *udpServer) handleResponseRoutine(c *udpConn, t *udpActiveTx, m *Message, f *resFuncChain) {
+	cost := time.Now()
 	defer func() {
 		// 结束
 		s.w.Done()
 		// 无论回调有没有通知，这里都通知一下
 		t.finish(nil)
+		// 日志
+		s.s.logger.Debug(-1, t.trace, time.Since(cost), "handle done")
 		// 异常
 		s.s.logger.Recover(recover())
 	}()
 	// 日志
-	s.s.logger.Debugf(t.id, 0, "response from udp %s \n%v", c.remoteAddr, m)
+	s.s.logger.Debug(-1, t.trace, 0, "response from udp %s \n%v", c.remoteAddr, m)
 	// 上下文
 	var ctx Response
 	ctx.tx = t
@@ -300,10 +303,10 @@ func (s *udpServer) rtoRoutine(wg *sync.WaitGroup, ts []*udpActiveTx, now time.T
 		// 是否超时
 		if now.Sub(*tt) >= t.rto {
 			if err := t.conn.write(d.Bytes()); err != nil {
-				s.s.logger.Errorf(t.id, 0, "rto rewrite error: %v", err)
+				s.s.logger.Error(-1, t.trace, 0, "rto rewrite error: %v", err)
 				continue
 			}
-			s.s.logger.Debug(t.id, 0, "rto rewrite")
+			s.s.logger.Debug(-1, t.trace, 0, "rto rewrite")
 			// 保存发送时间
 			t.rtoTime = &now
 			// 如果没有到达最大值
@@ -356,7 +359,7 @@ func (s *udpServer) checkActiveTxRoutine() {
 }
 
 // newActiveTx 添加并返回，用于主动发送请求
-func (s *udpServer) newActiveTx(id string, conn *udpConn, data any) (*udpActiveTx, bool) {
+func (s *udpServer) newActiveTx(id, trace string, conn *udpConn, data any) (*udpActiveTx, bool) {
 	// 锁
 	s.activeTx.Lock()
 	defer s.activeTx.Unlock()
@@ -369,6 +372,11 @@ func (s *udpServer) newActiveTx(id string, conn *udpConn, data any) (*udpActiveT
 	tt := time.Now()
 	t = new(udpActiveTx)
 	t.id = id
+	if trace == "" {
+		t.trace = trace
+	} else {
+		t.trace = trace
+	}
 	t.deadline = tt.Add(s.s.msgTimeout)
 	t.done = make(chan struct{})
 	t.data = data
@@ -446,6 +454,7 @@ func (s *udpServer) newPassiveTx(id string) *udpPassiveTx {
 	if t == nil {
 		t = new(udpPassiveTx)
 		t.id = id
+		t.trace = id
 		t.deadline = time.Now().Add(s.s.msgTimeout)
 		t.done = make(chan struct{})
 		//
@@ -493,13 +502,13 @@ func (s *udpServer) shutdownPassiveTx() {
 }
 
 // Request 发送请求
-func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr, data any) error {
+func (s *udpServer) Request(ctx context.Context, trace string, msg *Message, addr *net.UDPAddr, data any) error {
 	cost := time.Now()
 	// 连接
 	conn := &udpConn{}
 	s.initConn(conn, addr)
 	// 事务
-	t, ok := s.newActiveTx(msg.TxKey(), conn, data)
+	t, ok := s.newActiveTx(msg.TxKey(), trace, conn, data)
 	// 第一次
 	if !ok {
 		if err := t.writeMsg(conn, msg); err != nil {
@@ -508,7 +517,7 @@ func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr
 		}
 	}
 	// 日志
-	s.s.logger.Debugf(t.id, 0, "request to udp %s \n%v", conn.remoteAddr, msg)
+	s.s.logger.Debug(-1, t.trace, 0, "request to udp %s \n%v", conn.remoteAddr, msg)
 	// 等待
 	var err error
 	select {
@@ -520,7 +529,7 @@ func (s *udpServer) Request(ctx context.Context, msg *Message, addr *net.UDPAddr
 		err = t.Err()
 	}
 	// 日志
-	s.s.logger.Debug(t.id, time.Since(cost), "done")
+	s.s.logger.Debug(-1, t.trace, time.Since(cost), "done")
 	// 移除
 	s.deleteActiveTx(t, err)
 	if err == ErrFinish {

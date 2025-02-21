@@ -19,5 +19,5 @@ func SendInfoPause(ctx context.Context, m *Info) error {
 	msg.Body.WriteString("PauseTime: now\r\n")
 	msg.Body.WriteString("\r\n")
 	// 请求
-	return m.Ser.RequestWithContext(ctx, msg, addr, m)
+	return m.Ser.RequestWithContext(ctx, m.TraceID, msg, addr, m)
 }

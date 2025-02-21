@@ -21,6 +21,8 @@ type Info struct {
 	Device    request.Request
 	ChannelID string
 	Invite    request.Invite
+	// 追踪标识
+	TraceID string
 }
 
 func (m *Info) encStartLline(w *bytes.Buffer, cmd string) {
@@ -29,5 +31,5 @@ func (m *Info) encStartLline(w *bytes.Buffer, cmd string) {
 
 // SendInfoRaw 用于级联转发，因为 body 的数据不变
 func SendInfoRaw(ctx context.Context, m *Info, body io.Reader) error {
-	return request.SendInfo(ctx, m.Ser, m.Device, m.ChannelID, m.Invite, body, m)
+	return request.SendInfo(ctx, m.TraceID, m.Ser, m.Device, m.ChannelID, m.Invite, body, m)
 }

@@ -12,9 +12,11 @@ type Bye struct {
 	Device    request.Request
 	ChannelID string
 	Invite    request.Invite
+	// 追踪标识
+	TraceID string
 }
 
 // SendBye 发送 Request-Bye 请求消息
 func SendBye(ctx context.Context, m *Bye) error {
-	return request.SendBye(ctx, m.Ser, m.Device, m.ChannelID, m.Invite, m)
+	return request.SendBye(ctx, m.TraceID, m.Ser, m.Device, m.ChannelID, m.Invite, m)
 }

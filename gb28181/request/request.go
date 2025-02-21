@@ -119,7 +119,7 @@ func NewBye(hd MsgFmt, network, channelID string, invite Invite) *sip.Message {
 }
 
 // SendBye 封装请求
-func SendBye(ctx context.Context, ser *sip.Server, req Request, channelID string, invite Invite, data any) error {
+func SendBye(ctx context.Context, trace string, ser *sip.Server, req Request, channelID string, invite Invite, data any) error {
 	// 地址
 	addr, err := req.GetNetAddr()
 	if err != nil {
@@ -128,7 +128,7 @@ func SendBye(ctx context.Context, ser *sip.Server, req Request, channelID string
 	// 消息
 	msg := NewBye(req, addr.Network(), channelID, invite)
 	// 发送
-	return ser.RequestWithContext(ctx, msg, addr, data)
+	return ser.RequestWithContext(ctx, trace, msg, addr, data)
 }
 
 // NewInfo 返回新的 info 方法的请求
@@ -144,7 +144,7 @@ func NewInfo(hd MsgFmt, network, channelID string, invite Invite) *sip.Message {
 }
 
 // SendInfo 封装请求
-func SendInfo(ctx context.Context, ser *sip.Server, req Request, channelID string, invite Invite, body io.Reader, data any) error {
+func SendInfo(ctx context.Context, trace string, ser *sip.Server, req Request, channelID string, invite Invite, body io.Reader, data any) error {
 	// 地址
 	addr, err := req.GetNetAddr()
 	if err != nil {
@@ -157,7 +157,7 @@ func SendInfo(ctx context.Context, ser *sip.Server, req Request, channelID strin
 		return err
 	}
 	//
-	return ser.RequestWithContext(ctx, msg, addr, data)
+	return ser.RequestWithContext(ctx, trace, msg, addr, data)
 }
 
 // NewInvite 返回新的 invite 方法的请求
@@ -198,7 +198,7 @@ func NewMessage(hd MsgFmt, network string, body *xml.Message) *sip.Message {
 }
 
 // SendMessage 发送 message 请求并等待结果
-func SendMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Message, data any) error {
+func SendMessage(ctx context.Context, trace string, ser *sip.Server, req Request, body *xml.Message, data any) error {
 	// 地址
 	addr, err := req.GetNetAddr()
 	if err != nil {
@@ -207,15 +207,15 @@ func SendMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Me
 	// 消息
 	msg := NewMessage(req, addr.Network(), body)
 	// 发送
-	return ser.RequestWithContext(ctx, msg, addr, data)
+	return ser.RequestWithContext(ctx, trace, msg, addr, data)
 }
 
 // SendReplyMessage 发送有应答的 message 请求并等待结果
-func SendReplyMessage(ctx context.Context, ser *sip.Server, req Request, body *xml.Message, data any) error {
+func SendReplyMessage(ctx context.Context, trace string, ser *sip.Server, req Request, body *xml.Message, data any) error {
 	// 应答
 	rep := AddReply(body.DeviceID, body.SN, data, ser.MsgTimeout())
 	// 请求
-	if err := SendMessage(ctx, ser, req, body, rep); err != nil {
+	if err := SendMessage(ctx, trace, ser, req, body, rep); err != nil {
 		rep.Finish(err, nil)
 		return err
 	}
@@ -239,7 +239,7 @@ func NewSubscribe(hd MsgFmt, network string, body *xml.Subscribe) *sip.Message {
 }
 
 // SendSubscribe 封装请求
-func SendSubscribe(ctx context.Context, ser *sip.Server, req Request, body *xml.Subscribe, expire int64, data any) error {
+func SendSubscribe(ctx context.Context, trace string, ser *sip.Server, req Request, body *xml.Subscribe, expire int64, data any) error {
 	// 地址
 	addr, err := req.GetNetAddr()
 	if err != nil {
@@ -251,5 +251,5 @@ func SendSubscribe(ctx context.Context, ser *sip.Server, req Request, body *xml.
 	msg.Header.Expires = fmt.Sprintf("%d", expire)
 	msg.Header.Set("Event", "presence")
 	//
-	return ser.RequestWithContext(ctx, msg, addr, data)
+	return ser.RequestWithContext(ctx, trace, msg, addr, data)
 }

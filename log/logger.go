@@ -215,7 +215,7 @@ func (lg *Logger) stackLog(depth, level int, trace string, cost time.Duration, t
 	l := logPool.Get().(*Log)
 	l.b = l.b[:0]
 	// 头
-	lg.FormatStackHeader(l, lg.name, lg.module, level, depth)
+	lg.FormatStackHeader(l, lg.name, lg.module, level, loggerDepth+depth)
 	// trace
 	if trace != "" {
 		l.b = append(l.b, ' ')
@@ -240,98 +240,66 @@ func (lg *Logger) stackLog(depth, level int, trace string, cost time.Duration, t
 	logPool.Put(l)
 }
 
-func (lg *Logger) Debug(trace string, cost time.Duration, args ...any) {
+func (lg *Logger) Debug(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
 	if !lg.DisableDebug {
-		lg.log(_DebugLevel, trace, cost, fmt.Sprint(args...))
+		var s string
+		if len(args) > 0 {
+			s = fmt.Sprintf(formatOrText, args...)
+		} else {
+			s = formatOrText
+		}
+		if stack < 0 {
+			lg.log(_DebugLevel, trace, cost, s)
+		} else {
+			lg.stackLog(stack, _DebugLevel, trace, cost, s)
+		}
 	}
 }
 
-func (lg *Logger) Debugf(trace string, cost time.Duration, format string, args ...any) {
-	if !lg.DisableDebug {
-		lg.log(_DebugLevel, trace, cost, fmt.Sprintf(format, args...))
-	}
-}
-
-func (lg *Logger) DebugStack(depth int, trace string, cost time.Duration, args ...any) {
-	if !lg.DisableDebug {
-		lg.stackLog(loggerDepth+depth, _DebugLevel, trace, cost, fmt.Sprint(args...))
-	}
-}
-
-func (lg *Logger) DebugfStack(depth int, trace string, cost time.Duration, format string, args ...any) {
-	if !lg.DisableDebug {
-		lg.stackLog(loggerDepth+depth, _DebugLevel, trace, cost, fmt.Sprintf(format, args...))
-	}
-}
-
-func (lg *Logger) Info(trace string, cost time.Duration, args ...any) {
+func (lg *Logger) Info(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
 	if !lg.DisableInfo {
-		lg.log(_InfoLevel, trace, cost, fmt.Sprint(args...))
+		var s string
+		if len(args) > 0 {
+			s = fmt.Sprintf(formatOrText, args...)
+		} else {
+			s = formatOrText
+		}
+		if stack < 0 {
+			lg.log(_InfoLevel, trace, cost, s)
+		} else {
+			lg.stackLog(stack, _InfoLevel, trace, cost, s)
+		}
 	}
 }
 
-func (lg *Logger) Infof(trace string, cost time.Duration, format string, args ...any) {
-	if !lg.DisableInfo {
-		lg.log(_InfoLevel, trace, cost, fmt.Sprintf(format, args...))
-	}
-}
-
-func (lg *Logger) InfoStack(depth int, trace string, cost time.Duration, args ...any) {
-	if !lg.DisableInfo {
-		lg.stackLog(loggerDepth+depth, _InfoLevel, trace, cost, fmt.Sprint(args...))
-	}
-}
-
-func (lg *Logger) InfofStack(depth int, trace string, cost time.Duration, format string, args ...any) {
-	if !lg.DisableInfo {
-		lg.stackLog(loggerDepth+depth, _InfoLevel, trace, cost, fmt.Sprintf(format, args...))
-	}
-}
-
-func (lg *Logger) Warn(trace string, cost time.Duration, args ...any) {
+func (lg *Logger) Warn(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
 	if !lg.DisableWarn {
-		lg.log(_WarnLevel, trace, cost, fmt.Sprint(args...))
+		var s string
+		if len(args) > 0 {
+			s = fmt.Sprintf(formatOrText, args...)
+		} else {
+			s = formatOrText
+		}
+		if stack < 0 {
+			lg.log(_WarnLevel, trace, cost, s)
+		} else {
+			lg.stackLog(stack, _WarnLevel, trace, cost, s)
+		}
 	}
 }
 
-func (lg *Logger) Warnf(trace string, cost time.Duration, format string, args ...any) {
-	if !lg.DisableWarn {
-		lg.log(_WarnLevel, trace, cost, fmt.Sprintf(format, args...))
-	}
-}
-
-func (lg *Logger) WarnStack(depth int, trace string, cost time.Duration, args ...any) {
-	if !lg.DisableWarn {
-		lg.stackLog(loggerDepth+depth, _WarnLevel, trace, cost, fmt.Sprint(args...))
-	}
-}
-
-func (lg *Logger) WarnfStack(depth int, trace string, cost time.Duration, format string, args ...any) {
-	if !lg.DisableWarn {
-		lg.stackLog(loggerDepth+depth, _WarnLevel, trace, cost, fmt.Sprintf(format, args...))
-	}
-}
-
-func (lg *Logger) Error(trace string, cost time.Duration, args ...any) {
+func (lg *Logger) Error(stack int, trace string, cost time.Duration, formatOrText string, args ...any) {
 	if !lg.DisableError {
-		lg.log(_ErrorLevel, trace, cost, fmt.Sprint(args...))
-	}
-}
-
-func (lg *Logger) Errorf(trace string, cost time.Duration, format string, args ...any) {
-	if !lg.DisableError {
-		lg.log(_ErrorLevel, trace, cost, fmt.Sprintf(format, args...))
-	}
-}
-
-func (lg *Logger) ErrorStack(depth int, trace string, cost time.Duration, args ...any) {
-	if !lg.DisableError {
-		lg.stackLog(loggerDepth+depth, _ErrorLevel, trace, cost, fmt.Sprint(args...))
-	}
-}
-
-func (lg *Logger) ErrorfStack(depth int, trace string, cost time.Duration, format string, args ...any) {
-	if !lg.DisableError {
-		lg.stackLog(loggerDepth+depth, _ErrorLevel, trace, cost, fmt.Sprintf(format, args...))
+		var s string
+		if len(args) > 0 {
+			s = fmt.Sprintf(formatOrText, args...)
+		} else {
+			s = formatOrText
+		}
+		if stack < 0 {
+			lg.log(_ErrorLevel, trace, cost, s)
+		} else {
+			lg.stackLog(stack, _ErrorLevel, trace, cost, s)
+		}
 	}
 }

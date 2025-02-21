@@ -16,6 +16,8 @@ type PresetQuery struct {
 	Item []*xml.MessagePresetListItem
 	// 总数
 	Total int64
+	// 追踪标识
+	TraceID string
 }
 
 // SendPresetQuery 查询预置位
@@ -27,5 +29,5 @@ func SendPresetQuery(ctx context.Context, m *PresetQuery) ([]*xml.MessagePresetL
 	body.DeviceID = m.ChannelID
 	body.SN = sip.GetSNString()
 	// 请求
-	return m.Item, request.SendReplyMessage(ctx, m.Ser, m.Device, &body, m)
+	return m.Item, request.SendReplyMessage(ctx, m.TraceID, m.Ser, m.Device, &body, m)
 }

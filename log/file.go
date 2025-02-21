@@ -296,7 +296,7 @@ func (f *File) openFile() {
 		return
 	}
 	// 创建日志文件，root/date/time.ms
-	timeFile := filepath.Join(dateDir, now.Format(f.fileNameFormat))
+	timeFile := filepath.Join(dateDir, now.Format(f.fileNameFormat)+".log")
 	f.file, err = os.OpenFile(timeFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 	if nil != err {
 		fmt.Fprintln(os.Stderr, err)

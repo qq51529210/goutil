@@ -25,6 +25,8 @@ type RecordInfo struct {
 	// 因为可能需要在接收到设备的数据后
 	// 立即转发给上级，这里可以带相关的数据
 	Data any
+	// 追踪标识
+	TraceID string
 }
 
 // SendRecordInfo 查询录像文件
@@ -42,5 +44,5 @@ func SendRecordInfo(ctx context.Context, m *RecordInfo) ([]*xml.Record, error) {
 		body.Type = "all"
 	}
 	// 请求
-	return m.Item, request.SendReplyMessage(ctx, m.Ser, m.Device, &body, m)
+	return m.Item, request.SendReplyMessage(ctx, m.TraceID, m.Ser, m.Device, &body, m)
 }

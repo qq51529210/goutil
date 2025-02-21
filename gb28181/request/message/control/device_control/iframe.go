@@ -12,6 +12,8 @@ type IFame struct {
 	Ser       *sip.Server
 	Device    request.Request
 	ChannelID string
+	// 追踪标识
+	TraceID string
 }
 
 // SendIFame 强制关键帧
@@ -25,5 +27,5 @@ func SendIFame(ctx context.Context, m *IFame) error {
 	body.SN = sip.GetSNString()
 	body.IFameCmd = "Send"
 	// 请求
-	return request.SendMessage(ctx, m.Ser, m.Device, &body, nil)
+	return request.SendMessage(ctx, m.TraceID, m.Ser, m.Device, &body, nil)
 }

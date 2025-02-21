@@ -15,6 +15,8 @@ type Catalog struct {
 	EndTime   string
 	// 已接收的个数
 	Item []*xml.Device
+	// 追踪标识
+	TraceID string
 }
 
 // SendCatalog 目录查询
@@ -28,5 +30,5 @@ func SendCatalog(ctx context.Context, m *Catalog) ([]*xml.Device, error) {
 	body.StartTime = m.StartTime
 	body.EndTime = m.EndTime
 	// 请求
-	return m.Item, request.SendReplyMessage(ctx, m.Ser, m.Device, &body, m)
+	return m.Item, request.SendReplyMessage(ctx, m.TraceID, m.Ser, m.Device, &body, m)
 }

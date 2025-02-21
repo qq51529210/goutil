@@ -61,7 +61,7 @@ func (s *tcpServer) Serve(address string) error {
 	go s.checkActiveTxRoutine()
 	go s.checkPassiveTxRoutine()
 	// 日志
-	s.s.logger.Infof("", 0, "listen tcp %s", address)
+	s.s.logger.Info(-1, "", 0, "listen tcp %s", address)
 	// 状态
 	atomic.StoreInt32(&s.ok, 1)
 	// 返回
@@ -82,7 +82,7 @@ func (s *tcpServer) listenRoutine() {
 		// 接受
 		conn, err := s.listener.AcceptTCP()
 		if err != nil {
-			s.s.logger.Errorf("", 0, "tcp accept error: %v", err)
+			s.s.logger.Error(-1, "", 0, "tcp accept error: %v", err)
 			continue
 		}
 		// 开协程处理处理
@@ -100,7 +100,7 @@ func (s *tcpServer) addConn(conn *net.TCPConn) *tcpConn {
 	c.conn = conn
 	c.remoteIP = a.IP.String()
 	c.remotePort = a.Port
-	c.remoteAddr = fmt.Sprintf("%s:%d", c.remoteIP, c.remotePort)
+	c.remoteAddr = fmt.Sprint(-1, "%s:%d", c.remoteIP, c.remotePort)
 	c.key.Init(a.IP, a.Port)
 	// 添加
 	s.conn.Set(c.key, c)
@@ -144,13 +144,13 @@ func (s *tcpServer) handleConnRoutine(c *tcpConn) {
 	for s.isOK() {
 		// 设置超时
 		if err := c.conn.SetReadDeadline(time.Now().Add(s.maxIdleTime)); err != nil {
-			s.s.logger.Errorf("", 0, "tcp set read deadline error: %v", err)
+			s.s.logger.Error(-1, "", 0, "tcp set read deadline error: %v", err)
 			return
 		}
 		// 解析，错误直接返回关闭连接
 		m := new(Message)
 		if err := m.Dec(r, s.s.maxMessageLen); err != nil {
-			s.s.logger.Errorf("", 0, "tcp parse message error: %v", err)
+			s.s.logger.Error(-1, "", 0, "tcp parse message error: %v", err)
 			return
 		}
 		// 处理
@@ -203,12 +203,12 @@ func (s *tcpServer) handleRequestRoutine(c *tcpConn, t *tcpPassiveTx, m *Message
 		// 结束
 		s.w.Done()
 		// 日志
-		s.s.logger.Debug(t.id, time.Since(cost), "handle done")
+		s.s.logger.Debug(-1, t.trace, time.Since(cost), "handle done")
 		// 异常
 		s.s.logger.Recover(recover())
 	}()
 	// 日志
-	s.s.logger.Debugf(t.id, 0, "request from tcp %s \n%v", c.remoteAddr, m)
+	s.s.logger.Debug(-1, t.trace, 0, "request from tcp %s \n%v", c.remoteAddr, m)
 	// 上下文
 	var ctx Request
 	ctx.tx = t
@@ -230,16 +230,19 @@ func (s *tcpServer) handleRequestRoutine(c *tcpConn, t *tcpPassiveTx, m *Message
 
 // handleResponseRoutine 在协程中处理响应消息
 func (s *tcpServer) handleResponseRoutine(c *tcpConn, t *tcpActiveTx, m *Message, f *resFuncChain) {
+	cost := time.Now()
 	defer func() {
 		// 结束
 		s.w.Done()
 		// 无论回调有没有通知，这里都通知一下
 		t.finish(nil)
+		// 日志
+		s.s.logger.Debug(-1, t.trace, time.Since(cost), "handle done")
 		// 异常
 		s.s.logger.Recover(recover())
 	}()
 	// 日志
-	s.s.logger.Debugf(t.id, 0, "response from tcp %s \n%v", c.remoteAddr, m)
+	s.s.logger.Debug(-1, t.trace, 0, "response from tcp %s \n%v", c.remoteAddr, m)
 	// 上下文
 	var ctx Response
 	ctx.tx = t
@@ -293,7 +296,7 @@ func (s *tcpServer) checkActiveTxRoutine() {
 }
 
 // newActiveTx 添加并返回，用于主动发送请求
-func (s *tcpServer) newActiveTx(id string, data any) (*tcpActiveTx, bool) {
+func (s *tcpServer) newActiveTx(id, trace string, data any) (*tcpActiveTx, bool) {
 	// 锁
 	s.activeTx.Lock()
 	defer s.activeTx.Unlock()
@@ -305,6 +308,11 @@ func (s *tcpServer) newActiveTx(id string, data any) (*tcpActiveTx, bool) {
 	// 新的
 	t = new(tcpActiveTx)
 	t.id = id
+	if trace == "" {
+		t.trace = trace
+	} else {
+		t.trace = trace
+	}
 	t.deadline = time.Now().Add(s.s.msgTimeout)
 	t.done = make(chan struct{})
 	t.data = data
@@ -380,6 +388,7 @@ func (s *tcpServer) newPassiveTx(id string) *tcpPassiveTx {
 	if t == nil {
 		t = new(tcpPassiveTx)
 		t.id = id
+		t.trace = id
 		t.deadline = time.Now().Add(s.s.msgTimeout)
 		t.done = make(chan struct{})
 		//
@@ -440,7 +449,7 @@ func (s *tcpServer) shutdownPassiveTx() {
 }
 
 // Request 发送请求
-func (s *tcpServer) Request(ctx context.Context, msg *Message, addr *net.TCPAddr, data any) error {
+func (s *tcpServer) Request(ctx context.Context, trace string, msg *Message, addr *net.TCPAddr, data any) error {
 	cost := time.Now()
 	// 连接
 	conn := s.getConn(addr)
@@ -456,7 +465,7 @@ func (s *tcpServer) Request(ctx context.Context, msg *Message, addr *net.TCPAddr
 		go s.handleConnRoutine(c)
 	}
 	// 事务
-	t, ok := s.newActiveTx(msg.TxKey(), data)
+	t, ok := s.newActiveTx(msg.TxKey(), trace, data)
 	// 第一次
 	if !ok {
 		if err := t.writeMsg(conn, msg); err != nil {
@@ -465,7 +474,7 @@ func (s *tcpServer) Request(ctx context.Context, msg *Message, addr *net.TCPAddr
 		}
 	}
 	// 日志
-	s.s.logger.Debugf(t.id, 0, "request to tcp %s \n%v", conn.remoteAddr, msg)
+	s.s.logger.Debug(-1, t.trace, 0, "request to tcp %s \n%v", conn.remoteAddr, msg)
 	// 等待
 	var err error
 	select {
@@ -477,7 +486,7 @@ func (s *tcpServer) Request(ctx context.Context, msg *Message, addr *net.TCPAddr
 		err = t.Err()
 	}
 	// 日志
-	s.s.logger.Debug(t.id, time.Since(cost), "done")
+	s.s.logger.Debug(-1, t.trace, time.Since(cost), "done")
 	// 移除
 	s.deleteActiveTx(t, err)
 	if err == ErrFinish {

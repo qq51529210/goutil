@@ -14,6 +14,8 @@ type RecordInfo struct {
 	SN       string
 	DeviceID string
 	Items    []*xml.Record
+	// 追踪标识
+	TraceID string
 }
 
 // SendRecordInfo 设备录像文件查询结果应答
@@ -29,7 +31,7 @@ func SendRecordInfo(ctx context.Context, m *RecordInfo) error {
 	body.RecordList = new(xml.MessageRecordList)
 	// 发送
 	if body.SumNum == 0 {
-		return request.SendMessage(ctx, m.Ser, m.Cascade, &body, m)
+		return request.SendMessage(ctx, m.TraceID, m.Ser, m.Cascade, &body, m)
 	}
 	// 3 条一起吧，差不多 1500 了
 	body.RecordList.Item = make([]*xml.Record, 0, 3)
@@ -48,7 +50,7 @@ func SendRecordInfo(ctx context.Context, m *RecordInfo) error {
 			body.RecordList.Item[i].DeviceID = m.DeviceID
 		}
 		// 这个要替换一下
-		if err := request.SendMessage(ctx, m.Ser, m.Cascade, &body, m); err != nil {
+		if err := request.SendMessage(ctx, m.TraceID, m.Ser, m.Cascade, &body, m); err != nil {
 			return err
 		}
 	}

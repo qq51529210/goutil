@@ -120,6 +120,8 @@ type PTZ struct {
 	Ser       *sip.Server
 	Device    request.Request
 	ChannelID string
+	// 追踪标识
+	TraceID string
 }
 
 // Cmd 返回 cmd 字符串
@@ -323,5 +325,5 @@ func SendPTZRaw(ctx context.Context, m *PTZ) error {
 		body.Info.ControlPriority = m.ControlPriority
 	}
 	// 请求
-	return request.SendMessage(ctx, m.Ser, m.Device, &body, nil)
+	return request.SendMessage(ctx, m.TraceID, m.Ser, m.Device, &body, nil)
 }

@@ -14,6 +14,8 @@ type PresetQuery struct {
 	SN       string
 	DeviceID string
 	Items    []*xml.MessagePresetListItem
+	// 追踪标识
+	TraceID string
 }
 
 // SendPresetQuery 预置位查询结果应答
@@ -30,5 +32,5 @@ func SendPresetQuery(ctx context.Context, m *PresetQuery) error {
 	body.PresetList.Num = int64(len(items))
 	body.PresetList.Item = items
 	// 发送
-	return request.SendMessage(ctx, m.Ser, m.Cascade, &body, m)
+	return request.SendMessage(ctx, m.TraceID, m.Ser, m.Cascade, &body, m)
 }

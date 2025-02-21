@@ -21,6 +21,8 @@ type Record struct {
 	Device    request.Request
 	ChannelID string
 	Cmd       RecordCmd
+	// 追踪标识
+	TraceID string
 }
 
 // SendRecord 录像控制
@@ -35,5 +37,5 @@ func SendRecord(ctx context.Context, m *Record) (string, error) {
 	body.RecordCmd = string(m.Cmd)
 	// 请求
 	var res request.XMLResult
-	return res.Result, request.SendReplyMessage(ctx, m.Ser, m.Device, &body, &res)
+	return res.Result, request.SendReplyMessage(ctx, m.TraceID, m.Ser, m.Device, &body, &res)
 }
