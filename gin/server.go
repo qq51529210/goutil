@@ -17,8 +17,6 @@ type Server struct {
 	PProf string
 	// swagger 文档的路径，空则不开启
 	Swagger string
-	// 注册验证器回调
-	RegisterValidator func(*gin.Engine) error
 	// 注册路由回调
 	RegisterRoute func(gin.IRouter)
 }
@@ -26,12 +24,6 @@ type Server struct {
 func (s *Server) Serve() error {
 	// gin
 	g := gin.New()
-	// 注册验证
-	if s.RegisterValidator != nil {
-		if err := s.RegisterValidator(g); err != nil {
-			return err
-		}
-	}
 	// 注册路由
 	if s.RegisterRoute != nil {
 		s.RegisterRoute(g)
