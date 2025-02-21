@@ -43,7 +43,7 @@ func TranslateZH(err error) string {
 	}
 }
 
-func ZH_CN(fieldLabel string, customRegister func(v *validator.Validate) error) error {
+func ZH_CN(fieldLabel string, customRegister func(v *validator.Validate, t ut.Translator) error) error {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		_zh := zh.New()
 		_ut := ut.New(_zh, _zh)
@@ -64,7 +64,7 @@ func ZH_CN(fieldLabel string, customRegister func(v *validator.Validate) error) 
 		}
 		// 自定义
 		if customRegister != nil {
-			return customRegister(v)
+			return customRegister(v, _t)
 		}
 		//
 		return nil
