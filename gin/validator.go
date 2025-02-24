@@ -1,7 +1,9 @@
 package gin
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -38,6 +40,10 @@ func TranslateZH(err error) string {
 			}
 		}
 		return strings.Join(str, ",")
+	case *json.UnmarshalTypeError:
+		return fmt.Sprintf("%s字段类型不正确，应为%s", _err.Field, _err.Type.String())
+	case *json.UnsupportedTypeError:
+		return fmt.Sprintf("字段类型%s无法解析", _err.Type.String())
 	default:
 		return "未知错误"
 	}
