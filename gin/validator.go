@@ -54,6 +54,7 @@ func ZH_CN(fieldLabel string, customRegister func(v *validator.Validate, t ut.Tr
 		_zh := zh.New()
 		_ut := ut.New(_zh, _zh)
 		_t, _ := _ut.GetTranslator("zh")
+		zhTrans = _t
 		// 设置
 		if fieldLabel != "" {
 			v.RegisterTagNameFunc(func(field reflect.StructField) string {
