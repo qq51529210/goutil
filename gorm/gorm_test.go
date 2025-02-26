@@ -2,14 +2,14 @@ package gorm
 
 import (
 	"fmt"
+	"goutil/log"
 	"testing"
-
-	"gorm.io/gorm/clause"
 )
 
 type InitMysqlJSONSetT struct {
 	ID int64
 	JF []byte `gorm:"type:json"`
+	DL string `gorm:"type:varchar(12)"`
 }
 
 type InitMysqlJSONSetTJF1 struct {
@@ -44,29 +44,39 @@ func Test_InitMysqlJSONSet(t *testing.T) {
 	}
 	//
 	m := &InitMysqlJSONSetT{}
-	{
-		err = db.AutoMigrate(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		m.ID = 4
-		m.JF = []byte(`{"a1":1,"F5":{},"F6":{"a1":22}}`)
-		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(m).Error; err != nil {
-			t.Fatal(err)
-		}
+	if err := db.AutoMigrate(m); err != nil {
+		t.Fatal(err)
 	}
-	{
-		d1 := &InitMysqlJSONSetTJF1{}
-		// d1.f1 = "f1"
-		d1.F1 = 1
-		// d1.F3 = "f3"
-		// d1.F4 = "f4"
-		d1.InitMysqlJSONSetJF2.F1 = "conv"
-		d1.F5.F1 = "f5.f1"
-		d1.F5.F2 = 123
-		if err := db.Model(m).UpdateColumn("JF", InitMysqlJSONSet(d1, "JF")).Error; err != nil {
-			t.Fatal(err)
-		}
+	db.Config.Logger = NewLog(log.DefaultLogger)
+	//
+	var res PageResult[*InitMysqlJSONSetT]
+	if err := Page(db, &PageQuery{}, &res, "ID", "DL"); err != nil {
+		t.Fatal(err)
 	}
+	//
+	// {
+	// 	err = db.AutoMigrate(m)
+	// 	if err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// 	m.ID = 4
+	// 	m.JF = []byte(`{"a1":1,"F5":{},"F6":{"a1":22}}`)
+	// 	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(m).Error; err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// }
+	// {
+	// 	d1 := &InitMysqlJSONSetTJF1{}
+	// 	// d1.f1 = "f1"
+	// 	d1.F1 = 1
+	// 	// d1.F3 = "f3"
+	// 	// d1.F4 = "f4"
+	// 	d1.InitMysqlJSONSetJF2.F1 = "conv"
+	// 	d1.F5.F1 = "f5.f1"
+	// 	d1.F5.F2 = 123
+	// 	if err := db.Model(m).UpdateColumn("JF", InitMysqlJSONSet(d1, "JF")).Error; err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// }
 	fmt.Println()
 }

@@ -55,7 +55,7 @@ type PageResult[M any] struct {
 }
 
 // Page 用于分页查询
-func Page[M any](db *gorm.DB, page *PageQuery, res *PageResult[M]) error {
+func Page[M any](db *gorm.DB, page *PageQuery, res *PageResult[M], fields ...string) error {
 	if page != nil {
 		// 总数
 		if page.HasTotal() {
@@ -67,6 +67,9 @@ func Page[M any](db *gorm.DB, page *PageQuery, res *PageResult[M]) error {
 		db = page.InitDB(db)
 	}
 	// 查询
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
 	if err := db.Find(&res.Data).Error; err != nil {
 		return err
 	}
