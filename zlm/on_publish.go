@@ -54,6 +54,8 @@ type OnPublishRes struct {
 	MP4AsPlayer bool `json:"mp4_as_player,omitempty"`
 	// 是否开启时间戳覆盖
 	ModifyStamp bool `json:"modify_stamp,omitempty"`
+	// 自定义上下文数据注入
+	UserData string `json:"userdata"`
 }
 
 // OnPublish 处理 zlm 的 on_publish 回调
