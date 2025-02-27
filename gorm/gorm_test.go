@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"fmt"
 	"goutil/log"
 	"testing"
@@ -47,7 +48,10 @@ func Test_InitMysqlJSONSet(t *testing.T) {
 	if err := db.AutoMigrate(m); err != nil {
 		t.Fatal(err)
 	}
-	db.Config.Logger = NewLog(log.DefaultLogger)
+	traceKey := "kkk"
+	db.Config.Logger = NewLog(log.DefaultLogger, traceKey)
+	//
+	db = db.WithContext(context.WithValue(context.Background(), traceKey, "zxcvxzdad"))
 	//
 	var res PageResult[*InitMysqlJSONSetT]
 	if err := Page(db, &PageQuery{}, &res, "ID", "DL"); err != nil {
