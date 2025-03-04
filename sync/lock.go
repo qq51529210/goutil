@@ -84,9 +84,13 @@ func (l *Locker) work(now time.Time) {
 		return
 	}
 	// 抢到
-	if l.locked && atomic.CompareAndSwapInt32(&l.handing, 0, 1) && now.Sub(l.time) >= l.h.HandleInterval() {
-		l.time = now
-		go l.handleRoutine()
+	if l.locked && atomic.CompareAndSwapInt32(&l.handing, 0, 1) {
+		if now.Sub(l.time) >= l.h.HandleInterval() {
+			l.time = now
+			go l.handleRoutine()
+		} else {
+			atomic.StoreInt32(&l.handing, 0)
+		}
 	}
 }
 
