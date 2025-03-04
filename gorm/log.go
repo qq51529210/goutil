@@ -5,7 +5,6 @@ import (
 	"goutil/log"
 	"time"
 
-	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
@@ -49,10 +48,7 @@ func (g *Log) Trace(ctx context.Context, begin time.Time, fc func() (sql string,
 	//
 	trace, _ := ctx.Value(g.tk).(string)
 	if err != nil {
-		if err != gorm.ErrRecordNotFound {
-			g.lg.Errorf(-1, trace, time.Since(begin), "%s error: %s", sql, err.Error())
-			return
-		}
+		g.lg.Errorf(-1, trace, time.Since(begin), "%s error: %s", sql, err.Error())
 	} else {
 		g.lg.Debug(-1, trace, time.Since(begin), sql)
 	}

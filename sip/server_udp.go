@@ -78,7 +78,7 @@ func (s *udpServer) initConn(c *udpConn, a *net.UDPAddr) {
 	c.addr = a
 	c.remoteIP = a.IP.String()
 	c.remotePort = a.Port
-	c.remoteAddr = fmt.Sprint(-1, "%s:%d", c.remoteIP, c.remotePort)
+	c.remoteAddr = fmt.Sprintf("%s:%d", c.remoteIP, c.remotePort)
 }
 
 // readUDPRoutine 读取 udp 数据，解析成 Message ，然后处理
