@@ -1,83 +1,91 @@
 package sync
 
 import (
-	"goutil/log"
 	"sync/atomic"
 	"time"
 )
 
+// 接口
+type LockHandler interface {
+	// 抢锁
+	Lock() (bool, error)
+	// 是否到时间启用回调
+	LockInterval() time.Duration
+	// 是否到时间启用回调
+	HandleInterval() time.Duration
+	// 是否启用
+	IsEnable() bool
+	// 回调
+	Handle()
+	// 回调
+	OnError(error)
+}
+
 // Locker 用于控制在部署多个服务时，确保只有一个服务在执行定时任务
 type Locker struct {
-	// 日志
-	Trace  string
-	Logger *log.Logger
-	// 抢锁周期
-	Interval time.Duration
-	// 抢锁
-	Lock func() (bool, error)
-	// 时间到了，是否启动协程回调 Handle
-	IsTimeup func(d time.Duration) bool
-	// 启用/禁用，协程还是在跑，只是不会回调 Handle
-	IsEnabled func() bool
-	// 在协程中回调
-	Handle func()
+	h LockHandler
 	// 是否抢到
 	locked bool
-	// 并发控制
-	time    time.Time
+	// 通知
+	exit *Signal[struct{}]
+	// 上一次调用的时间
+	time time.Time
+	// 是否正在调用
 	handing int32
 }
 
-// IsLocked 是否获得锁
-func (l *Locker) IsLocked() bool {
+// 开始抢锁
+func RunLocker(handler LockHandler) *Locker {
+	l := new(Locker)
+	l.h = handler
+	l.exit = NewSignal[struct{}]()
+	go l.routine()
+	return l
+}
+
+// 是否获得锁
+func (l *Locker) Locked() bool {
 	return l.locked
 }
 
-// Run 开始
-func (l *Locker) Run() {
-	go l.routine()
+// 停止抢锁
+func (l *Locker) Stop() {
+	l.exit.Close(struct{}{})
 }
 
-// routine 抢锁协程
+// 并发抢锁
 func (l *Locker) routine() {
-	defer func() {
-		// 异常
-		l.Logger.Recover(recover())
-		// 日志
-		l.Logger.Debug(-1, l.Trace, 0, "stop")
-	}()
-	defaultInterval := time.Second * 3
-	// 执行
-	l.Logger.Debug(-1, l.Trace, 0, "start")
+	// 计时器
 	timer := time.NewTimer(0)
+	defer timer.Stop()
 	for {
-		now := <-timer.C
-		// 处理
-		l.handle(&now)
-		// 休息
-		if l.Interval > 0 {
-			timer.Reset(l.Interval)
-		} else {
-			timer.Reset(defaultInterval)
+		select {
+		case <-l.exit.C:
+			return
+		case now := <-timer.C:
+			// 处理
+			l.work(now)
 		}
+		// 休息
+		timer.Reset(l.h.LockInterval())
 	}
 }
 
-func (l *Locker) handle(now *time.Time) {
+func (l *Locker) work(now time.Time) {
 	// 禁用
-	if !l.IsEnabled() {
+	if !l.h.IsEnable() {
 		return
 	}
 	// 抢锁
 	var err error
-	l.locked, err = l.Lock()
+	l.locked, err = l.h.Lock()
 	if err != nil {
-		l.Logger.Errorf(-1, l.Trace, 0, "get lock error: %v", err)
+		l.h.OnError(err)
 		return
 	}
 	// 抢到
-	if l.locked && l.IsTimeup(now.Sub(l.time)) && atomic.CompareAndSwapInt32(&l.handing, 0, 1) {
-		l.time = *now
+	if l.locked && atomic.CompareAndSwapInt32(&l.handing, 0, 1) && now.Sub(l.time) >= l.h.HandleInterval() {
+		l.time = now
 		go l.handleRoutine()
 	}
 }
@@ -85,10 +93,7 @@ func (l *Locker) handle(now *time.Time) {
 // lockRoutine 处理
 func (l *Locker) handleRoutine() {
 	defer func() {
-		// 异常
-		l.Logger.Recover(recover())
-		// 标记
 		atomic.StoreInt32(&l.handing, 0)
 	}()
-	l.Handle()
+	l.h.Handle()
 }
