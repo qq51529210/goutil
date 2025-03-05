@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	gs "goutil/sync"
+	"goutil/uid"
 	"net"
 	"os"
 	"strings"
@@ -166,7 +167,7 @@ func (s *tcpServer) handleMsg(conn *tcpConn, msg *Message) {
 		hf := s.s.handleFunc.reqFunc[method]
 		if len(hf) > 0 {
 			// 事务
-			t := s.newPassiveTx(msg.TxKey())
+			t := s.newPassiveTx(msg.TxKey(), uid.SnowflakeIDString())
 			// 已经完成处理
 			if atomic.LoadInt32(&t.ok) == 1 {
 				return
@@ -379,7 +380,7 @@ func (s *tcpServer) checkPassiveTxRoutine() {
 }
 
 // newPassiveTx 添加并返回，用于被动接收请求
-func (s *tcpServer) newPassiveTx(id string) *tcpPassiveTx {
+func (s *tcpServer) newPassiveTx(id, trace string) *tcpPassiveTx {
 	// 锁
 	s.passiveTx.Lock()
 	defer s.passiveTx.Unlock()
@@ -388,7 +389,7 @@ func (s *tcpServer) newPassiveTx(id string) *tcpPassiveTx {
 	if t == nil {
 		t = new(tcpPassiveTx)
 		t.id = id
-		t.trace = id
+		t.trace = trace
 		t.deadline = time.Now().Add(s.s.msgTimeout)
 		t.done = make(chan struct{})
 		//

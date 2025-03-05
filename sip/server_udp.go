@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	gs "goutil/sync"
+	"goutil/uid"
 	"io"
 	"net"
 	"os"
@@ -136,7 +137,7 @@ func (s *udpServer) handleMsg(conn *udpConn, msg *Message) {
 		hf := s.s.handleFunc.reqFunc[method]
 		if len(hf) > 0 {
 			// 事务
-			t := s.newPassiveTx(msg.TxKey())
+			t := s.newPassiveTx(msg.TxKey(), uid.SnowflakeIDString())
 			// 已经完成处理
 			if atomic.LoadInt32(&t.ok) == 1 {
 				s.s.logger.Debug(-1, t.trace, 0, "rewrite response cache")
@@ -445,7 +446,7 @@ func (s *udpServer) checkPassiveTxRoutine() {
 }
 
 // newPassiveTx 添加并返回，用于被动接收请求
-func (s *udpServer) newPassiveTx(id string) *udpPassiveTx {
+func (s *udpServer) newPassiveTx(id, trace string) *udpPassiveTx {
 	// 锁
 	s.passiveTx.Lock()
 	defer s.passiveTx.Unlock()
@@ -454,7 +455,7 @@ func (s *udpServer) newPassiveTx(id string) *udpPassiveTx {
 	if t == nil {
 		t = new(udpPassiveTx)
 		t.id = id
-		t.trace = id
+		t.trace = trace
 		t.deadline = time.Now().Add(s.s.msgTimeout)
 		t.done = make(chan struct{})
 		//
