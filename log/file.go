@@ -135,7 +135,7 @@ func (f *File) Write(b []byte) (int, error) {
 	f.lock.Unlock()
 	// 输出控制台
 	if f.std != nil {
-		f.std.Write(b)
+		_, _ = f.std.Write(b)
 	}
 	//
 	return len(b), nil
@@ -147,7 +147,7 @@ func (f *File) checkExpireRoutine(dur time.Duration) {
 	timer := time.NewTicker(dur)
 	defer func() {
 		// 异常
-		recover()
+		_ = recover()
 		// 计时器
 		timer.Stop()
 		// 结束
@@ -175,7 +175,7 @@ func (f *File) syncRoutine(dur time.Duration) {
 	timer := time.NewTicker(dur)
 	defer func() {
 		// 异常
-		recover()
+		_ = recover()
 		// 计时器
 		timer.Stop()
 		// 剩余的数据
@@ -318,14 +318,12 @@ func (f *File) openLastFile() {
 	dateDir := filepath.Join(f.rootDir, now.Format(f.dirNameFormat))
 	err := os.MkdirAll(dateDir, os.ModePerm)
 	if nil != err {
-		fmt.Fprintln(os.Stderr, err)
-		return
+		panic(err)
 	}
 	// 读取根目录下的所有文件
 	dirEntries, err := os.ReadDir(dateDir)
 	if nil != err {
-		fmt.Fprintln(os.Stderr, err)
-		return
+		panic(err)
 	}
 	// 没有文件
 	fileName := now.Format(f.fileNameFormat)
@@ -342,8 +340,7 @@ func (f *File) openLastFile() {
 				dirEntry := dirEntries[i]
 				fi, err := dirEntry.Info()
 				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					continue
+					panic(err)
 				}
 				m := fi.ModTime()
 				if m.After(lastTime) {
@@ -358,14 +355,14 @@ func (f *File) openLastFile() {
 		}
 	}
 	// 创建日志文件，root/date/time.ms
-	timeFile := filepath.Join(dateDir, fileName)
+	timeFile := filepath.Join(dateDir, fileName+".log")
 	f.file, err = os.OpenFile(timeFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 	if nil != err {
-		fmt.Fprintln(os.Stderr, err)
+		panic(err)
 	}
 	fi, err := f.file.Stat()
 	if nil != err {
-		fmt.Fprintln(os.Stderr, err)
+		panic(err)
 	}
 	f.curFileSize = fi.Size()
 }

@@ -174,7 +174,7 @@ func (lg *Logger) Recover(v any) bool {
 		l.b = append(l.b, '\n')
 	}
 	// 输出
-	lg.Writer.Write(l.b)
+	_, _ = lg.Writer.Write(l.b)
 	// 回收
 	logPool.Put(b)
 	logPool.Put(l)
@@ -206,7 +206,7 @@ func (lg *Logger) log(level int, trace string, cost time.Duration, text string) 
 	// 换行
 	l.b = append(l.b, '\n')
 	// 输出
-	lg.Writer.Write(l.b)
+	_, _ = lg.Writer.Write(l.b)
 	// 回收
 	logPool.Put(l)
 }
@@ -235,7 +235,7 @@ func (lg *Logger) stackLog(depth, level int, trace string, cost time.Duration, t
 	// 换行
 	l.b = append(l.b, '\n')
 	// 输出
-	lg.Writer.Write(l.b)
+	_, _ = lg.Writer.Write(l.b)
 	// 回收
 	logPool.Put(l)
 }
