@@ -101,7 +101,7 @@ func (s *tcpServer) addConn(conn *net.TCPConn) *tcpConn {
 	c.conn = conn
 	c.remoteIP = a.IP.String()
 	c.remotePort = a.Port
-	c.remoteAddr = fmt.Sprint(-1, "%s:%d", c.remoteIP, c.remotePort)
+	c.remoteAddr = fmt.Sprintf("%s:%d", c.remoteIP, c.remotePort)
 	c.key.Init(a.IP, a.Port)
 	// 添加
 	s.conn.Set(c.key, c)
