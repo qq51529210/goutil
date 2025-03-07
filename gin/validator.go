@@ -49,6 +49,10 @@ func TranslateZH(err error) string {
 	}
 }
 
+func GetTranslateZH() ut.Translator {
+	return zhTrans
+}
+
 func ZH_CN(fieldLabel string, customRegister func(v *validator.Validate, t ut.Translator) error) error {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		_zh := zh.New()
