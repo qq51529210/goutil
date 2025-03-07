@@ -355,7 +355,7 @@ func (f *File) openLastFile() {
 		}
 	}
 	// 创建日志文件，root/date/time.ms
-	timeFile := filepath.Join(dateDir, fileName+".log")
+	timeFile := filepath.Join(dateDir, fileName)
 	f.file, err = os.OpenFile(timeFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 	if nil != err {
 		panic(err)
