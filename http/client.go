@@ -38,10 +38,12 @@ func JSONRequest(ctx context.Context, client *http.Client, method, url string, q
 		json.NewEncoder(buf).Encode(data)
 		body = buf
 	}
+	//
 	if header == nil {
 		header = make(map[string]string)
-		header["Content-Type"] = ContentTypeJSON
 	}
+	header["Content-Type"] = ContentTypeJSON
+	//
 	return Request(ctx, client, method, url, query, header, body, onResponse)
 }
 
