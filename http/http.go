@@ -1,7 +1,9 @@
 package http
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // Result 表示返回的结果
@@ -38,4 +40,19 @@ type StatusError int
 
 func (e StatusError) Error() string {
 	return fmt.Sprintf("status code %d", e)
+}
+
+func Json(data any) string {
+	var str strings.Builder
+	enc := json.NewEncoder(&str)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(data)
+	s := str.String()
+	if s != "" {
+		n := len(s) - 1
+		if s[n] == '\n' {
+			s = s[:n]
+		}
+	}
+	return s
 }
